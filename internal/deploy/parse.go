@@ -3,45 +3,22 @@ package deploy
 import (
 	"fmt"
 	"github.com/armory/armory-cli/internal/deng"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/pflag"
+	"github.com/armory/armory-cli/internal/deng/protobuff"
 )
 
-const (
-	ParameterEnvironmentName      = "account"
-	ParameterEnvironmentType      = "account-type"
-	ParameterEnvironmentNamespace = "namespace"
-	ParameterKustomize            = "kustomize"
-	ParameterLocal                = "local"
-	ParameterViaAccount           = "via-account"
-	ParameterViaProvider          = "via-provider"
-	ParameterApplication          = "app"
-	ParameterWait                 = "wait"
-	ParameterVersion              = "version"
-
-	// Strategy flags
-	ParameterStrategy      = "strategy"
-	ParameterStrategySteps = "canary-step"
-)
-
-func newParser(fs *pflag.FlagSet, args []string, log *logrus.Logger) *parser {
-	return &parser{fs: fs, args: args, log: log, dep: &deng.Deployment{}}
+func NewParser(deploymentConfiguration *deng.DeploymentConfiguration) *parser {
+	return &parser{deploymentConfiguration: deploymentConfiguration, dep: &protobuff.Deployment{}}
 }
 
 type parser struct {
-	fs       *pflag.FlagSet
-	args     []string
-	dep      *deng.Deployment
-	log      *logrus.Logger
+	deploymentConfiguration *deng.DeploymentConfiguration
+	dep      *protobuff.Deployment
 	versions map[string]string
 }
 
-func (p *parser) parse() (*deng.Deployment, error) {
-	a, err := p.fs.GetString(ParameterApplication)
-	if err != nil {
-		return nil, err
-	}
-	p.dep.Application = a
+func (p *parser) Parse() (*protobuff.Deployment, error) {
+	application := p.deploymentConfiguration.Application
+	p.dep.Application = application
 
 	// Parse environment
 	if err := p.parseEnvironment(); err != nil {
@@ -49,7 +26,7 @@ func (p *parser) parse() (*deng.Deployment, error) {
 	}
 
 	switch p.dep.Environment.Provider {
-	case deng.KubernetesProvider:
+	case protobuff.KubernetesProvider:
 		// Parse artifacts now that we know the provider
 		if err := p.parseKubernetesArtifacts(); err != nil {
 			return nil, err
@@ -64,32 +41,23 @@ func (p *parser) parse() (*deng.Deployment, error) {
 }
 
 func (p *parser) parseEnvironment() error {
-	t, err := p.fs.GetString(ParameterEnvironmentType)
-	if err != nil {
-		return err
-	}
-	switch t {
-	case deng.KubernetesProvider:
+	environmentType := p.deploymentConfiguration.EnvironmentType
+	switch environmentType {
+	case protobuff.KubernetesProvider:
 		break
 	default:
-		return fmt.Errorf("unknown environment provider %s", t)
+		return fmt.Errorf("unknown environment provider %s", environmentType)
 	}
 
-	n, err := p.fs.GetString(ParameterEnvironmentName)
-	if err != nil {
-		return err
+	environmentName := p.deploymentConfiguration.EnvironmentName
+	p.dep.Environment = &protobuff.Environment{
+		Provider: environmentType,
+		Account:  environmentName,
 	}
-	p.dep.Environment = &deng.Environment{
-		Provider: t,
-		Account:  n,
-	}
-	if t == deng.KubernetesProvider {
-		ns, err := p.fs.GetString(ParameterEnvironmentNamespace)
-		if err != nil {
-			return err
-		}
-		p.dep.Environment.Qualifier = &deng.Environment_Kubernetes{
-			Kubernetes: &deng.KubernetesQualifier{
+	if environmentType == protobuff.KubernetesProvider {
+		ns := p.deploymentConfiguration.EnvironmentNamespace
+		p.dep.Environment.Qualifier = &protobuff.Environment_Kubernetes{
+			Kubernetes: &protobuff.KubernetesQualifier{
 				Namespace: ns,
 			},
 		}
@@ -97,6 +65,6 @@ func (p *parser) parseEnvironment() error {
 	return nil
 }
 
-func (p *parser) parseVia() (*deng.Via, error) {
+func (p *parser) parseVia() (*protobuff.Via, error) {
 	return nil, nil
 }

@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/armory/armory-cli/internal"
-	"github.com/armory/armory-cli/internal/deng"
+	"github.com/armory/armory-cli/internal/deng/protobuff"
+	"github.com/armory/armory-cli/internal/helpers"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/juju/ansiterm"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
@@ -20,7 +20,7 @@ const (
 	ParameterShowEvents = "show-events"
 )
 
-func Execute(ctx context.Context, log *logrus.Logger, cmd *cobra.Command, client deng.DeploymentServiceClient, args []string) error {
+func Execute(ctx context.Context, cmd *cobra.Command, client protobuff.DeploymentServiceClient, args []string) error {
 	if len(args) == 0 {
 		return errors.New("please provide deployment ID")
 	}
@@ -36,13 +36,13 @@ func Execute(ctx context.Context, log *logrus.Logger, cmd *cobra.Command, client
 	}
 
 	depId := args[0]
-	return ShowStatus(ctx, log, depId, client, watch, showEvents)
+	return ShowStatus(ctx, depId, client, watch, showEvents)
 }
 
-func ShowStatus(ctx context.Context, log *logrus.Logger, deploymentId string, client deng.DeploymentServiceClient, watch, showEvents bool) error {
+func ShowStatus(ctx context.Context, deploymentId string, client protobuff.DeploymentServiceClient, watch, showEvents bool) error {
 	// Get the status
 	// Prepare the request
-	req := &deng.GetStatusRequest{
+	req := &protobuff.GetStatusRequest{
 		DeploymentId: deploymentId,
 	}
 
@@ -70,11 +70,11 @@ func ShowStatus(ctx context.Context, log *logrus.Logger, deploymentId string, cl
 	return nil
 }
 
-func PrintStatus(w io.Writer, descriptor *deng.Descriptor) {
+func PrintStatus(w io.Writer, descriptor *protobuff.Descriptor) {
 	printStatus(w, descriptor)
 }
 
-func printStatus(w io.Writer, descriptor *deng.Descriptor) {
+func printStatus(w io.Writer, descriptor *protobuff.Descriptor) {
 	wt := ansiterm.NewTabWriter(w, 0, 0, 2, ' ', 0)
 
 	dt := descriptor.StartedAt
@@ -87,7 +87,7 @@ func printStatus(w io.Writer, descriptor *deng.Descriptor) {
 	_, _ = fmt.Fprintf(wt, "Started By:\t%s\n", descriptor.InitiatedBy)
 	_, _ = fmt.Fprintf(wt, "Environment:\t%s (%s)\n", descriptor.Env.Account, descriptor.Env.Provider)
 	printKubernetesOptions(wt, descriptor.Env.GetKubernetes())
-	_, _ = fmt.Fprintf(wt, "Status:\t%s\n", cli.Status(descriptor.Status))
+	_, _ = fmt.Fprintf(wt, "Status:\t%s\n", helpers.Status(descriptor.Status))
 	_ = wt.Flush()
 
 	// Kubernetes state
@@ -100,7 +100,7 @@ func printEvents(w io.Writer, getter eventGetter) {
 
 	events, eventsErr := getter(context.TODO())
 	if eventsErr != nil {
-		_, _ = fmt.Fprintf(w, cli.AnsiFormat("Error obtaining events\n", cli.FgRed))
+		_, _ = fmt.Fprintf(w, helpers.AnsiFormat("Error obtaining events\n", helpers.FgRed))
 	} else {
 		for _, e := range events {
 			tm := "?"
@@ -115,7 +115,7 @@ func printEvents(w io.Writer, getter eventGetter) {
 	_ = we.Flush()
 }
 
-func printKubernetesOptions(w io.Writer, qualifier *deng.KubernetesQualifier) {
+func printKubernetesOptions(w io.Writer, qualifier *protobuff.KubernetesQualifier) {
 	if qualifier == nil {
 		return
 	}
@@ -126,13 +126,13 @@ func printKubernetesState(w io.Writer, state *any.Any) {
 	if state == nil {
 		return
 	}
-	d := deng.KubernetesDeployment{}
+	d := protobuff.KubernetesDeployment{}
 	if err := state.UnmarshalTo(&d); err != nil {
 		// Ignore
 		return
 	}
 	if len(d.Atomic) == 0 {
-		_, _ = fmt.Fprintf(w, cli.AnsiFormat("\nNo objects deployed\n", cli.Bold))
+		_, _ = fmt.Fprintf(w, helpers.AnsiFormat("\nNo objects deployed\n", helpers.Bold))
 		return
 	}
 
@@ -148,7 +148,7 @@ func printKubernetesState(w io.Writer, state *any.Any) {
 	_ = wt.Flush()
 }
 
-func Watch(ctx context.Context, w io.Writer, descriptor *deng.Descriptor, showEvents bool, client deng.DeploymentServiceClient) error {
+func Watch(ctx context.Context, w io.Writer, descriptor *protobuff.Descriptor, showEvents bool, client protobuff.DeploymentServiceClient) error {
 	// TODO make it a little smarter than a timer
 	// We don't need to check every 5s
 	timer := time.NewTimer(5 * time.Second)
@@ -160,7 +160,7 @@ func Watch(ctx context.Context, w io.Writer, descriptor *deng.Descriptor, showEv
 		case <-timer.C:
 			// TODO don't ignore error
 			_ = wg.tick(ctx)
-			cli.Clear(w)
+			helpers.Clear(w)
 			printStatus(w, descriptor)
 			if showEvents {
 				printEvents(w, wg.getEvents)

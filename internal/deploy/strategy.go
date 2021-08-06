@@ -2,7 +2,7 @@ package deploy
 
 import (
 	"fmt"
-	"github.com/armory/armory-cli/internal/deng"
+	"github.com/armory/armory-cli/internal/deng/protobuff"
 	"strings"
 )
 
@@ -20,19 +20,19 @@ func (p *parser) parseStrategy() error {
 	// TODO fill in more parameters
 	switch strings.ToLower(s) {
 	case strategyUpdate:
-		p.dep.Strategy = map[string]*deng.Strategy{
+		p.dep.Strategy = map[string]*protobuff.Strategy{
 			"default": {
-				Type: &deng.Strategy_Update{
+				Type: &protobuff.Strategy_Update{
 					Update: true,
 				},
 			},
 		}
 		return nil
 	case strategyBlueGreen:
-		p.dep.Strategy = map[string]*deng.Strategy{
+		p.dep.Strategy = map[string]*protobuff.Strategy{
 			"default": {
-				Type: &deng.Strategy_BlueGreen{
-					BlueGreen: &deng.BlueGreen{
+				Type: &protobuff.Strategy_BlueGreen{
+					BlueGreen: &protobuff.BlueGreen{
 						ActiveService:  "active",
 						PreviewService: "preview",
 					},
@@ -45,10 +45,10 @@ func (p *parser) parseStrategy() error {
 		if err != nil {
 			return err
 		}
-		p.dep.Strategy = map[string]*deng.Strategy{
+		p.dep.Strategy = map[string]*protobuff.Strategy{
 			"default": {
-				Type: &deng.Strategy_Canary{
-					Canary: &deng.Canary{
+				Type: &protobuff.Strategy_Canary{
+					Canary: &protobuff.Canary{
 						Steps: steps,
 					},
 				},

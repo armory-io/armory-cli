@@ -3,7 +3,7 @@ package deploy
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/armory/armory-cli/internal/deng"
+	"github.com/armory/armory-cli/internal/deng/protobuff"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/hashicorp/go-getter"
 	"io"
@@ -25,15 +25,9 @@ func (p *parser) parseKubernetesArtifacts() error {
 		return err
 	}
 
-	ku, err := p.fs.GetBool(ParameterKustomize)
-	if err != nil {
-		return err
-	}
+	kustomize := p.deploymentConfiguration.Kustomize
 
-	lcl, err := p.fs.GetBool(ParameterLocal)
-	if err != nil {
-		return err
-	}
+	local := p.deploymentConfiguration.Local
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -46,7 +40,7 @@ func (p *parser) parseKubernetesArtifacts() error {
 
 	// Check in arguments if there are any Kubernetes manifests
 	for _, a := range p.args {
-		if err := p.parseArgAsKubernetesManifest(a, ku, wd, via, lcl); err != nil {
+		if err := p.parseArgAsKubernetesManifest(a, kustomize, wd, via, local); err != nil {
 			return err
 		}
 	}
@@ -72,7 +66,7 @@ func (p *parser) parseVersionOverride() error {
 
 // parseArgAsKubernetesManifest interprets the parameter as a file, parses the Kubernetes manifest
 // and passes it as an artifact. If a directory, all files in that directory are added as artifacts.
-func (p *parser) parseArgAsKubernetesManifest(s string, kustomize bool, wd string, via *deng.Via, local bool) error {
+func (p *parser) parseArgAsKubernetesManifest(s string, kustomize bool, wd string, via *protobuff.Via, local bool) error {
 	p.log.Debugf("parsing %s as Kubernetes manifest", s)
 
 	src, err := getter.Detect(s, wd, getter.Detectors)
@@ -95,13 +89,13 @@ func (p *parser) parseArgAsKubernetesManifest(s string, kustomize bool, wd strin
 	}
 
 	if kustomize {
-		p.dep.Artifacts = append(p.dep.Artifacts, &deng.Artifact{
-			Provider: &deng.Artifact_Kubernetes{
-				Kubernetes: &deng.KubernetesArtifact{
+		p.dep.Artifacts = append(p.dep.Artifacts, &protobuff.Artifact{
+			Provider: &protobuff.Artifact_Kubernetes{
+				Kubernetes: &protobuff.KubernetesArtifact{
 					Versions: p.versions,
-					Type: &deng.KubernetesArtifact_Kustomize{
-						Kustomize: &deng.KustomizeArtifact{
-							Source: &deng.ArtifactSource{
+					Type: &protobuff.KubernetesArtifact_Kustomize{
+						Kustomize: &protobuff.KustomizeArtifact{
+							Source: &protobuff.ArtifactSource{
 								Url: src,
 								Via: via,
 							},
@@ -111,13 +105,13 @@ func (p *parser) parseArgAsKubernetesManifest(s string, kustomize bool, wd strin
 			},
 		})
 	} else {
-		p.dep.Artifacts = append(p.dep.Artifacts, &deng.Artifact{
-			Provider: &deng.Artifact_Kubernetes{
-				Kubernetes: &deng.KubernetesArtifact{
+		p.dep.Artifacts = append(p.dep.Artifacts, &protobuff.Artifact{
+			Provider: &protobuff.Artifact_Kubernetes{
+				Kubernetes: &protobuff.KubernetesArtifact{
 					Versions: p.versions,
-					Type: &deng.KubernetesArtifact_Manifests{
-						Manifests: &deng.ManifestsArtifact{
-							Source: &deng.ArtifactSource{
+					Type: &protobuff.KubernetesArtifact_Manifests{
+						Manifests: &protobuff.ManifestsArtifact{
+							Source: &protobuff.ArtifactSource{
 								Url: src,
 								Via: via,
 							},
@@ -231,7 +225,7 @@ func (p *parser) addKubernetesManifest(name string, un *unstructured.Unstructure
 		return err
 	}
 
-	any, err := ptypes.MarshalAny(&deng.ArtifactPayload{
+	any, err := ptypes.MarshalAny(&protobuff.ArtifactPayload{
 		Payload: b,
 	})
 
@@ -239,14 +233,14 @@ func (p *parser) addKubernetesManifest(name string, un *unstructured.Unstructure
 		return err
 	}
 
-	p.dep.Artifacts = append(p.dep.Artifacts, &deng.Artifact{
+	p.dep.Artifacts = append(p.dep.Artifacts, &protobuff.Artifact{
 		Name: name,
-		Provider: &deng.Artifact_Kubernetes{
-			Kubernetes: &deng.KubernetesArtifact{
+		Provider: &protobuff.Artifact_Kubernetes{
+			Kubernetes: &protobuff.KubernetesArtifact{
 				Versions: p.versions,
-				Type: &deng.KubernetesArtifact_Manifests{
-					Manifests: &deng.ManifestsArtifact{
-						Source: &deng.ArtifactSource{
+				Type: &protobuff.KubernetesArtifact_Manifests{
+					Manifests: &protobuff.ManifestsArtifact{
+						Source: &protobuff.ArtifactSource{
 							Provided: any,
 						},
 					},

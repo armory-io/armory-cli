@@ -2,22 +2,22 @@ package status
 
 import (
 	"context"
-	"github.com/armory/armory-cli/internal/deng"
+	"github.com/armory/armory-cli/internal/deng/protobuff"
 )
 
-type eventGetter func(ctx context.Context) ([]*deng.Event, error)
+type eventGetter func(ctx context.Context) ([]*protobuff.Event, error)
 
-func noopEventGetter(ctx context.Context) ([]*deng.Event, error) {
+func noopEventGetter(ctx context.Context) ([]*protobuff.Event, error) {
 	return nil, nil
 }
 
 type onceEventGetter struct {
-	client       deng.DeploymentServiceClient
+	client       protobuff.DeploymentServiceClient
 	deploymentId string
 }
 
-func (o *onceEventGetter) getEvents(ctx context.Context) ([]*deng.Event, error) {
-	eResp, err := o.client.GetEvents(ctx, &deng.GetEventRequest{
+func (o *onceEventGetter) getEvents(ctx context.Context) ([]*protobuff.Event, error) {
+	eResp, err := o.client.GetEvents(ctx, &protobuff.GetEventRequest{
 		DeploymentId: o.deploymentId,
 	})
 	if err != nil || eResp == nil {
@@ -27,16 +27,16 @@ func (o *onceEventGetter) getEvents(ctx context.Context) ([]*deng.Event, error) 
 }
 
 type watchGetter struct {
-	client     deng.DeploymentServiceClient
-	descriptor *deng.Descriptor
-	events     []*deng.Event
+	client     protobuff.DeploymentServiceClient
+	descriptor *protobuff.Descriptor
+	events     []*protobuff.Event
 	lastId     int64
 }
 
 func (w *watchGetter) tick(ctx context.Context) error {
-	res, err := w.client.GetEvents(ctx, &deng.GetEventRequest{
+	res, err := w.client.GetEvents(ctx, &protobuff.GetEventRequest{
 		DeploymentId: w.descriptor.Id,
-		EventFilter: &deng.GetEventRequest_EventFilter{
+		EventFilter: &protobuff.GetEventRequest_EventFilter{
 			AfterId: w.lastId,
 		},
 	})
@@ -53,6 +53,6 @@ func (w *watchGetter) tick(ctx context.Context) error {
 	return nil
 }
 
-func (w *watchGetter) getEvents(ctx context.Context) ([]*deng.Event, error) {
+func (w *watchGetter) getEvents(ctx context.Context) ([]*protobuff.Event, error) {
 	return w.events, nil
 }
