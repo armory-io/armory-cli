@@ -14,7 +14,7 @@ SRC_DIRS        := cmd internal
 BUILD_DIR       := ${PWD}/dist/$(GOOS)_$(GOARCH)
 
 .PHONY: all
-all: build
+all: clean test lint coverage build
 
 ############
 ## Building
@@ -47,7 +47,7 @@ version:
 
 .PHONY: lint
 lint:
-	@find pkg cmd -name '*.go' | grep -v 'generated' | xargs -L 1 golint
+	@find internal cmd -name '*.go' | grep -v 'generated' | xargs -L 1 golint
 
 .PHONY: clean
 clean:
