@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/armory/armory-cli/cmd/version"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -19,6 +20,9 @@ func Execute() {
 }
 
 func init() {
+	// Add Base Commands
+	rootCmd.AddCommand(version.VersionCmd)
+
 	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, "verbose", "v", false, "show more details")
 	rootCmd.PersistentPreRunE = configureLogging
 }

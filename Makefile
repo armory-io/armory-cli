@@ -1,5 +1,3 @@
-VERSION_TYPE    ?= "snapshot" # Must be one of: "snapshot", "rc", or "release"
-VERSION  ?= $(shell build/version.sh)
 GOARCH    ?= $(shell go env GOARCH)
 GOOS      ?= $(shell go env GOOS)
 PWD = $(shell pwd)
@@ -24,7 +22,7 @@ build-dirs:
 .PHONY: build
 build: build-dirs Makefile
 	@echo "Building ${DIST_DIR}/armory${CLI_EXT}..."
-	@go build ${LDFLAGS} -o ${DIST_DIR}/armory${CLI_EXT} main.go
+	@go build -ldflags="-X 'github.com/armory/armory-cli/cmd/version.Version=${VERSION}'" -o ${DIST_DIR}/armory${CLI_EXT} main.go
 
 ############
 ## Testing
