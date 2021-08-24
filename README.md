@@ -1,2 +1,2 @@
 # armory-cli
-The CLI for Armory Cloud
+The CLI for Armory Cloud.
