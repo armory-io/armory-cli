@@ -1,0 +1,35 @@
+name: PR Build
+
+on: [ pull_request ]
+
+jobs:
+  build:
+    name: Build Project
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.16.5
+
+      - name: Cache Dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-
+
+      - name: Run Make
+        run: |
+          make all
+
+      - name: Upload Tests Reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: armory-cli-reports
+          path: |
+            build/reports/*
+

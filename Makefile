@@ -1,33 +1,30 @@
 VERSION_TYPE    ?= "snapshot" # Must be one of: "snapshot", "rc", or "release"
 VERSION  ?= $(shell build/version.sh)
-REGISTRY ?= "docker.io"
-REGISTRY_ORG ?= "armory"
 GOARCH    ?= $(shell go env GOARCH)
 GOOS      ?= $(shell go env GOOS)
-UNAME_S := $(shell uname -s)
-NAMESPACE ?= "default"
-BUF_VERSION = 0.41.0
 PWD = $(shell pwd)
 
-PKG             := github.com/armory/armory-cli
-SRC_DIRS        := cmd internal
-BUILD_DIR       := ${PWD}/dist/$(GOOS)_$(GOARCH)
+BUILD_DIR       := ${PWD}/build
+DIST_DIR        := ${BUILD_DIR}/dist/$(GOOS)_$(GOARCH)
+REPORTS_DIR     := ${BUILD_DIR}/reports/coverage
 
 .PHONY: all
-all: clean test lint coverage build
+all: version clean test coverage build
 
 ############
 ## Building
 ############
 .PHONY: build-dirs
 build-dirs:
-	@mkdir -p $(BUILD_DIR)
+	@mkdir -p ${BUILD_DIR}
+	@mkdir -p ${DIST_DIR}
+	@mkdir -p ${REPORTS_DIR}
 
 
 .PHONY: build
 build: build-dirs Makefile
-	@echo "Building ${BUILD_DIR}/armory${CLI_EXT}..."
-	@go build ${LDFLAGS} -o ${BUILD_DIR}/armory${CLI_EXT} main.go
+	@echo "Building ${DIST_DIR}/armory${CLI_EXT}..."
+	@go build ${LDFLAGS} -o ${DIST_DIR}/armory${CLI_EXT} main.go
 
 ############
 ## Testing
@@ -39,15 +36,11 @@ test: build-dirs Makefile
 .PHONY: coverage
 coverage:
 	@go test -coverprofile=profile.cov ./...
-	@go tool cover -html=profile.cov
+	@go tool cover -html=profile.cov -o ${BUILD_DIR}/reports/coverage/index.html
 
 .PHONY: version
 version:
 	@echo $(VERSION)
-
-.PHONY: lint
-lint:
-	@find internal cmd -name '*.go' | grep -v 'generated' | xargs -L 1 golint
 
 .PHONY: clean
 clean:

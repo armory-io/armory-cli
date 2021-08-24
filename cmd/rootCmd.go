@@ -5,15 +5,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	deployCliName = "armory"
-	ParamVerbose  = "verbose"
-)
-
 var verboseFlag bool
 
 var rootCmd = &cobra.Command{
-	Use:   deployCliName,
+	Use:   "armory",
 	Short: "A CLI for using Armory Cloud",
 }
 
@@ -24,7 +19,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, ParamVerbose, "v", false, "show more details")
+	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, "verbose", "v", false, "show more details")
 	rootCmd.PersistentPreRunE = configureLogging
 }
 
