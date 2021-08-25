@@ -75,7 +75,9 @@ jobs:
 
   compile:
     name: Compile Binaries and Upload to Release
-    needs: create-release
+    needs:
+      - setup
+      - create-release
     runs-on: ubuntu-latest
     strategy:
       matrix:
