@@ -7,7 +7,7 @@ import (
 
 var Version = "development"
 
-var (
+const (
 	versionShort   = "Print the version information of Armory Cli"
 	versionLong    = "Print the version information of Armory Cli"
 	versionExample = "armory version"

@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
+const (
 	deployStartShort   = "Start deployment with Armory Cloud"
 	deployStartLong    = "Start deployment with Armory Cloud"
 	deployStartExample  = "armory deploy start [options]"
@@ -27,7 +27,7 @@ func NewDeployStartCmd(deployOptions *cmd.RootOptions) *cobra.Command {
 }
 
 func start(cmd *cobra.Command, options *cmd.RootOptions, args []string) error {
-	logrus.Info("Not implemented")
+	logrus.Fatalf("Not implemented")
 	return nil
 }
 

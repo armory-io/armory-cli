@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
+const (
 	deployStatusShort   = "Watch deployment on Armory Cloud"
 	deployStatusLong    = "Watch deployment on Armory Cloud"
 	deployStatusExample  = "armory deploy status [options]"
@@ -27,6 +27,8 @@ func NewDeployStatusCmd(deployOptions *cmd.RootOptions) *cobra.Command {
 }
 
 func status(cmd *cobra.Command, options *cmd.RootOptions, args []string) error {
+	t, _ :=options.Auth.GetToken()
+	logrus.Info(t)
 	logrus.Info("Not implemented")
 	return nil
 }

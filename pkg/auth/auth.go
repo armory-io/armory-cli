@@ -50,7 +50,7 @@ func (a *Auth) GetToken() (string, error) {
 			return "", err
 		}
 
-		expiresAt, err := time.Parse("2006-01-02 15:04:05", currentCreds.ExpiresAt)
+		expiresAt, err := time.Parse(time.RFC3339, currentCreds.ExpiresAt)
 		if err != nil {
 			return "", err
 		}
@@ -69,7 +69,7 @@ func (a *Auth) GetToken() (string, error) {
 		return "", err
 	}
 
-	credentials := NewCredentials(a.audience, a.source, a.clientId, expires.Format("2006-01-02 15:04:05"), token)
+	credentials := NewCredentials(a.audience, a.source, a.clientId, expires.Format(time.RFC3339), token)
 	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
 	if err != nil {
 		return "", err

@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
+const (
 	deployShort   = ""
 	deployLong    = ""
 	deployExample = ""
@@ -20,7 +20,7 @@ func NewDeployCmd(rootOptions *cmd.RootOptions) *cobra.Command {
 		Long:    deployLong,
 		Example: deployExample,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			rootOptions.Auth = auth.NewAuth(rootOptions.ClientId, rootOptions.ClientSecret, "client-credentials")
+			rootOptions.Auth = auth.NewAuth(rootOptions.ClientId, rootOptions.ClientSecret, "client_credentials")
 		},
 	}
 	cmd.AddLoginFlags(command, rootOptions)
