@@ -9,7 +9,7 @@ import (
 const (
 	deployStatusShort   = "Watch deployment on Armory Cloud"
 	deployStatusLong    = "Watch deployment on Armory Cloud"
-	deployStatusExample  = "armory deploy status [options]"
+	deployStatusExample = "armory deploy status [options]"
 )
 
 func NewDeployStatusCmd(deployOptions *cmd.RootOptions) *cobra.Command {
@@ -20,7 +20,7 @@ func NewDeployStatusCmd(deployOptions *cmd.RootOptions) *cobra.Command {
 		Long:    deployStatusLong,
 		Example: deployStatusExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return status(cmd,deployOptions, args)
+			return status(cmd, deployOptions, args)
 		},
 	}
 	return cmd

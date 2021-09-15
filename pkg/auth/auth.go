@@ -55,7 +55,7 @@ func (a *Auth) GetToken() (string, error) {
 			return "", err
 		}
 
-		if time.Now().Before(expiresAt) && (a.clientId == "" || a.clientId == currentCreds.ClientId){
+		if time.Now().Before(expiresAt) && (a.clientId == "" || a.clientId == currentCreds.ClientId) {
 			return currentCreds.Token, nil
 		}
 	}
@@ -131,7 +131,3 @@ func (a *Auth) parseOptions() []jwt.ParseOption {
 type remoteToken struct {
 	AccessToken string `json:"access_token"`
 }
-
-
-
-

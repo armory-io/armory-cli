@@ -15,11 +15,11 @@ type Credentials struct {
 
 func NewCredentials(audience, source, clientId, expiresAt, token string) *Credentials {
 	return &Credentials{
-		Audience: audience,
-		Source: source,
-		ClientId: clientId,
+		Audience:  audience,
+		Source:    source,
+		ClientId:  clientId,
 		ExpiresAt: expiresAt,
-		Token: token,
+		Token:     token,
 	}
 }
 

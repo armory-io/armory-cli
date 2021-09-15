@@ -9,7 +9,7 @@ import (
 const (
 	deployStartShort   = "Start deployment with Armory Cloud"
 	deployStartLong    = "Start deployment with Armory Cloud"
-	deployStartExample  = "armory deploy start [options]"
+	deployStartExample = "armory deploy start [options]"
 )
 
 func NewDeployStartCmd(deployOptions *cmd.RootOptions) *cobra.Command {
@@ -20,7 +20,7 @@ func NewDeployStartCmd(deployOptions *cmd.RootOptions) *cobra.Command {
 		Long:    deployStartLong,
 		Example: deployStartExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return start(cmd,deployOptions, args)
+			return start(cmd, deployOptions, args)
 		},
 	}
 	return cmd
@@ -30,4 +30,3 @@ func start(cmd *cobra.Command, options *cmd.RootOptions, args []string) error {
 	logrus.Fatalf("Not implemented")
 	return nil
 }
-

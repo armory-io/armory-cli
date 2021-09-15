@@ -8,10 +8,10 @@ import (
 )
 
 type RootOptions struct {
-	v             bool
-	ClientId      string
-	ClientSecret  string
-	Auth          *auth.Auth
+	v            bool
+	ClientId     string
+	ClientSecret string
+	Auth         *auth.Auth
 }
 
 var rootCmd = &cobra.Command{
