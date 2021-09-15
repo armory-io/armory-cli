@@ -27,8 +27,6 @@ func NewDeployStatusCmd(deployOptions *cmd.RootOptions) *cobra.Command {
 }
 
 func status(cmd *cobra.Command, options *cmd.RootOptions, args []string) error {
-	t, _ :=options.Auth.GetToken()
-	logrus.Info(t)
-	logrus.Info("Not implemented")
+	logrus.Fatalf("Not implemented")
 	return nil
 }
