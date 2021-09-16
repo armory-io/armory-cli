@@ -15,6 +15,10 @@ import (
 	"time"
 )
 
+const (
+	expLeewaySec int64 = 300
+)
+
 type Auth struct {
 	clientId       string `yaml:"clientId,omitempty" json:"clientId,omitempty"`
 	secret         string `yaml:"secret,omitempty" json:"secret,omitempty"`
@@ -55,7 +59,8 @@ func (a *Auth) GetToken() (string, error) {
 			return "", err
 		}
 
-		if time.Now().Before(expiresAt) && (a.clientId == "" || a.clientId == currentCreds.ClientId) {
+		if time.Now().Add(time.Duration(expLeewaySec)*time.Second).Before(expiresAt) &&
+			(a.clientId == "" || a.clientId == currentCreds.ClientId) {
 			return currentCreds.Token, nil
 		}
 	}
