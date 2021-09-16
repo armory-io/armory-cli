@@ -8,10 +8,12 @@ import (
 )
 
 type RootOptions struct {
-	v            bool
-	ClientId     string
-	ClientSecret string
-	Auth         *auth.Auth
+	v              bool
+	ClientId       string
+	ClientSecret   string
+	TokenIssuerUrl string
+	Audience       string
+	Auth           *auth.Auth
 }
 
 var rootCmd = &cobra.Command{
@@ -36,6 +38,10 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 func AddLoginFlags(cmd *cobra.Command, opts *RootOptions) {
 	cmd.PersistentFlags().StringVarP(&opts.ClientId, "clientId", "c", "", "configure clientId to configure Armory Cloud")
 	cmd.PersistentFlags().StringVarP(&opts.ClientSecret, "clientSecret", "s", "", "configure clientSecret to configure Armory Cloud")
+	cmd.PersistentFlags().StringVarP(&opts.TokenIssuerUrl, "tokenIssuerUrl", "", "https://auth.cloud.armory.io/oauth/token", "")
+	cmd.PersistentFlags().StringVarP(&opts.Audience, "audience", "", "https://api.cloud.armory.io", "")
+	cmd.PersistentFlags().MarkHidden("tokenIssuerUrl")
+	cmd.PersistentFlags().MarkHidden("audience")
 }
 
 func configureLogging(verboseFlag bool) error {

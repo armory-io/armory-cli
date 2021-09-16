@@ -24,13 +24,13 @@ type Auth struct {
 	source         string `yaml:"source" json:"source"`
 }
 
-func NewAuth(clientId, clientSecret, source string) *Auth {
+func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience  string) *Auth {
 	return &Auth{
 		clientId:       clientId,
 		secret:         clientSecret,
 		source:         source,
-		tokenIssuerUrl: "__tokenIssuerUrl__",
-		audience:       "__audience__",
+		tokenIssuerUrl: tokenIssuerUrl,
+		audience:       audience,
 		verify:         true,
 	}
 }
