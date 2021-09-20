@@ -24,7 +24,7 @@ func NewCredentials(audience, source, clientId, expiresAt, token string) *Creden
 }
 
 func (c *Credentials) WriteCredentials(fileLocation string) error {
-	data, err := json.Marshal(c)
+	data, err := json.MarshalIndent(c, "", " ")
 	if err != nil {
 		return err
 	}
