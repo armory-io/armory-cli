@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/armory/armory-cli/pkg/auth"
+	"github.com/armory/armory-cli/pkg/deploy"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io"
@@ -13,7 +14,9 @@ type RootOptions struct {
 	ClientSecret   string
 	TokenIssuerUrl string
 	Audience       string
+	DeployHostUrl  string
 	Auth           *auth.Auth
+	DeployClient   *deploy.Client
 }
 
 var rootCmd = &cobra.Command{
@@ -40,6 +43,7 @@ func AddLoginFlags(cmd *cobra.Command, opts *RootOptions) {
 	cmd.PersistentFlags().StringVarP(&opts.ClientSecret, "clientSecret", "s", "", "configure clientSecret to configure Armory Cloud")
 	cmd.PersistentFlags().StringVarP(&opts.TokenIssuerUrl, "tokenIssuerUrl", "", "https://auth.cloud.armory.io/oauth/token", "")
 	cmd.PersistentFlags().StringVarP(&opts.Audience, "audience", "", "https://api.cloud.armory.io", "")
+	cmd.PersistentFlags().StringVarP(&opts.DeployHostUrl, "deployHostUrl", "", "api.cloud.armory.io", "")
 	cmd.PersistentFlags().MarkHidden("tokenIssuerUrl")
 	cmd.PersistentFlags().MarkHidden("audience")
 }

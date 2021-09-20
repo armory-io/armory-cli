@@ -27,6 +27,13 @@ func NewDeployStartCmd(deployOptions *cmd.RootOptions) *cobra.Command {
 }
 
 func start(cmd *cobra.Command, options *cmd.RootOptions, args []string) error {
-	logrus.Fatalf("Not implemented")
+	req := options.DeployClient.DeploymentServiceApi.DeploymentServiceListAccounts(options.DeployClient.Context)
+	req.Provider("kubernetes")
+	deployResp, _, err := req.Execute()
+	if err != nil {
+		logrus.Error(err)
+		logrus.Fatalf("Error starting a deployment")
+	}
+	logrus.Info(len(deployResp.GetAccounts()))
 	return nil
 }
