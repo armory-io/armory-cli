@@ -1,10 +1,9 @@
 package deploy
 
 import (
-	"errors"
+	"fmt"
 	de "github.com/armory-io/deploy-engine/deploy/client"
 	"github.com/armory/armory-cli/cmd"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -44,26 +43,26 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	deployment := de.KubernetesV2StartKubernetesDeploymentRequest{}
 	yamlFile, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("error trying to read the yaml file: %s", err)
 	}
 	err = yaml.Unmarshal(yamlFile, &deployment)
 	if err != nil {
-		return err
+		return fmt.Errorf("error invalid deployment object: %s", err)
 	}
 	req := options.DeployClient.DeploymentServiceApi.DeploymentServiceStartKubernetes(options.DeployClient.Context)
 	req = req.Body(deployment)
 	data, resp, err := req.Execute()
 	if err != nil && resp.StatusCode >= 300 {
 		openAPIErr := err.(de.GenericOpenAPIError)
-		return errors.New(string(openAPIErr.Body()))
+		return fmt.Errorf("deployment returns an error: %s", string(openAPIErr.Body()))
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid request: %s", err)
 	}
 	res, err := options.Output.Formatter(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("error trying to parse respone: %s", err)
 	}
-	logrus.Info(res)
+	cmd.OutOrStdout().Write(res)
 	return nil
 }

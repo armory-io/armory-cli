@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/armory/armory-cli/pkg/auth"
 	"github.com/armory/armory-cli/pkg/deploy"
 	"github.com/armory/armory-cli/pkg/output"
@@ -30,23 +31,22 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 	options := &RootOptions{}
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		if err := configureLogging(options.v); err != nil {
-			return err
+			return fmt.Errorf("error at configuring logging: %s", err)
 		}
 		options.Output = output.NewOutput(options.o)
-
 		auth := auth.NewAuth(
 			options.ClientId, options.ClientSecret, "client_credentials",
 			options.TokenIssuerUrl, options.Audience)
 		token, err := auth.GetToken()
 		if err != nil {
-			return err
+			return fmt.Errorf("error at retrieving a token: %s", err)
 		}
 		deployClient, err := deploy.NewDeployClient(
 			options.DeployHostUrl,
 			token,
 		)
 		if err != nil {
-			return err
+			return fmt.Errorf("error at creating the http client: %s", err)
 		}
 		options.DeployClient = deployClient
 		return nil
