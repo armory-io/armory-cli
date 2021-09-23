@@ -3,7 +3,7 @@ package deploy
 import (
 	"context"
 	"fmt"
-	deploy "github.com/armory-io/deploy-engine/client"
+	deploy "github.com/armory-io/deploy-engine/deploy/client"
 )
 
 

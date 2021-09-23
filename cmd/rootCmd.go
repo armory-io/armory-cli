@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/armory/armory-cli/pkg/auth"
 	"github.com/armory/armory-cli/pkg/deploy"
+	"github.com/armory/armory-cli/pkg/output"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io"
@@ -10,13 +11,14 @@ import (
 
 type RootOptions struct {
 	v              bool
+	o              string
 	ClientId       string
 	ClientSecret   string
 	TokenIssuerUrl string
 	Audience       string
 	DeployHostUrl  string
-	Auth           *auth.Auth
 	DeployClient   *deploy.Client
+	Output         *output.Output
 }
 
 var rootCmd = &cobra.Command{
@@ -30,11 +32,29 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 		if err := configureLogging(options.v); err != nil {
 			return err
 		}
+		options.Output = output.NewOutput(options.o)
+
+		auth := auth.NewAuth(
+			options.ClientId, options.ClientSecret, "client_credentials",
+			options.TokenIssuerUrl, options.Audience)
+		token, err := auth.GetToken()
+		if err != nil {
+			return err
+		}
+		deployClient, err := deploy.NewDeployClient(
+			options.DeployHostUrl,
+			token,
+		)
+		if err != nil {
+			return err
+		}
+		options.DeployClient = deployClient
 		return nil
 	}
 	rootCmd.SetOut(outWriter)
 	rootCmd.SetErr(errWriter)
 	rootCmd.PersistentFlags().BoolVarP(&options.v, "verbose", "v", false, "show more details")
+	rootCmd.PersistentFlags().StringVarP(&options.o, "output", "o", "", "output format")
 	return rootCmd, options
 }
 
@@ -46,6 +66,7 @@ func AddLoginFlags(cmd *cobra.Command, opts *RootOptions) {
 	cmd.PersistentFlags().StringVarP(&opts.DeployHostUrl, "deployHostUrl", "", "api.cloud.armory.io", "")
 	cmd.PersistentFlags().MarkHidden("tokenIssuerUrl")
 	cmd.PersistentFlags().MarkHidden("audience")
+	cmd.PersistentFlags().MarkHidden("deployHostUrl")
 }
 
 func configureLogging(verboseFlag bool) error {

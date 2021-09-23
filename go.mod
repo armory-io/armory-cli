@@ -3,13 +3,15 @@ module github.com/armory/armory-cli
 go 1.16
 
 require (
-	github.com/armory-io/deploy-engine v0.1.0-snapshot.master.fa1dd4a.0.20210920181953-bce0d3d553b6
+	github.com/armory-io/deploy-engine v0.1.0-snapshot.master.fa1dd4a.0.20210922182706-6480baa5228a
 	github.com/hashicorp/go-getter v1.5.3 // indirect
 	github.com/lestrrat-go/jwx v1.2.6
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22 // indirect
+	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
 replace (
