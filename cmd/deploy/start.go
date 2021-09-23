@@ -18,6 +18,7 @@ const (
 type deployStartOptions struct {
 	*cmd.RootOptions
 	deploymentFile string
+	deploymentId string
 }
 
 func NewDeployStartCmd(deployOptions *cmd.RootOptions) *cobra.Command {
@@ -32,6 +33,11 @@ func NewDeployStartCmd(deployOptions *cmd.RootOptions) *cobra.Command {
 		Example: deployStartExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return start(cmd, options, args)
+		},
+		PostRunE: func(cmd *cobra.Command, args []string) error {
+			fmt.Fprintln(cmd.OutOrStdout(), "Status Available at:")
+			fmt.Fprintf(cmd.OutOrStdout(), "https://console.cloud.armory.io/deploy/deployment/%s", options.deploymentId)
+			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
@@ -63,6 +69,8 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	if err != nil {
 		return fmt.Errorf("error trying to parse respone: %s", err)
 	}
-	cmd.OutOrStdout().Write(res)
+	options.deploymentId = data.GetDeploymentId()
+	fmt.Fprintln(cmd.OutOrStdout(),"Deployment successfully launch.")
+	fmt.Fprintln(cmd.OutOrStdout(), string(res))
 	return nil
 }
