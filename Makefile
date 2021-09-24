@@ -2,12 +2,13 @@ GOARCH    ?= $(shell go env GOARCH)
 GOOS      ?= $(shell go env GOOS)
 PWD = $(shell pwd)
 
+
 BUILD_DIR       := ${PWD}/build
 DIST_DIR        := ${BUILD_DIR}/dist/$(GOOS)_$(GOARCH)
 REPORTS_DIR     := ${BUILD_DIR}/reports/coverage
 
 .PHONY: all
-all: version clean test coverage build
+all: pre version clean test coverage build
 
 ############
 ## Building
@@ -18,11 +19,17 @@ build-dirs:
 	@mkdir -p ${DIST_DIR}
 	@mkdir -p ${REPORTS_DIR}
 
+.PHONY: pre
+pre:
+#	@go env -w GOPRIVATE=github.com/armory-io/deploy-engine
+	@git config --global url."https://$(PVT_GITHUB_ACCESS_TOKEN):x-oauth-basic@github.com/".insteadOf "https://github.com/"
+	@go env
+	@GOPRIVATE=github.com/armory-io/deploy-engine go get github.com/armory-io/deploy-engine@test/go-client
 
 .PHONY: build
 build: build-dirs Makefile
 	@echo "Building ${DIST_DIR}/armory${CLI_EXT}..."
-	@go build -ldflags="-X 'github.com/armory/armory-cli/cmd/version.Version=${VERSION}'" -o ${DIST_DIR}/armory${CLI_EXT} main.go
+	@go build -v -ldflags="-X 'github.com/armory/armory-cli/cmd/version.Version=${VERSION}'" -o ${DIST_DIR}/armory${CLI_EXT} main.go
 
 ############
 ## Testing
