@@ -21,6 +21,22 @@ type deployStartOptions struct {
 	deploymentId string
 }
 
+type deployStartResponse struct {
+	// The deployment's ID.
+	DeploymentId string `json:"deploymentId,omitempty" yaml:"deploymentId,omitempty"`
+}
+
+func newDeployStartResponse(raw *de.DeploymentV2StartDeploymentResponse) deployStartResponse {
+	deployment := deployStartResponse{
+		raw.GetDeploymentId(),
+	}
+	return deployment
+}
+
+func (u deployStartResponse) String() string {
+	return fmt.Sprintf("Deployment ID: %s", u.DeploymentId)
+}
+
 func NewDeployStartCmd(deployOptions *cmd.RootOptions) *cobra.Command {
 	options := &deployStartOptions{
 		RootOptions: deployOptions,
@@ -34,10 +50,9 @@ func NewDeployStartCmd(deployOptions *cmd.RootOptions) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return start(cmd, options, args)
 		},
-		PostRunE: func(cmd *cobra.Command, args []string) error {
+		PostRun: func(cmd *cobra.Command, args []string) {
 			fmt.Fprintln(cmd.OutOrStdout(), "Status Available at:")
 			fmt.Fprintf(cmd.OutOrStdout(), "https://console.cloud.armory.io/deploy/deployment/%s", options.deploymentId)
-			return nil
 		},
 	}
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
@@ -46,31 +61,39 @@ func NewDeployStartCmd(deployOptions *cmd.RootOptions) *cobra.Command {
 }
 
 func start(cmd *cobra.Command, options *deployStartOptions, args []string) error {
-	deployment := de.KubernetesV2StartKubernetesDeploymentRequest{}
-	yamlFile, err := ioutil.ReadFile(options.deploymentFile)
+	payload := de.KubernetesV2StartKubernetesDeploymentRequest{}
+	// read yaml file
+	file, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
 		return fmt.Errorf("error trying to read the yaml file: %s", err)
 	}
-	err = yaml.Unmarshal(yamlFile, &deployment)
+	// unmarshall data into struct
+	err = yaml.Unmarshal(file, &payload)
 	if err != nil {
 		return fmt.Errorf("error invalid deployment object: %s", err)
 	}
-	req := options.DeployClient.DeploymentServiceApi.DeploymentServiceStartKubernetes(options.DeployClient.Context)
-	req = req.Body(deployment)
-	data, resp, err := req.Execute()
-	if err != nil && resp.StatusCode >= 300 {
+	// prepare request
+	request := options.DeployClient.DeploymentServiceApi.
+		DeploymentServiceStartKubernetes(options.DeployClient.Context).Body(payload)
+	// execute request
+	raw, response, err := request.Execute()
+	if err != nil && response.StatusCode >= 300 {
 		openAPIErr := err.(de.GenericOpenAPIError)
-		return fmt.Errorf("deployment returns an error: %s", string(openAPIErr.Body()))
+		return fmt.Errorf("deployment returns an error: status code(%d) %s",
+			response.StatusCode, string(openAPIErr.Body()))
 	}
 	if err != nil {
 		return fmt.Errorf("invalid request: %s", err)
 	}
-	res, err := options.Output.Formatter(data)
+	// create response object
+	deploy := newDeployStartResponse(&raw)
+	// format response
+	dataFormat, err := options.Output.Formatter(deploy)
 	if err != nil {
 		return fmt.Errorf("error trying to parse respone: %s", err)
 	}
-	options.deploymentId = data.GetDeploymentId()
+	options.deploymentId = deploy.DeploymentId
 	fmt.Fprintln(cmd.OutOrStdout(),"Deployment successfully launch.")
-	fmt.Fprintln(cmd.OutOrStdout(), string(res))
+	fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
 	return nil
 }
