@@ -2,15 +2,20 @@ package auth
 
 import (
 	"encoding/json"
+	"gopkg.in/square/go-jose.v2/jwt"
 	"io/ioutil"
 )
 
+const (
+	armoryClaims string = "https://cloud.armory.io/principal"
+)
+
 type Credentials struct {
-	Audience  string `json:"audience"`
-	Source    string `json:"source"`
-	ClientId  string `json:"clientId"`
-	ExpiresAt string `json:"expiresAt"`
-	Token     string `json:"token"`
+	Audience  		string `json:"audience"`
+	Source    		string `json:"source"`
+	ClientId  		string `json:"clientId"`
+	ExpiresAt 		string `json:"expiresAt"`
+	Token     		string `json:"token"`
 }
 
 func NewCredentials(audience, source, clientId, expiresAt, token string) *Credentials {
@@ -46,4 +51,14 @@ func LoadCredentials(fileLocation string) (Credentials, error) {
 		return Credentials{}, err
 	}
 	return credentials, nil
+}
+
+func (c *Credentials) GetEnvironment() (string, error) {
+	tok, _ := jwt.ParseSigned(c.Token)
+	var claims map[string]interface{}
+	err := tok.UnsafeClaimsWithoutVerification(&claims) //we've already obtained what we know to be a valid token from Auth0
+	if err != nil {
+		return "", err
+	}
+	return claims[armoryClaims].(map[string]interface{})["envId"].(string), nil
 }

@@ -18,6 +18,7 @@ type RootOptions struct {
 	TokenIssuerUrl string
 	Audience       string
 	DeployHostUrl  string
+	Environment    string
 	DeployClient   *deploy.Client
 	Output         *output.Output
 }
@@ -38,6 +39,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 			options.ClientId, options.ClientSecret, "client_credentials",
 			options.TokenIssuerUrl, options.Audience)
 		token, err := auth.GetToken()
+		options.Environment, err = auth.GetEnvironment()
 		if err != nil {
 			return fmt.Errorf("error at retrieving a token: %s", err)
 		}
