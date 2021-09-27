@@ -6,7 +6,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Formatter func(interface{}) (string, error)
+type Formatter func(interface{}, error) (string, error)
 
 
 type Output struct {
@@ -30,19 +30,30 @@ func parseOutputFormat(outputFormat string) Formatter {
 	}
 }
 
-func DefaultStructToString(input interface{}) (string, error) {
+func DefaultStructToString(input interface{}, err error) (string, error) {
 	return fmt.Sprintf("%v",input), nil
 }
 
-func MarshalToJson(input interface{}) (string, error) {
+func MarshalToJson(input interface{}, err error) (string, error) {
+	if err != nil {
+		return getErrorAsJson(err), err
+	}
+
 	pretty, err := json.MarshalIndent(input, "", " ")
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal response to json: %v", err)
+		return getErrorAsJson(err), fmt.Errorf("failed to marshal response to json: %v", err)
 	}
 	return string(pretty), nil
 }
 
-func MarshalToYaml(input interface{}) (string, error) {
+func getErrorAsJson(err error) string {
+	return fmt.Sprintf("{ \"error\": \"%s\" }", err)
+}
+
+func MarshalToYaml(input interface{}, err error) (string, error) {
+	if err != nil {
+		return "", err
+	}
 	pretty, err := yaml.Marshal(input)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal response to yaml: %v", err)

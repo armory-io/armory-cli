@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"github.com/armory/armory-cli/pkg/auth"
 	"github.com/armory/armory-cli/pkg/deploy"
@@ -11,13 +12,14 @@ import (
 )
 
 type RootOptions struct {
-	v              bool
-	o              string
+	V              bool
+	O              string
 	ClientId       string
 	ClientSecret   string
 	TokenIssuerUrl string
 	Audience       string
 	DeployHostUrl  string
+	Environment    string
 	DeployClient   *deploy.Client
 	Output         *output.Output
 }
@@ -30,14 +32,18 @@ var rootCmd = &cobra.Command{
 func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 	options := &RootOptions{}
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if err := configureLogging(options.v); err != nil {
+		if err := configureLogging(options.V); err != nil {
 			return fmt.Errorf("error at configuring logging: %s", err)
 		}
-		options.Output = output.NewOutput(options.o)
+		if options.O != "" && options.O != "json" && options.O != "yaml"{
+			return errors.New("the output type is invalid. Do not specify parameter to get plain output. Available options: [json]")
+		}
+		options.Output = output.NewOutput(options.O)
 		auth := auth.NewAuth(
 			options.ClientId, options.ClientSecret, "client_credentials",
 			options.TokenIssuerUrl, options.Audience)
 		token, err := auth.GetToken()
+		options.Environment, err = auth.GetEnvironment()
 		if err != nil {
 			return fmt.Errorf("error at retrieving a token: %s", err)
 		}
@@ -53,8 +59,8 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 	}
 	rootCmd.SetOut(outWriter)
 	rootCmd.SetErr(errWriter)
-	rootCmd.PersistentFlags().BoolVarP(&options.v, "verbose", "v", false, "show more details")
-	rootCmd.PersistentFlags().StringVarP(&options.o, "output", "o", "", "output format")
+	rootCmd.PersistentFlags().BoolVarP(&options.V, "verbose", "v", false, "show more details")
+	rootCmd.PersistentFlags().StringVarP(&options.O, "output", "o", "", "Set the output type. Available options: [json, yaml]. Default plain text.")
 	return rootCmd, options
 }
 

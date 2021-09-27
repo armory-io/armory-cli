@@ -88,7 +88,7 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	// create response object
 	deploy := newDeployStartResponse(&raw)
 	// format response
-	dataFormat, err := options.Output.Formatter(deploy)
+	dataFormat, err := options.Output.Formatter(deploy, nil)
 	if err != nil {
 		return fmt.Errorf("error trying to parse respone: %s", err)
 	}
