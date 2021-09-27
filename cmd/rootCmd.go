@@ -12,13 +12,13 @@ import (
 )
 
 type RootOptions struct {
-	V              bool
+	v              bool
 	O              string
-	ClientId       string
-	ClientSecret   string
+	clientId       string
+	clientSecret   string
+	audience       string
+	deployHostUrl  string
 	TokenIssuerUrl string
-	Audience       string
-	DeployHostUrl  string
 	Environment    string
 	DeployClient   *deploy.Client
 	Output         *output.Output
@@ -32,7 +32,7 @@ var rootCmd = &cobra.Command{
 func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 	options := &RootOptions{}
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if err := configureLogging(options.V); err != nil {
+		if err := configureLogging(options.v); err != nil {
 			return fmt.Errorf("error at configuring logging: %s", err)
 		}
 		if options.O != "" && options.O != "json" && options.O != "yaml"{
@@ -40,15 +40,15 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 		}
 		options.Output = output.NewOutput(options.O)
 		auth := auth.NewAuth(
-			options.ClientId, options.ClientSecret, "client_credentials",
-			options.TokenIssuerUrl, options.Audience)
+			options.clientId, options.clientSecret, "client_credentials",
+			options.TokenIssuerUrl, options.audience)
 		token, err := auth.GetToken()
 		options.Environment, err = auth.GetEnvironment()
 		if err != nil {
 			return fmt.Errorf("error at retrieving a token: %s", err)
 		}
 		deployClient, err := deploy.NewDeployClient(
-			options.DeployHostUrl,
+			options.deployHostUrl,
 			token,
 		)
 		if err != nil {
@@ -59,17 +59,17 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 	}
 	rootCmd.SetOut(outWriter)
 	rootCmd.SetErr(errWriter)
-	rootCmd.PersistentFlags().BoolVarP(&options.V, "verbose", "v", false, "show more details")
+	rootCmd.PersistentFlags().BoolVarP(&options.v, "verbose", "v", false, "show more details")
 	rootCmd.PersistentFlags().StringVarP(&options.O, "output", "o", "", "Set the output type. Available options: [json, yaml]. Default plain text.")
 	return rootCmd, options
 }
 
 func AddLoginFlags(cmd *cobra.Command, opts *RootOptions) {
-	cmd.PersistentFlags().StringVarP(&opts.ClientId, "clientId", "c", "", "configure clientId to configure Armory Cloud")
-	cmd.PersistentFlags().StringVarP(&opts.ClientSecret, "clientSecret", "s", "", "configure clientSecret to configure Armory Cloud")
+	cmd.PersistentFlags().StringVarP(&opts.clientId, "clientId", "c", "", "configure clientId to configure Armory Cloud")
+	cmd.PersistentFlags().StringVarP(&opts.clientSecret, "clientSecret", "s", "", "configure clientSecret to configure Armory Cloud")
 	cmd.PersistentFlags().StringVarP(&opts.TokenIssuerUrl, "tokenIssuerUrl", "", "https://auth.cloud.armory.io/oauth/token", "")
-	cmd.PersistentFlags().StringVarP(&opts.Audience, "audience", "", "https://api.cloud.armory.io", "")
-	cmd.PersistentFlags().StringVarP(&opts.DeployHostUrl, "deployHostUrl", "", "api.cloud.armory.io", "")
+	cmd.PersistentFlags().StringVarP(&opts.audience, "audience", "", "https://api.cloud.armory.io", "")
+	cmd.PersistentFlags().StringVarP(&opts.deployHostUrl, "deployHostUrl", "", "api.cloud.armory.io", "")
 	cmd.PersistentFlags().MarkHidden("tokenIssuerUrl")
 	cmd.PersistentFlags().MarkHidden("audience")
 	cmd.PersistentFlags().MarkHidden("deployHostUrl")

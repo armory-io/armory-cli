@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/armory-io/deploy-engine v0.1.0-snapshot.master.fa1dd4a.0.20210923155317-2a3d611b90f9
-	github.com/hashicorp/go-getter v1.5.3 // indirect
 	github.com/lestrrat-go/jwx v1.2.6
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1

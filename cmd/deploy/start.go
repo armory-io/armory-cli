@@ -3,10 +3,10 @@ package deploy
 import (
 	"fmt"
 	de "github.com/armory-io/deploy-engine/deploy/client"
-	"github.com/armory/armory-cli/cmd"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"time"
 )
 
 const (
@@ -16,9 +16,8 @@ const (
 )
 
 type deployStartOptions struct {
-	*cmd.RootOptions
+	*deployOptions
 	deploymentFile string
-	deploymentId string
 }
 
 type deployStartResponse struct {
@@ -34,25 +33,21 @@ func newDeployStartResponse(raw *de.DeploymentV2StartDeploymentResponse) deployS
 }
 
 func (u deployStartResponse) String() string {
-	return fmt.Sprintf("Deployment ID: %s", u.DeploymentId)
+	return fmt.Sprintf("[%v] Deployment ID: %s", time.Now().Format(time.RFC3339), u.DeploymentId)
 }
 
-func NewDeployStartCmd(deployOptions *cmd.RootOptions) *cobra.Command {
+func NewDeployStartCmd(deployOptions *deployOptions) *cobra.Command {
 	options := &deployStartOptions{
-		RootOptions: deployOptions,
+		deployOptions: deployOptions,
 	}
 	cmd := &cobra.Command{
-		Use:     "start",
+		Use:     "start --file [<path to file>]",
 		Aliases: []string{"start"},
 		Short:   deployStartShort,
 		Long:    deployStartLong,
 		Example: deployStartExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return start(cmd, options, args)
-		},
-		PostRun: func(cmd *cobra.Command, args []string) {
-			fmt.Fprintln(cmd.OutOrStdout(), "Status Available at:")
-			fmt.Fprintf(cmd.OutOrStdout(), "https://console.cloud.armory.io/deploy/deployment/%s", options.deploymentId)
 		},
 	}
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
@@ -93,7 +88,6 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 		return fmt.Errorf("error trying to parse respone: %s", err)
 	}
 	options.deploymentId = deploy.DeploymentId
-	fmt.Fprintln(cmd.OutOrStdout(),"Deployment successfully launch.")
 	fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
 	return nil
 }
