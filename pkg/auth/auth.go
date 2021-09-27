@@ -108,7 +108,9 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("accept", "application/json")
-	c := &http.Client{}
+	c := &http.Client{
+		Timeout: time.Second * 10,
+	}
 	res, err := c.Do(req)
 	if err != nil {
 		return "", nil, err
