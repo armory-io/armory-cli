@@ -3,10 +3,18 @@ package output
 import (
 	"encoding/json"
 	"fmt"
+	de "github.com/armory-io/deploy-engine/deploy/client"
 	"gopkg.in/yaml.v3"
+	_nethttp "net/http"
 )
 
-type Formatter func(interface{}, error) (string, error)
+type Formattable interface {
+	GetFetchError() error
+	GetHttpResponse() *_nethttp.Response
+	Get() interface{}
+}
+
+type Formatter func(Formattable) (string, error)
 
 
 type Output struct {
@@ -30,16 +38,22 @@ func parseOutputFormat(outputFormat string) Formatter {
 	}
 }
 
-func DefaultStructToString(input interface{}, err error) (string, error) {
+func DefaultStructToString(input Formattable) (string, error) {
 	return fmt.Sprintf("%v",input), nil
 }
 
-func MarshalToJson(input interface{}, err error) (string, error) {
+func MarshalToJson(input Formattable) (string, error) {
+	err := input.GetFetchError()
+	if err != nil && input.GetHttpResponse() != nil && input.GetHttpResponse().StatusCode >= 300 {
+		openAPIErr := err.(de.GenericOpenAPIError)
+		err = fmt.Errorf("request returned an error: status code(%d) %s",
+			input.GetHttpResponse().StatusCode, string(openAPIErr.Body()))
+	}
 	if err != nil {
-		return getErrorAsJson(err), err
+		return getErrorAsJson(err), nil
 	}
 
-	pretty, err := json.MarshalIndent(input, "", " ")
+	pretty, err := json.MarshalIndent(input.Get(), "", " ")
 	if err != nil {
 		return getErrorAsJson(err), fmt.Errorf("failed to marshal response to json: %v", err)
 	}
@@ -50,13 +64,25 @@ func getErrorAsJson(err error) string {
 	return fmt.Sprintf("{ \"error\": \"%s\" }", err)
 }
 
-func MarshalToYaml(input interface{}, err error) (string, error) {
-	if err != nil {
-		return "", err
+func MarshalToYaml(input Formattable) (string, error) {
+	err := input.GetFetchError()
+	if err != nil && input.GetHttpResponse() != nil && input.GetHttpResponse().StatusCode >= 300 {
+		openAPIErr := err.(de.GenericOpenAPIError)
+		err = fmt.Errorf("request returned an error: status code(%d) %s",
+			input.GetHttpResponse().StatusCode, string(openAPIErr.Body()))
 	}
-	pretty, err := yaml.Marshal(input)
+
+	if err != nil {
+		return getErrorAsYaml(err), nil
+	}
+
+	pretty, err := yaml.Marshal(input.Get())
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal response to yaml: %v", err)
 	}
 	return string(pretty), nil
+}
+
+func getErrorAsYaml(err error) string {
+	return fmt.Sprintf("error: \"%s", err)
 }

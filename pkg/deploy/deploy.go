@@ -6,7 +6,6 @@ import (
 	deploy "github.com/armory-io/deploy-engine/deploy/client"
 )
 
-
 type Client struct {
 	*deploy.APIClient
 	Context context.Context
