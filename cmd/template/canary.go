@@ -35,7 +35,7 @@ func NewTemplateCanaryCmd(templateOptions *templateOptions) *cobra.Command {
 }
 
 func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) error {
-	root := buildTemplateCore()
+	root := buildTemplateKubernetesCore()
 	// Canary root
 	canaryNode, canaryValuesNode := util.BuildMapNode("canary","This map key, is the deployment strategy type.")
 
