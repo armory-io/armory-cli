@@ -2,6 +2,7 @@ on:
   push:
     branches:
       - master
+      - fix/build
 
 name: Build and Release
 jobs:
@@ -75,6 +76,8 @@ jobs:
           prerelease: false
 
   compile:
+    env:
+      PVT_GITHUB_ACCESS_TOKEN: ${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
     name: Compile Binaries and Upload to Release
     needs:
       - setup
@@ -105,6 +108,8 @@ jobs:
           path: ~/go/pkg/mod
           key: go-${{ hashFiles('**/go.sum') }}
           restore-keys: go-
+      - name: Fix private repo access
+        run: make pre
 
       - name: Build CLI
         env:
@@ -112,7 +117,7 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           CLI_EXT: ${{ matrix.ext }}
-        run: make pre build
+        run: make build
 
       - name: Upload Release Asset
         id: upload-release-asset
