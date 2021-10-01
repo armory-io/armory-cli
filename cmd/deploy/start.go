@@ -1,11 +1,13 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/deploy/client"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	_nethttp "net/http"
 	"time"
 )
 
@@ -20,19 +22,35 @@ type deployStartOptions struct {
 	deploymentFile string
 }
 
-type deployStartResponse struct {
+type FormattableDeployStartResponse struct {
 	// The deployment's ID.
 	DeploymentId string `json:"deploymentId,omitempty" yaml:"deploymentId,omitempty"`
+	httpResponse *_nethttp.Response
+	err error
 }
 
-func newDeployStartResponse(raw *de.DeploymentV2StartDeploymentResponse) deployStartResponse {
-	deployment := deployStartResponse{
-		raw.GetDeploymentId(),
+func newDeployStartResponse(raw *de.DeploymentV2StartDeploymentResponse, response *_nethttp.Response, err error) FormattableDeployStartResponse {
+	deployment := FormattableDeployStartResponse{
+		DeploymentId: raw.GetDeploymentId(),
+		httpResponse: response,
+		err: err,
 	}
 	return deployment
 }
 
-func (u deployStartResponse) String() string {
+func (u FormattableDeployStartResponse) Get() interface{} {
+	return u
+}
+
+func (u FormattableDeployStartResponse) GetHttpResponse() *_nethttp.Response {
+	return u.httpResponse
+}
+
+func (u FormattableDeployStartResponse) GetFetchError() error {
+	return u.err
+}
+
+func (u FormattableDeployStartResponse) String() string {
 	return fmt.Sprintf("[%v] Deployment ID: %s", time.Now().Format(time.RFC3339), u.DeploymentId)
 }
 
@@ -67,27 +85,21 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	if err != nil {
 		return fmt.Errorf("error invalid deployment object: %s", err)
 	}
+	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second * 5)
+	defer cancel()
 	// prepare request
 	request := options.DeployClient.DeploymentServiceApi.
-		DeploymentServiceStartKubernetes(options.DeployClient.Context).Body(payload)
+		DeploymentServiceStartKubernetes(ctx).Body(payload)
 	// execute request
 	raw, response, err := request.Execute()
-	if err != nil && response.StatusCode >= 300 {
-		openAPIErr := err.(de.GenericOpenAPIError)
-		return fmt.Errorf("deployment returns an error: status code(%d) %s",
-			response.StatusCode, string(openAPIErr.Body()))
-	}
-	if err != nil {
-		return fmt.Errorf("invalid request: %s", err)
-	}
 	// create response object
-	deploy := newDeployStartResponse(&raw)
+	deploy := newDeployStartResponse(&raw, response, err)
 	// format response
-	dataFormat, err := options.Output.Formatter(deploy, nil)
+	dataFormat, err := options.Output.Formatter(deploy)
 	if err != nil {
 		return fmt.Errorf("error trying to parse respone: %s", err)
 	}
 	options.deploymentId = deploy.DeploymentId
-	fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
-	return nil
+	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
+	return err
 }
