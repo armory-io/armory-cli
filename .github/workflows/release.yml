@@ -7,6 +7,7 @@ name: Build and Release
 jobs:
   setup:
     env:
+      BASE_PROJECT: armory-cli
       PVT_GITHUB_ACCESS_TOKEN: ${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
       GRGIT_USER: GitHub
       GRGIT_PASS: ${{ secrets.GITHUB_TOKEN }}

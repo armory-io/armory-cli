@@ -7,6 +7,7 @@ jobs:
     name: Build Project
     runs-on: ubuntu-latest
     env:
+      BASE_PROJECT: armory-cli
       PR_NUMBER: ${{ github.event.number }}
       PVT_GITHUB_ACCESS_TOKEN: ${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
     steps:
@@ -45,5 +46,5 @@ jobs:
           repository: armory/${{ env.BASE_PROJECT }}
           add_git_labels: true
           tag_with_sha: true
-          build_args: GITHUB_TOKEN=${{ secrets.PVT_GITHUB_ACCESS_TOKEN }},VERSION=PR-${{ github.event.number }}
+          build_args: GITHUB_TOKEN=${{ secrets.PVT_GITHUB_ACCESS_TOKEN }},VERSION=PR-${{ env.PR_NUMBER }}
 
