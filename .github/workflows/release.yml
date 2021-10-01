@@ -112,7 +112,7 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           CLI_EXT: ${{ matrix.ext }}
-        run: make build
+        run: make pre build
 
       - name: Upload Release Asset
         id: upload-release-asset
