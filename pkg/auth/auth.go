@@ -83,6 +83,19 @@ func (a *Auth) GetToken() (string, error) {
 	return credentials.Token, nil
 }
 
+func (a *Auth) GetEnvironment() (string, error) {
+	dirname, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	currentCreds, err := LoadCredentials(dirname + "/.armory/credentials")
+
+	if err != nil {
+		return "", err
+	}
+	return currentCreds.GetEnvironment()
+}
+
 func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 	data := url.Values{}
 	data.Set("grant_type", a.source)
@@ -95,7 +108,9 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("accept", "application/json")
-	c := &http.Client{}
+	c := &http.Client{
+		Timeout: time.Second * 10,
+	}
 	res, err := c.Do(req)
 	if err != nil {
 		return "", nil, err

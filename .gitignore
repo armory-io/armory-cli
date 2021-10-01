@@ -3,5 +3,5 @@
 profile.cov
 *.iml
 build
-armory-cli
 armory
+armory-cli

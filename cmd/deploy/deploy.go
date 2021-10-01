@@ -1,34 +1,50 @@
 package deploy
 
 import (
+	"fmt"
 	"github.com/armory/armory-cli/cmd"
-	"github.com/armory/armory-cli/pkg/auth"
 	"github.com/spf13/cobra"
+	"strings"
+	"time"
 )
 
 const (
 	deployShort   = ""
 	deployLong    = ""
 	deployExample = ""
+	cloudConsoleBaseUrl = "https://console.cloud.armory.io"
+	cloudConsoleStagingBaseUrl = "https://console.staging.cloud.armory.io"
 )
 
+type deployOptions struct {
+	*cmd.RootOptions
+	deploymentId string
+}
+
 func NewDeployCmd(rootOptions *cmd.RootOptions) *cobra.Command {
+	options := &deployOptions{
+		RootOptions: rootOptions,
+	}
 	command := &cobra.Command{
 		Use:     "deploy",
 		Aliases: []string{"deploy"},
 		Short:   deployShort,
 		Long:    deployLong,
 		Example: deployExample,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			rootOptions.Auth = auth.NewAuth(
-				rootOptions.ClientId, rootOptions.ClientSecret, "client_credentials",
-				rootOptions.TokenIssuerUrl, rootOptions.Audience)
+		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			if options.O == "" {
+				url := cloudConsoleBaseUrl
+				if strings.Contains(options.TokenIssuerUrl, "staging") {
+					url = cloudConsoleStagingBaseUrl
+				}
+				url += "/deployments/" + options.deploymentId + "?environmentId=" + options.Environment
+				fmt.Fprintf(cmd.OutOrStdout(), "[%v] See the deployment status user interface: %s\n", time.Now().Format(time.RFC3339), url)
+			}
 		},
 	}
-	cmd.AddLoginFlags(command, rootOptions)
-
+	cmd.AddLoginFlags(command, options.RootOptions)
 	// create subcommands
-	command.AddCommand(NewDeployStartCmd(rootOptions))
-	command.AddCommand(NewDeployStatusCmd(rootOptions))
+	command.AddCommand(NewDeployStartCmd(options))
+	command.AddCommand(NewDeployStatusCmd(options))
 	return command
 }

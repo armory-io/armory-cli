@@ -22,6 +22,9 @@ func NewCmdVersion() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return RunVersion(cmd)
 		},
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
 	}
 	return cmd
 }

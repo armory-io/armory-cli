@@ -1,9 +1,14 @@
 package deploy
 
 import (
-	"github.com/armory/armory-cli/cmd"
-	"github.com/sirupsen/logrus"
+	"context"
+	"fmt"
+	de "github.com/armory-io/deploy-engine/deploy/client"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	_nethttp "net/http"
+	"time"
 )
 
 const (
@@ -12,21 +17,89 @@ const (
 	deployStartExample = "armory deploy start [options]"
 )
 
-func NewDeployStartCmd(deployOptions *cmd.RootOptions) *cobra.Command {
+type deployStartOptions struct {
+	*deployOptions
+	deploymentFile string
+}
+
+type FormattableDeployStartResponse struct {
+	// The deployment's ID.
+	DeploymentId string `json:"deploymentId,omitempty" yaml:"deploymentId,omitempty"`
+	httpResponse *_nethttp.Response
+	err error
+}
+
+func newDeployStartResponse(raw *de.DeploymentV2StartDeploymentResponse, response *_nethttp.Response, err error) FormattableDeployStartResponse {
+	deployment := FormattableDeployStartResponse{
+		DeploymentId: raw.GetDeploymentId(),
+		httpResponse: response,
+		err: err,
+	}
+	return deployment
+}
+
+func (u FormattableDeployStartResponse) Get() interface{} {
+	return u
+}
+
+func (u FormattableDeployStartResponse) GetHttpResponse() *_nethttp.Response {
+	return u.httpResponse
+}
+
+func (u FormattableDeployStartResponse) GetFetchError() error {
+	return u.err
+}
+
+func (u FormattableDeployStartResponse) String() string {
+	return fmt.Sprintf("[%v] Deployment ID: %s", time.Now().Format(time.RFC3339), u.DeploymentId)
+}
+
+func NewDeployStartCmd(deployOptions *deployOptions) *cobra.Command {
+	options := &deployStartOptions{
+		deployOptions: deployOptions,
+	}
 	cmd := &cobra.Command{
-		Use:     "start",
+		Use:     "start --file [<path to file>]",
 		Aliases: []string{"start"},
 		Short:   deployStartShort,
 		Long:    deployStartLong,
 		Example: deployStartExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return start(cmd, deployOptions, args)
+			return start(cmd, options, args)
 		},
 	}
+	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
+	cmd.MarkFlagRequired("file")
 	return cmd
 }
 
-func start(cmd *cobra.Command, options *cmd.RootOptions, args []string) error {
-	logrus.Fatalf("Not implemented")
-	return nil
+func start(cmd *cobra.Command, options *deployStartOptions, args []string) error {
+	payload := de.KubernetesV2StartKubernetesDeploymentRequest{}
+	// read yaml file
+	file, err := ioutil.ReadFile(options.deploymentFile)
+	if err != nil {
+		return fmt.Errorf("error trying to read the yaml file: %s", err)
+	}
+	// unmarshall data into struct
+	err = yaml.Unmarshal(file, &payload)
+	if err != nil {
+		return fmt.Errorf("error invalid deployment object: %s", err)
+	}
+	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second * 5)
+	defer cancel()
+	// prepare request
+	request := options.DeployClient.DeploymentServiceApi.
+		DeploymentServiceStartKubernetes(ctx).Body(payload)
+	// execute request
+	raw, response, err := request.Execute()
+	// create response object
+	deploy := newDeployStartResponse(&raw, response, err)
+	// format response
+	dataFormat, err := options.Output.Formatter(deploy)
+	if err != nil {
+		return fmt.Errorf("error trying to parse respone: %s", err)
+	}
+	options.deploymentId = deploy.DeploymentId
+	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
+	return err
 }
