@@ -7,6 +7,7 @@ jobs:
     name: Build Project
     runs-on: ubuntu-latest
     env:
+      PR_NUMBER: ${{ github.event.number }}
       PVT_GITHUB_ACCESS_TOKEN: ${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
     steps:
       - name: Checkout Code
@@ -34,4 +35,15 @@ jobs:
           name: armory-cli-reports
           path: |
             build/reports/*
+
+      - name: Build & Push Docker Image
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.ARTIFACTORY_USER }}
+          password: ${{ secrets.ARTIFACTORY_TOKEN }}
+          registry: armory-docker-local.jfrog.io
+          repository: armory/${{ env.BASE_PROJECT }}
+          add_git_labels: true
+          tag_with_sha: true
+          build_args: GITHUB_TOKEN=${{ secrets.PVT_GITHUB_ACCESS_TOKEN }},VERSION=PR-${{ github.event.number }}
 

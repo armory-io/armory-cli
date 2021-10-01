@@ -43,9 +43,12 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 			options.clientId, options.clientSecret, "client_credentials",
 			options.TokenIssuerUrl, options.audience)
 		token, err := auth.GetToken()
-		options.Environment, err = auth.GetEnvironment()
 		if err != nil {
 			return fmt.Errorf("error at retrieving a token: %s", err)
+		}
+		options.Environment, err = auth.GetEnvironment()
+		if err != nil {
+			return fmt.Errorf("error at retrieving the environment: %s", err)
 		}
 		deployClient, err := deploy.NewDeployClient(
 			options.deployHostUrl,

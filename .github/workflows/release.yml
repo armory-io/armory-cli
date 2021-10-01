@@ -124,3 +124,14 @@ jobs:
           asset_path: ./build/dist/${{ matrix.os }}_${{ matrix.arch }}/armory${{ matrix.ext }}
           asset_name: armory-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
           asset_content_type: binary/octet-stream
+
+      - name: Build & Push Docker Image
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          registry: docker.io
+          repository: armory/${{ env.BASE_PROJECT }}
+          add_git_labels: true
+          tag_with_sha: true
+          build_args: GITHUB_TOKEN=${{ secrets.PVT_GITHUB_ACCESS_TOKEN }},VERSION=${{ needs.setup.outputs.version }}
