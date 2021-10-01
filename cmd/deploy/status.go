@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	deploy "github.com/armory-io/deploy-engine/deploy/client"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"time"
 	_nethttp "net/http"
+	"time"
 )
 
 const (
@@ -49,11 +48,6 @@ func newDeployStatusResponseWrapper(raw deploy.DeploymentV2DeploymentStatusRespo
 
 func (u FormattableDeployStatus) String() string {
 	ret := ""
-	if u.err != nil {
-		logrus.Error(u.err)
-		logrus.Fatalf("Error getting deployment status")
-	}
-
 	now := time.Now().Format(time.RFC3339)
 	ret += fmt.Sprintf("[%v] application: %s, started: %s\n", now, u.DeployResp.GetApplication(), u.DeployResp.GetStartedAtIso8601())
 	ret += fmt.Sprintf("[%v] status: ", now)
@@ -98,6 +92,8 @@ func status(cmd *cobra.Command, options *deployStatusOptions ) error {
 	req := options.DeployClient.DeploymentServiceApi.DeploymentServiceStatus(ctx, options.deploymentId)
 	deployResp, response, err := req.Execute()
 	dataFormat, err := options.Output.Formatter(newDeployStatusResponseWrapper(deployResp, response, err))
+	// if we've made it this far, the command is valid. if an error occurs it isn't a usage error
+	cmd.SilenceUsage = true
 	if err != nil {
 		return fmt.Errorf("error trying to parse respone: %s", err)
 	}

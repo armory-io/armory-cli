@@ -39,16 +39,16 @@ func parseOutputFormat(outputFormat string) Formatter {
 }
 
 func DefaultStructToString(input Formattable) (string, error) {
-	return fmt.Sprintf("%v",input), nil
+	err := getRequestError(input)
+	if err != nil {
+		return "Encountered request error:", err
+	}
+
+	return fmt.Sprintf("%v", input), err
 }
 
 func MarshalToJson(input Formattable) (string, error) {
-	err := input.GetFetchError()
-	if err != nil && input.GetHttpResponse() != nil && input.GetHttpResponse().StatusCode >= 300 {
-		openAPIErr := err.(de.GenericOpenAPIError)
-		err = fmt.Errorf("request returned an error: status code(%d) %s",
-			input.GetHttpResponse().StatusCode, string(openAPIErr.Body()))
-	}
+	err := getRequestError(input)
 	if err != nil {
 		return getErrorAsJson(err), nil
 	}
@@ -65,13 +65,7 @@ func getErrorAsJson(err error) string {
 }
 
 func MarshalToYaml(input Formattable) (string, error) {
-	err := input.GetFetchError()
-	if err != nil && input.GetHttpResponse() != nil && input.GetHttpResponse().StatusCode >= 300 {
-		openAPIErr := err.(de.GenericOpenAPIError)
-		err = fmt.Errorf("request returned an error: status code(%d) %s",
-			input.GetHttpResponse().StatusCode, string(openAPIErr.Body()))
-	}
-
+	err := getRequestError(input)
 	if err != nil {
 		return getErrorAsYaml(err), nil
 	}
@@ -85,4 +79,18 @@ func MarshalToYaml(input Formattable) (string, error) {
 
 func getErrorAsYaml(err error) string {
 	return fmt.Sprintf("error: \"%s", err)
+}
+
+func getRequestError(input Formattable) error {
+	err := input.GetFetchError()
+	if err != nil {
+		// don't override the received error unless we have an unexpected http response status
+		if input.GetHttpResponse() != nil && input.GetHttpResponse().StatusCode >= 300 {
+			openAPIErr := err.(de.GenericOpenAPIError)
+			err = fmt.Errorf("request returned an error: status code(%d) %s",
+				input.GetHttpResponse().StatusCode, string(openAPIErr.Body()))
+		}
+	}
+
+	return err
 }
