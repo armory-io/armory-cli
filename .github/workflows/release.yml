@@ -153,4 +153,4 @@ jobs:
           context: .
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build_args: GITHUB_TOKEN=${{ secrets.PVT_GITHUB_ACCESS_TOKEN }},VERSION=${{ needs.setup.outputs.version }}
+          build-args: GITHUB_TOKEN=${{ secrets.PVT_GITHUB_ACCESS_TOKEN }},VERSION=${{ needs.setup.outputs.version }}
