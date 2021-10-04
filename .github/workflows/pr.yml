@@ -60,3 +60,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             GITHUB_TOKEN=${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
+            VERSION=${{ steps.meta.outputs.tags }}
