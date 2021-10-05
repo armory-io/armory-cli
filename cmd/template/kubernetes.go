@@ -30,7 +30,7 @@ func buildTemplateKubernetesCore() *yaml.Node {
 	root.Content = append(root.Content, util.BuildStringNode("account", "<Account>", "The account of the deployment target. You set the account name when you installed the agent.")...)
 	root.Content = append(root.Content, util.BuildStringNode("namespace", "<Namespace>", "The Kubernetes namespace where you want to deploy the manifest.")...)
 	// Manifest sequence/array
-	manifestsNode, manifestValuesNode := util.BuildSequenceNode("manifests", "The list of manifests sources.")
+	manifestsNode, manifestValuesNode := util.BuildSequenceNode("manifests", "The list of manifest sources.")
 
 	// Inline root
 	inline := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
