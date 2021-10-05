@@ -3,10 +3,11 @@ package deploy
 import (
 	"context"
 	"fmt"
-	deploy "github.com/armory-io/deploy-engine/deploy/client"
-	"github.com/spf13/cobra"
 	_nethttp "net/http"
 	"time"
+
+	deploy "github.com/armory-io/deploy-engine/deploy/client"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -20,9 +21,9 @@ type deployStatusOptions struct {
 }
 
 type FormattableDeployStatus struct {
-	DeployResp deploy.DeploymentV2DeploymentStatusResponse `json:"deployment"`
+	DeployResp   deploy.DeploymentV2DeploymentStatusResponse `json:"deployment"`
 	httpResponse *_nethttp.Response
-	err error
+	err          error
 }
 
 func (u FormattableDeployStatus) Get() interface{} {
@@ -39,9 +40,9 @@ func (u FormattableDeployStatus) GetFetchError() error {
 
 func newDeployStatusResponseWrapper(raw deploy.DeploymentV2DeploymentStatusResponse, response *_nethttp.Response, err error) FormattableDeployStatus {
 	wrapper := FormattableDeployStatus{
-		DeployResp: raw,
+		DeployResp:   raw,
 		httpResponse: response,
-		err: err,
+		err:          err,
 	}
 	return wrapper
 }
@@ -58,9 +59,9 @@ func (u FormattableDeployStatus) String() string {
 		if reason == "" {
 			reason = "unspecified"
 		}
-		ret += fmt.Sprintf("[%s] msg: Paused until %s for reason: %s. You may resume immediately in the cloud console or CLI\n", status, end, reason)
+		ret += fmt.Sprintf("[%s] msg: Paused until %s for reason: %s. You can skip the pause in the cloud console or CLI\n", status, end, reason)
 	case deploy.DEPLOYMENT_AWAITING_APPROVAL:
-		ret += fmt.Sprintf("[%s] msg: Paused for Manual Judgment. You may resume immediately in the cloud console or CLI.\n", status)
+		ret += fmt.Sprintf("[%s] msg: Paused for Manual Judgment. You can approve the rollout and continue the deployment in the cloud console or CLI.\n", status)
 	default:
 		ret += string(status) + "\n"
 	}
@@ -81,13 +82,13 @@ func NewDeployStatusCmd(deployOptions *deployOptions) *cobra.Command {
 			return status(cmd, options)
 		},
 	}
-	cmd.Flags().StringVarP(&options.deploymentId, "deploymentId", "i", "", "The id of an existing deployment (required)")
+	cmd.Flags().StringVarP(&options.deploymentId, "deploymentId", "i", "", "(Required) The ID of an existing deployment.")
 	cmd.MarkFlagRequired("deploymentId")
 	return cmd
 }
 
-func status(cmd *cobra.Command, options *deployStatusOptions ) error {
-	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second * 5)
+func status(cmd *cobra.Command, options *deployStatusOptions) error {
+	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second*5)
 	defer cancel()
 	req := options.DeployClient.DeploymentServiceApi.DeploymentServiceStatus(ctx, options.deploymentId)
 	deployResp, response, err := req.Execute()
