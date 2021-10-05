@@ -78,7 +78,7 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	// read yaml file
 	file, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
-		return fmt.Errorf("error trying to read the yaml file: %s", err)
+		return fmt.Errorf("error trying to read the YAML file: %s", err)
 	}
 	// unmarshall data into struct
 	err = yaml.Unmarshal(file, &payload)
@@ -97,7 +97,7 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	// format response
 	dataFormat, err := options.Output.Formatter(deploy)
 	if err != nil {
-		return fmt.Errorf("error trying to parse respone: %s", err)
+		return fmt.Errorf("error trying to parse response: %s", err)
 	}
 	options.deploymentId = deploy.DeploymentId
 	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
