@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/deploy/client"
-	o "github.com/armory/armory-cli/pkg/orchestration"
+	"github.com/armory/armory-cli/pkg/service"
+	"github.com/armory/armory-cli/pkg/model"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -75,7 +76,7 @@ func NewDeployStartCmd(deployOptions *deployOptions) *cobra.Command {
 }
 
 func start(cmd *cobra.Command, options *deployStartOptions, args []string) error {
-	payload := o.Orchestration{}
+	payload := model.OrchestrationConfig{}
 	// read yaml file
 	file, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
@@ -87,12 +88,11 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	if err != nil {
 		return fmt.Errorf("error invalid deployment object: %s", err)
 	}
-	deployment, err := payload.ToDeployEngineDeployment()
+	deployment, err := service.CreateDeploymentRequest(&payload)
 	if err != nil {
 		return fmt.Errorf("error converting deployment object: %s", err)
 	}
-	yml, err := yaml.Marshal(deployment)
-	fmt.Printf("%s",yml)
+
 	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second * 5)
 	defer cancel()
 	// prepare request
