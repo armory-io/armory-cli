@@ -14,7 +14,7 @@ RUN make build
 
 
 FROM alpine:3.12
-ENV APP=/usr/local/bin/armory \
+ENV APP=/usr/local/bin/armory/armory \
     USER_UID=1001 \
     USER_NAME=armory
 
@@ -22,8 +22,8 @@ RUN apk update               \
 	&& apk add --no-cache ca-certificates bash   \
 	&& adduser -D -u ${USER_UID} ${USER_NAME}
 
-
 COPY --from=builder /workspace/build/dist/linux_amd64 /usr/local/bin/armory
+COPY --from=builder /workspace/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 USER ${USER_NAME}
-ENTRYPOINT ["/usr/local/bin/armory/armory"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

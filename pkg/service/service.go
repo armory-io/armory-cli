@@ -6,6 +6,7 @@ import (
 	"github.com/armory/armory-cli/pkg/model"
 	"io/fs"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -93,7 +94,11 @@ func CreateDeploymentCanaryStep(strategy model.Strategy) ([]de.KubernetesV2Canar
 
 func GetManifestsFromFile(manifests *[]model.ManifestPath) (*[]string, error) {
 	var fileNames []string
+	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	for _, manifestPath := range *manifests {
+		if present {
+			manifestPath.Path = gitWorkspace + manifestPath.Path
+		}
 		err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
 			if err != nil {
 				fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)

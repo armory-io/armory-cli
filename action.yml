@@ -21,7 +21,7 @@ outputs:
     description: 'Deployment status'
 runs:
   using: 'docker'
-  image: 'docker://armory/armory-cli:test'
+  image: 'docker://armory/armory-cli'
   env:
     ARMORY_CLIENTID: ${{ inputs.clientId }}
     ARMORY_CLIENTSECRET: ${{ inputs.clientSecret }}

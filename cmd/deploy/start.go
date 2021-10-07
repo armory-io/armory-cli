@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/deploy/client"
-	"github.com/armory/armory-cli/pkg/service"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/armory/armory-cli/pkg/service"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -79,9 +79,9 @@ func NewDeployStartCmd(deployOptions *deployOptions) *cobra.Command {
 func start(cmd *cobra.Command, options *deployStartOptions, args []string) error {
 	payload := model.OrchestrationConfig{}
 	//in case this is running on a github instance
-	path, present := os.LookupEnv("GITHUB_WORKSPACE")
+	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	if present {
-		options.deploymentFile = path + options.deploymentFile
+		options.deploymentFile = gitWorkspace + options.deploymentFile
 	}
 	// read yaml file
 	file, err := ioutil.ReadFile(options.deploymentFile)
