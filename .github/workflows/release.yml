@@ -76,6 +76,8 @@ jobs:
           prerelease: false
 
   compile:
+    env:
+      PVT_GITHUB_ACCESS_TOKEN: ${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
     name: Compile Binaries and Upload to Release
     needs:
       - setup
@@ -106,6 +108,8 @@ jobs:
           path: ~/go/pkg/mod
           key: go-${{ hashFiles('**/go.sum') }}
           restore-keys: go-
+      - name: Fix private repo access
+        run: make pre
 
       - name: Build CLI
         env:
