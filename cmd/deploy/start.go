@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/deploy/client"
+	"github.com/armory/armory-cli/pkg/service"
+	"github.com/armory/armory-cli/pkg/model"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -74,22 +76,28 @@ func NewDeployStartCmd(deployOptions *deployOptions) *cobra.Command {
 }
 
 func start(cmd *cobra.Command, options *deployStartOptions, args []string) error {
-	payload := de.KubernetesV2StartKubernetesDeploymentRequest{}
+	payload := model.OrchestrationConfig{}
 	// read yaml file
 	file, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
 		return fmt.Errorf("error trying to read the yaml file: %s", err)
 	}
+	cmd.SilenceUsage = true
 	// unmarshall data into struct
 	err = yaml.Unmarshal(file, &payload)
 	if err != nil {
 		return fmt.Errorf("error invalid deployment object: %s", err)
 	}
+	deployment, err := service.CreateDeploymentRequest(&payload)
+	if err != nil {
+		return fmt.Errorf("error converting deployment object: %s", err)
+	}
+
 	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second * 5)
 	defer cancel()
 	// prepare request
 	request := options.DeployClient.DeploymentServiceApi.
-		DeploymentServiceStartKubernetes(ctx).Body(payload)
+		DeploymentServiceStartKubernetes(ctx).Body(*deployment)
 	// execute request
 	raw, response, err := request.Execute()
 	// create response object
