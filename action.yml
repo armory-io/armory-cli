@@ -29,4 +29,4 @@ runs:
     ARMORY_TOKENISSUERURL: ${{ inputs.tokenIssuerUrl }}
     ARMORY_DEPLOYHOSTURL: ${{ inputs.deployHostUrl }}
   args:
-    - "--file ${{ inputs.path-to-file }}"
+    - "deploy start --file ${{ inputs.path-to-file }}"
