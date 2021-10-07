@@ -10,6 +10,12 @@ inputs:
   clientSecret:
     description: 'ClientSecret for Armory Cloud'
     required: true
+  audience:
+    description: 'audience'
+  tokenIssuerUrl:
+    description: 'tokenIssuerUrl'
+  deployHostUrl:
+    description: 'deployHostUrl'
 outputs:
   deployment-link:
     description: 'Deployment status'
@@ -19,5 +25,8 @@ runs:
   env:
     ARMORY_CLIENTID: ${{ inputs.clientId }}
     ARMORY_CLIENTSECRET: ${{ inputs.clientSecret }}
+    ARMORY_AUDIENCE: ${{ inputs.audience }}
+    ARMORY_TOKENISSUERURL: ${{ inputs.tokenIssuerUrl }}
+    ARMORY_DEPLOYHOSTURL: ${{ inputs.deployHostUrl }}
   args:
     - "--file ${{ inputs.path-to-file }}"
