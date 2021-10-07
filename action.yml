@@ -1,0 +1,23 @@
+name: 'armory/deployment'
+description: 'Deploy your app with Armory Cloud'
+inputs:
+  path-to-file:
+    description: 'Path to YAML file to deploy'
+    required: true
+  clientId:
+    description: 'ClientId for Armory Cloud'
+    required: true
+  clientSecret:
+    description: 'ClientSecret for Armory Cloud'
+    required: true
+outputs:
+  deployment-link:
+    description: 'Deployment status'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    ARMORY_CLIENTID: ${{ inputs.clientId }}
+    ARMORY_CLIENTSECRET: ${{ inputs.clientSecret }}
+  args:
+    - "--file ${{ inputs.path-to-file }}"

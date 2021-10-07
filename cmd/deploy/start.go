@@ -8,6 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	_nethttp "net/http"
+	"os"
 	"time"
 )
 
@@ -75,6 +76,11 @@ func NewDeployStartCmd(deployOptions *deployOptions) *cobra.Command {
 
 func start(cmd *cobra.Command, options *deployStartOptions, args []string) error {
 	payload := de.KubernetesV2StartKubernetesDeploymentRequest{}
+	//in case this is running on a github instance
+	path, present := os.LookupEnv("GITHUB_WORKSPACE")
+	if present {
+		options.deploymentFile = path + options.deploymentFile
+	}
 	// read yaml file
 	file, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
