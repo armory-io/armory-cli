@@ -60,5 +60,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            GITHUB_TOKEN=${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
-            VERSION=PR-${{ env.PR_NUMBER }}
+            BUILD_PATH=./build/dist/linux_amd64/armory

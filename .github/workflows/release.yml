@@ -131,7 +131,7 @@ jobs:
           asset_content_type: binary/octet-stream
 
   build-push:
-    name: Create Release
+    name: Push Docker Image
     needs:
       - setup
       - create-release
@@ -159,5 +159,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            GITHUB_TOKEN=${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
-            VERSION=${{ needs.setup.outputs.version }}
+            BUILD_PATH=./build/dist/linux_amd64/armory
