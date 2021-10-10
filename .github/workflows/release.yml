@@ -7,6 +7,7 @@ name: Build and Release
 jobs:
   setup:
     env:
+      BASE_PROJECT: armory-cli
       PVT_GITHUB_ACCESS_TOKEN: ${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
       GRGIT_USER: GitHub
       GRGIT_PASS: ${{ secrets.GITHUB_TOKEN }}
@@ -128,3 +129,34 @@ jobs:
           asset_path: ./build/dist/${{ matrix.os }}_${{ matrix.arch }}/armory${{ matrix.ext }}
           asset_name: armory-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
           asset_content_type: binary/octet-stream
+
+  build-push:
+    name: Push Docker Image
+    needs:
+      - setup
+      - create-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: armory/${{ env.BASE_PROJECT }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.setup.outputs.version }}
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILD_PATH=./build/dist/linux_amd64/armory

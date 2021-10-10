@@ -44,6 +44,12 @@ func (a *Auth) GetToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if _, err := os.Stat(dirname + "/.armory"); os.IsNotExist(err) {
+		err := os.Mkdir(dirname + "/.armory", os.ModePerm)
+		if err != nil {
+			return "", err
+		}
+	}
 	exists, err := util.FileExists(dirname + "/.armory/credentials")
 	if err != nil {
 		return "", err

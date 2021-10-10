@@ -25,7 +25,7 @@ func NewTemplateCmd(rootOptions *cmd.RootOptions) *cobra.Command {
 		Short:   templateShort,
 		Long:    templateLong,
 		Example: templateExample,
-		PostRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			return nil
 		},
 	}
