@@ -135,6 +135,7 @@ jobs:
     needs:
       - setup
       - create-release
+      - compile
     runs-on: ubuntu-latest
     steps:
       - name: Docker meta
