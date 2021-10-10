@@ -142,7 +142,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: armory/${{ env.BASE_PROJECT }}
+          images: armory/armory-cli
           tags: |
             type=semver,pattern={{version}},value=${{ needs.setup.outputs.version }}
 
