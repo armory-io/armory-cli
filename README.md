@@ -3,6 +3,30 @@
 
 The CLI for Armory Cloud.
 
+## Installation
+
+The CLI releases can be found on the [releases page](https://github.com/armory/armory-cli/releases/latest)
+
+You can also use the [AVM (armory version manager) utility](https://github.com/armory/avm/releases/latest) to install and update the Armory CLI.
+
+Just download the bin for your os/arch and mark it as executable and place it in your path.
+
+```bash
+# Mac OS X Intel
+wget https://github.com/armory/avm/releases/download/v0.0.3/avm-darwin-amd64
+chmod +x avm-darwin-amd64
+mv avm-darwin-amd64 /usr/local/bin/avm
+avm install
+```
+
+```bash
+# Mac OS X M1
+wget https://github.com/armory/avm/releases/download/v0.0.3/avm-darwin-arm64
+chmod +x avm-darwin-arm64
+mv avm-darwin-arm64 /usr/local/bin/avm
+avm install
+```
+
 ### Working Locally With a Mock HTTP Server
 Features may not always be developed in the Deploy Engine API or we may want to test a particular response. This may not be easily 
 achieved with unit tests or we may have a need to simulate a state of a deployment during runtime. 
