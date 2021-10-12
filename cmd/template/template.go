@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	templateShort   = "Generate an Armory's deployment template"
+	templateShort   = "Generate a deployment template that you can customize."
 	templateLong    = ""
 	templateExample = ""
 )
