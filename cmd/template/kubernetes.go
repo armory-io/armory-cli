@@ -34,7 +34,7 @@ func buildTemplateKubernetesCore() *yaml.Node {
 
 	// Inline root
 	inline := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	inlineNode, inlineValuesNode := util.BuildMapNode("inline", "This map key is the manifest source type.")
+	inlineNode, inlineValuesNode := util.BuildMapNode("inline","This map key is the manifest source type.")
 	inlineValuesNode.Content = append(inlineValuesNode.Content, util.BuildStringNode("value", "| apiVersion: apps/v1...", "A YAML-encoded string containing a Kubernetes resource manifest.")...)
 	inline.Content = append(inline.Content, inlineNode, inlineValuesNode)
 

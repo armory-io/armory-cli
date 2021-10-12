@@ -5,7 +5,6 @@ import (
 	"fmt"
 	_nethttp "net/http"
 	"time"
-
 	deploy "github.com/armory-io/deploy-engine/deploy/client"
 	"github.com/spf13/cobra"
 )
@@ -23,7 +22,7 @@ type deployStatusOptions struct {
 type FormattableDeployStatus struct {
 	DeployResp deploy.DeploymentV2DeploymentStatusResponse `json:"deployment"`
 	httpResponse *_nethttp.Response
-	err          error
+	err error
 }
 
 func (u FormattableDeployStatus) Get() interface{} {
@@ -42,7 +41,7 @@ func newDeployStatusResponseWrapper(raw deploy.DeploymentV2DeploymentStatusRespo
 	wrapper := FormattableDeployStatus{
 		DeployResp:   raw,
 		httpResponse: response,
-		err:          err,
+		err: err,
 	}
 	return wrapper
 }
@@ -88,7 +87,7 @@ func NewDeployStatusCmd(deployOptions *deployOptions) *cobra.Command {
 }
 
 func status(cmd *cobra.Command, options *deployStatusOptions) error {
-	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second*5)
+	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second * 5)
 	defer cancel()
 	req := options.DeployClient.DeploymentServiceApi.DeploymentServiceStatus(ctx, options.deploymentId)
 	deployResp, response, err := req.Execute()

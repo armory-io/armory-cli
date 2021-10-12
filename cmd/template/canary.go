@@ -37,7 +37,7 @@ func NewTemplateCanaryCmd(templateOptions *templateOptions) *cobra.Command {
 func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) error {
 	root := buildTemplateKubernetesCore()
 	// Canary root
-	canaryNode, canaryValuesNode := util.BuildMapNode("canary", "This map key, is the deployment strategy type.")
+	canaryNode, canaryValuesNode := util.BuildMapNode("canary","This map key, is the deployment strategy type.")
 
 	// Steps sequence/array
 	stepsNode, stepsValuesNode := util.BuildSequenceNode("steps", "A list of progressive canary steps.")
@@ -51,13 +51,13 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 	// Weight root
 	weight := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	weightNode, weightValuesNode := util.BuildMapNode("setweight", "")
+	weightNode, weightValuesNode := util.BuildMapNode("setweight","")
 	weightValuesNode.Content = append(weightValuesNode.Content, util.BuildIntNode("weight", "33", "The percentage of pods that should be running the canary version for this step. Set it to an integer between 0 and 100, inclusive.")...)
 	weight.Content = append(weight.Content, weightNode, weightValuesNode)
 
 	// Pause UntilApproved root
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	pauseUANode, pauseUAValuesNode := util.BuildMapNode("pause", "")
+	pauseUANode, pauseUAValuesNode := util.BuildMapNode("pause","")
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildBoolNode("untilapproved", "true", "If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.")...)
 	pauseUA.Content = append(pauseUA.Content, pauseUANode, pauseUAValuesNode)
 
