@@ -2,7 +2,6 @@ package template
 
 import (
 	"fmt"
-
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"

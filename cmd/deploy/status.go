@@ -21,7 +21,7 @@ type deployStatusOptions struct {
 }
 
 type FormattableDeployStatus struct {
-	DeployResp   deploy.DeploymentV2DeploymentStatusResponse `json:"deployment"`
+	DeployResp deploy.DeploymentV2DeploymentStatusResponse `json:"deployment"`
 	httpResponse *_nethttp.Response
 	err          error
 }
