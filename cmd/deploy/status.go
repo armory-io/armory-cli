@@ -3,10 +3,10 @@ package deploy
 import (
 	"context"
 	"fmt"
-	_nethttp "net/http"
-	"time"
 	deploy "github.com/armory-io/deploy-engine/deploy/client"
 	"github.com/spf13/cobra"
+	_nethttp "net/http"
+	"time"
 )
 
 const (
@@ -39,7 +39,7 @@ func (u FormattableDeployStatus) GetFetchError() error {
 
 func newDeployStatusResponseWrapper(raw deploy.DeploymentV2DeploymentStatusResponse, response *_nethttp.Response, err error) FormattableDeployStatus {
 	wrapper := FormattableDeployStatus{
-		DeployResp:   raw,
+		DeployResp: raw,
 		httpResponse: response,
 		err: err,
 	}
