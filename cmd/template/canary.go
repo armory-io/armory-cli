@@ -36,6 +36,14 @@ func NewTemplateCanaryCmd(templateOptions *templateOptions) *cobra.Command {
 
 func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) error {
 	root := buildTemplateKubernetesCore()
+
+	// Strategies root
+	strategiesNode, strategyValuesNode := util.BuildMapNode("strategies","The map of strategies, " +
+		"a deployment target will reference one of these.")
+	// Strategy1
+	strategy1Node, strategy1ValuesNode := util.BuildSequenceNode("strategy1", "This is the name for the strategy")
+
+	canary := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	// Canary root
 	canaryNode, canaryValuesNode := util.BuildMapNode("canary","This map key, is the deployment strategy type.")
 
@@ -63,7 +71,11 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 	stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, pauseUA)
 	canaryValuesNode.Content = append(canaryValuesNode.Content, stepsNode, stepsValuesNode)
-	root.Content = append(root.Content, canaryNode, canaryValuesNode)
+	canary.Content = append(canary.Content, canaryNode, canaryValuesNode )
+	strategy1ValuesNode.Content = append(strategy1ValuesNode.Content, canary)
+	strategyValuesNode.Content = append(strategyValuesNode.Content, strategy1Node, strategy1ValuesNode)
+
+	root.Content = append(root.Content, strategiesNode, strategyValuesNode)
 
 	bytes, err := yaml.Marshal(root)
 	if err != nil {
