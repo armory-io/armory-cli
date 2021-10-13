@@ -38,12 +38,11 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 	root := buildTemplateKubernetesCore()
 
 	// Strategies root
-	strategiesNode, strategyValuesNode := util.BuildMapNode("strategies","The map of strategies, " +
-		"a deployment target will reference one of these.")
+	strategiesNode, strategyValuesNode := util.BuildMapNode("strategies","A map of strategies, each of which can be assigned to deployment targets in the targets map.")
 	// Strategy1
-	strategy1Node, strategy1ValuesNode := util.BuildSequenceNode("strategy1", "This is the name for the strategy")
+	strategy1Node, strategy1ValuesNode := util.BuildMapNode("strategy1",
+		"Specify a strategy. The identifier for a strategy is its name.")
 
-	canary := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	// Canary root
 	canaryNode, canaryValuesNode := util.BuildMapNode("canary","This map key, is the deployment strategy type.")
 
@@ -71,8 +70,7 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 	stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, pauseUA)
 	canaryValuesNode.Content = append(canaryValuesNode.Content, stepsNode, stepsValuesNode)
-	canary.Content = append(canary.Content, canaryNode, canaryValuesNode )
-	strategy1ValuesNode.Content = append(strategy1ValuesNode.Content, canary)
+	strategy1ValuesNode.Content = append(strategy1ValuesNode.Content, canaryNode, canaryValuesNode)
 	strategyValuesNode.Content = append(strategyValuesNode.Content, strategy1Node, strategy1ValuesNode)
 
 	root.Content = append(root.Content, strategiesNode, strategyValuesNode)
