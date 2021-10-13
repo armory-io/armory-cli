@@ -8,6 +8,7 @@ import (
 	"github.com/armory/armory-cli/pkg/output"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	easy "github.com/t-tomalak/logrus-easy-formatter"
 	"io"
 )
 
@@ -84,6 +85,8 @@ func configureLogging(verboseFlag bool) error {
 		lvl = log.DebugLevel
 	}
 	log.SetLevel(lvl)
-	log.SetFormatter(&log.TextFormatter{})
+	log.SetFormatter(&easy.Formatter{
+		LogFormat:       "%msg%\n",
+	})
 	return nil
 }
