@@ -59,14 +59,14 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 	// Weight root
 	weight := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	weightNode, weightValuesNode := util.BuildMapNode("setweight","")
+	weightNode, weightValuesNode := util.BuildMapNode("setWeight","")
 	weightValuesNode.Content = append(weightValuesNode.Content, util.BuildIntNode("weight", "33", "The percent of pods that should be running the canary version. Weight should be between 0 and 100 inclusive.")...)
 	weight.Content = append(weight.Content, weightNode, weightValuesNode)
 
 	// Pause UntilApproved root
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	pauseUANode, pauseUAValuesNode := util.BuildMapNode("pause","")
-	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildBoolNode("untilapproved", "true", "If set to true, the progressive canary will wait until a manual judgment to continue. This field should not be set to true unless duration and unit are unset.")...)
+	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildBoolNode("untilApproved", "true", "If set to true, the progressive canary will wait until a manual judgment to continue. This field should not be set to true unless duration and unit are unset.")...)
 	pauseUA.Content = append(pauseUA.Content, pauseUANode, pauseUAValuesNode)
 
 	stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, pauseUA)
