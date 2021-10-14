@@ -13,7 +13,7 @@ Just download the bin for your os/arch and mark it as executable and place it in
 
 ```bash
 # Mac OS X Intel
-wget https://github.com/armory/avm/releases/download/v0.0.3/avm-darwin-amd64
+wget https://github.com/armory/avm/releases/download/v1.0.1/avm-darwin-amd64
 chmod +x avm-darwin-amd64
 mv avm-darwin-amd64 /usr/local/bin/avm
 avm install
@@ -21,7 +21,7 @@ avm install
 
 ```bash
 # Mac OS X M1
-wget https://github.com/armory/avm/releases/download/v0.0.3/avm-darwin-arm64
+wget https://github.com/armory/avm/releases/download/v1.0.1/avm-darwin-arm64
 chmod +x avm-darwin-arm64
 mv avm-darwin-arm64 /usr/local/bin/avm
 avm install
