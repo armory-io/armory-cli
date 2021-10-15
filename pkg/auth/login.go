@@ -158,26 +158,23 @@ func PollAuthorizationServerForResponse(deviceTokenResponse *DeviceTokenData, au
 	}
 }
 
-func decodeJwtMetadata(encodedJwt string) {
+func DecodeJwtMetadata(encodedJwt string) (Jwt, error) {
 	parts := strings.Split(encodedJwt, ".")
 	if len(parts) != 3 {
-		log.Fatalln("Expected well-formed JWT")
+		return Jwt{}, errors.New("expected well-formed JWT")
 	}
 	jwtMeta := parts[1]
-
 	data, err := base64.StdEncoding.DecodeString(jwtMeta)
 	if err != nil {
 		log.Debug(err)
-		log.Fatalln("Failed to decode JWT metadata")
+		return Jwt{}, errors.New("failed to decode JWT metadata")
 	}
-
 	var jwt Jwt
 	dec := json.NewDecoder(bytes.NewReader(data))
 	err = dec.Decode(&jwt)
 	if err != nil {
 		log.Debug(err)
-		log.Fatalln("Failed to deserialize principal claim")
+		return Jwt{}, errors.New("failed to deserialize principal claim")
 	}
-
-	log.Infof("Welcome %s user: %s, your token expires at: %s", jwt.PrincipalMetadata.OrgName, jwt.PrincipalMetadata.Name, time.Unix(jwt.ExpiresAt, 0).Local().String())
+	return jwt, nil
 }

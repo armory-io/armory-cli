@@ -3,11 +3,11 @@ package login
 import (
 	"fmt"
 	"github.com/armory/armory-cli/cmd"
+	"github.com/armory/armory-cli/pkg/auth"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"io"
 	"time"
-	"github.com/armory/armory-cli/pkg/auth"
 )
 
 const (
@@ -18,6 +18,9 @@ const (
 
 type loginOptions struct {
 	*cmd.RootOptions
+	clientId string
+	scope string
+	audience string
 }
 
 func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
@@ -34,6 +37,12 @@ func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
 			return login(cmd, options, args)
 		},
 	}
+	command.Flags().StringVarP(&options.clientId, "clientId", "c", "", "")
+	command.Flags().StringVarP(&options.scope, "scope", "s", "openid profile email", "")
+	command.Flags().StringVarP(&options.audience, "audience", "a", "https://api.cloud.armory.io", "")
+	command.Flags().MarkHidden("clientId")
+	command.Flags().MarkHidden("scope")
+	command.Flags().MarkHidden("audience")
 	return command
 }
 
@@ -63,10 +72,10 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 	if err != nil {
 		return fmt.Errorf("error at polling auth server for response: %s", err)
 	}
-	decodeJwtMetadata(token)
+	jwt, err := auth.DecodeJwtMetadata(token)
 	if err != nil {
 		return fmt.Errorf("error at decoding jwt: %s", err)
 	}
-
+	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s, your token expires at: %s", jwt.PrincipalMetadata.OrgName, jwt.PrincipalMetadata.Name, time.Unix(jwt.ExpiresAt, 0).Local().String())
 	return nil
 }
