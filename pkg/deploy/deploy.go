@@ -13,11 +13,11 @@ type Client struct {
 
 var UserAgent = "armory-cli"
 
-if val, present := os.LookupEnv('ARMORY_DEPLOYORIGIN'); present {
-	UserAgent = val
-}
-
 func NewDeployClient(basePath, token string) (*Client, error) {
+	if val, present := os.LookupEnv("ARMORY_DEPLOYORIGIN"); present {
+		UserAgent = val
+	}
+
 	deployClient := &Client{
 		Context: context.Background(),
 	}
