@@ -11,15 +11,20 @@ type Client struct {
 	Context context.Context
 }
 
-func NewDeployClient(basePath, token string) (*Client, error){
-	deployClient:= &Client{
+var UserAgent = "armory-cli"
+
+if val, present := os.LookupEnv('ARMORY_DEPLOYORIGIN'); present {
+	UserAgent = val
+}
+
+func NewDeployClient(basePath, token string) (*Client, error) {
+	deployClient := &Client{
 		Context: context.Background(),
 	}
 	cfg := deploy.NewConfiguration()
 	cfg.Host = basePath
 	cfg.Scheme = "https"
-	cfg.UserAgent = "armory-cli/" + version.Version
-	cfg.AddDefaultHeader("X-Armory-Client","armory-cli/" + version.Version)
+	cfg.UserAgent = fmt.Sprintf("%s", UserAgent) + "/" + version.Version
 	deployClient.APIClient = deploy.NewAPIClient(cfg)
 	deployClient.Context = context.WithValue(deployClient.Context, deploy.ContextAccessToken, token)
 	return deployClient, nil
