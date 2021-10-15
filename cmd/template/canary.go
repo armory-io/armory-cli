@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	templateCanaryShort   = "Print a canary deployment template"
-	templateCanaryLong    = "Print a canary deployment template in yaml format"
+	templateCanaryShort   = "Generate a canary deployment template"
+	templateCanaryLong    = "Generate a canary deployment template in YAML format"
 	templateCanaryExample = "armory template canary > canary.yaml"
 )
 
@@ -52,21 +52,21 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 	// Pause root
 	pause := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	pauseNode, pauseValuesNode := util.BuildMapNode("pause","The map key is the step type")
-	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildIntNode("duration", "1", "The duration of the pause. If duration is non-zero, untilApproved should be set to false.")...)
+	pauseNode, pauseValuesNode := util.BuildMapNode("pause", "The map key is the step type")
+	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildIntNode("duration", "1", "The duration of the pause before the deployment continues. If duration is not zero, set untilApproved to false.")...)
 	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildStringNode("unit", "SECONDS", "")...)
 	pause.Content = append(pause.Content, pauseNode, pauseValuesNode)
 
 	// Weight root
 	weight := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	weightNode, weightValuesNode := util.BuildMapNode("setWeight","")
-	weightValuesNode.Content = append(weightValuesNode.Content, util.BuildIntNode("weight", "33", "The percent of pods that should be running the canary version. Weight should be between 0 and 100 inclusive.")...)
+	weightNode, weightValuesNode := util.BuildMapNode("setweight","")
+	weightValuesNode.Content = append(weightValuesNode.Content, util.BuildIntNode("weight", "33", "The percentage of pods that should be running the canary version for this step. Set it to an integer between 0 and 100, inclusive.")...)
 	weight.Content = append(weight.Content, weightNode, weightValuesNode)
 
 	// Pause UntilApproved root
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	pauseUANode, pauseUAValuesNode := util.BuildMapNode("pause","")
-	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildBoolNode("untilApproved", "true", "If set to true, the progressive canary will wait until a manual judgment to continue. This field should not be set to true unless duration and unit are unset.")...)
+	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildBoolNode("untilapproved", "true", "If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.")...)
 	pauseUA.Content = append(pauseUA.Content, pauseUANode, pauseUAValuesNode)
 
 	stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, pauseUA)

@@ -7,9 +7,8 @@ import (
 )
 
 const (
-	kubernetesShort   = "Generate an kubernetes deployment template"
+	kubernetesShort = "Generate a Kubernetes deployment template."
 )
-
 
 func NewTemplateKubernetesCmd(rootOptions *templateOptions) *cobra.Command {
 	command := &cobra.Command{
@@ -31,6 +30,7 @@ func buildTemplateKubernetesCore() *yaml.Node {
 	root.Content = append(root.Content, util.BuildStringNode("kind", "kubernetes", "")...)
 	root.Content = append(root.Content, util.BuildStringNode("application", "<App Name>", "The name of the deployed application.")...)
 
+
 	// Target root
 	targetNode, targetValuesNode := util.BuildMapNode("targets","Map of Deployment Targets, " +
 		"this is set up in a way where we can do multi-target deployments (multi-region or multi-cluster)")
@@ -45,7 +45,7 @@ func buildTemplateKubernetesCore() *yaml.Node {
 	root.Content = append(root.Content, targetNode, targetValuesNode)
 
 	// Manifest sequence/array
-	manifestsNode, manifestValuesNode := util.BuildSequenceNode("manifests", "The list of manifests sources.")
+	manifestsNode, manifestValuesNode := util.BuildSequenceNode("manifests", "The list of manifest sources.")
 
 	path := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	path2 := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
@@ -53,9 +53,8 @@ func buildTemplateKubernetesCore() *yaml.Node {
 	path2.Content = append(path2.Content, util.BuildStringNode("path", "infrastructure/manifests/deployment.yaml",
 		"This will read all yaml|yml files in a dir and deploy all manifests in that directory to all targets.")...)
 	manifestValuesNode.Content = append(manifestValuesNode.Content, path, path2)
-	root.Content = append(root.Content, manifestsNode, manifestValuesNode)
 
+	root.Content = append(root.Content, manifestsNode, manifestValuesNode)
 
 	return root
 }
-

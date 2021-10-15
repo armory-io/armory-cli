@@ -3,11 +3,12 @@ module github.com/armory/armory-cli
 go 1.16
 
 require (
-	github.com/armory-io/deploy-engine v0.1.0-snapshot.master.fa1dd4a.0.20210923155317-2a3d611b90f9
+	github.com/armory-io/deploy-engine v0.2.0 // indirect
 	github.com/lestrrat-go/jwx v1.2.6
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
+	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816 // indirect
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
 	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1
