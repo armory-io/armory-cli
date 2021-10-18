@@ -14,6 +14,7 @@ require (
 	gopkg.in/square/go-jose.v2 v2.3.1
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	github.com/pkg/browser v0.0.0-20210706143420-7d21f8c997e2 // indirect
 )
 
 replace (

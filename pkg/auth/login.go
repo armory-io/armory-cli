@@ -2,15 +2,12 @@ package auth
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/pkg/browser"
+	"github.com/lestrrat-go/jwx/jwt"
 	log "github.com/sirupsen/logrus"
-	"io
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -36,28 +33,16 @@ type SuccessfulResponse struct {
 	SecondsUtilTokenExpires int `json:"expires_in"`
 }
 
-type Jwt struct {
-	PrincipalMetadata *ArmoryCloudPrincipalMetadata `json:"https://cloud.armory.io/principal"`
-	ExpiresAt int64 `json:"exp"`
-}
-
-type ArmoryCloudPrincipalMetadata struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-	OrgName string `json:"orgName"`
-	TokenExpiration time.Time
-}
-
 var timeout = 5 * time.Second
 var httpClient = http.Client{
 	Timeout: timeout,
 }
 
-func GetDeviceCodeFromAuthorizationServer() (*DeviceTokenData, error) {
+func GetDeviceCodeFromAuthorizationServer(clientId, scope, audience, authUrl string) (*DeviceTokenData, error) {
 	requestBody, err := json.Marshal(map[string]string{
-		"client_id": armoryCliStagingClientId,
-		"scope": armoryAuthScopes,
-		"audience": armoryStagingAudience,
+		"client_id": clientId,
+		"scope": scope,
+		"audience": audience,
 	})
 	if err != nil {
 		return nil, errors.New("failed to create request body for Armory authorization server")
@@ -65,7 +50,7 @@ func GetDeviceCodeFromAuthorizationServer() (*DeviceTokenData, error) {
 
 	getDeviceCodeRequest, err := http.NewRequest(
 		"POST",
-		"https://auth.staging.cloud.armory.io/oauth/device/code",
+		authUrl + "/device/code",
 		bytes.NewBuffer(requestBody),
 	)
 	if err != nil {
@@ -88,7 +73,7 @@ func GetDeviceCodeFromAuthorizationServer() (*DeviceTokenData, error) {
 }
 
 
-func PollAuthorizationServerForResponse(deviceTokenResponse *DeviceTokenData, authStartedAt time.Time) (string, error) {
+func PollAuthorizationServerForResponse(clientId, authUrl string, deviceTokenResponse *DeviceTokenData, authStartedAt time.Time) (string, error) {
 	var secondsAfterAuthStartedAtWhenDeviceFlowExpires = deviceTokenResponse.ExpiresIn * 1000 - 5000
 	deviceFlowExpiresTime := authStartedAt.Add(time.Duration(secondsAfterAuthStartedAtWhenDeviceFlowExpires) * time.Second)
 	log.Infof("Waiting for user to login")
@@ -104,7 +89,7 @@ func PollAuthorizationServerForResponse(deviceTokenResponse *DeviceTokenData, au
 		time.Sleep(time.Duration(deviceTokenResponse.Interval) * time.Second)
 
 		requestBody, err := json.Marshal(map[string]string{
-			"client_id": armoryCliStagingClientId,
+			"client_id": clientId,
 			"device_code": deviceTokenResponse.DeviceCode,
 			"grant_type": "urn:ietf:params:oauth:grant-type:device_code",
 		})
@@ -114,7 +99,7 @@ func PollAuthorizationServerForResponse(deviceTokenResponse *DeviceTokenData, au
 
 		getAuthTokenRequest, err := http.NewRequest(
 			"POST",
-			"https://auth.staging.cloud.armory.io/oauth/token",
+			authUrl + "/token",
 			bytes.NewBuffer(requestBody),
 		)
 		if err != nil {
@@ -158,23 +143,10 @@ func PollAuthorizationServerForResponse(deviceTokenResponse *DeviceTokenData, au
 	}
 }
 
-func DecodeJwtMetadata(encodedJwt string) (Jwt, error) {
-	parts := strings.Split(encodedJwt, ".")
-	if len(parts) != 3 {
-		return Jwt{}, errors.New("expected well-formed JWT")
-	}
-	jwtMeta := parts[1]
-	data, err := base64.StdEncoding.DecodeString(jwtMeta)
+func ValidateJwt(encodedJwt string) (jwt.Token, error) {
+	token, err := jwt.Parse([]byte(encodedJwt), jwt.WithValidate(true))
 	if err != nil {
-		log.Debug(err)
-		return Jwt{}, errors.New("failed to decode JWT metadata")
+		return nil, err
 	}
-	var jwt Jwt
-	dec := json.NewDecoder(bytes.NewReader(data))
-	err = dec.Decode(&jwt)
-	if err != nil {
-		log.Debug(err)
-		return Jwt{}, errors.New("failed to deserialize principal claim")
-	}
-	return jwt, nil
+	return token, nil
 }

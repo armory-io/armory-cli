@@ -7,11 +7,12 @@ import (
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"io"
+	"os"
 	"time"
 )
 
 const (
-	loginShort   = ""
+	loginShort   = "Login as User to Armory Cloud"
 	loginLong    = ""
 	loginExample = ""
 )
@@ -21,6 +22,7 @@ type loginOptions struct {
 	clientId string
 	scope string
 	audience string
+	authUrl string
 }
 
 func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
@@ -33,26 +35,32 @@ func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
 		Short:   loginShort,
 		Long:    loginLong,
 		Example: loginExample,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return login(cmd, options, args)
 		},
 	}
-	command.Flags().StringVarP(&options.clientId, "clientId", "c", "", "")
-	command.Flags().StringVarP(&options.scope, "scope", "s", "openid profile email", "")
-	command.Flags().StringVarP(&options.audience, "audience", "a", "https://api.cloud.armory.io", "")
+	command.Flags().StringVarP(&options.clientId, "clientId", "", "", "")
+	command.Flags().StringVarP(&options.scope, "scope", "", "openid profile email", "")
+	command.Flags().StringVarP(&options.audience, "audience", "", "https://api.cloud.armory.io", "")
+	command.Flags().StringVarP(&options.authUrl, "authUrl", "", "https://auth.cloud.armory.io/oauth", "")
+
 	command.Flags().MarkHidden("clientId")
 	command.Flags().MarkHidden("scope")
 	command.Flags().MarkHidden("audience")
+	command.Flags().MarkHidden("authUrl")
 	return command
 }
 
 func login(cmd *cobra.Command, options *loginOptions, args []string) error {
-	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer()
+	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(options.clientId, options.scope, options.audience, options.authUrl)
 	if err != nil {
 		return fmt.Errorf("error at getting device code: %s", err)
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "You are about to be prompted to verify the following code in your default browser.")
-	fmt.Fprintf(cmd.OutOrStdout(), "Device Code: %s", deviceTokenResponse.UserCode)
+	fmt.Fprintln(cmd.OutOrStdout(), "You are about to be prompted to verify the following code in your default browser.")
+	fmt.Fprintf(cmd.OutOrStdout(), "Device Code: %s\n", deviceTokenResponse.UserCode)
 
 	authStartedAt := time.Now()
 
@@ -68,14 +76,26 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 		fmt.Fprintf(cmd.OutOrStdout(), deviceTokenResponse.VerificationUriComplete)
 	}
 
-	token, err := auth.PollAuthorizationServerForResponse(deviceTokenResponse, authStartedAt)
+	token, err := auth.PollAuthorizationServerForResponse(options.clientId, options.authUrl, deviceTokenResponse, authStartedAt)
 	if err != nil {
-		return fmt.Errorf("error at polling auth server for response: %s", err)
+		return fmt.Errorf("error at polling auth server for response. Err: %s", err)
 	}
-	jwt, err := auth.DecodeJwtMetadata(token)
+	jwt, err := auth.ValidateJwt(token)
 	if err != nil {
-		return fmt.Errorf("error at decoding jwt: %s", err)
+		return fmt.Errorf("error at decoding jwt. Err: %s", err)
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s, your token expires at: %s", jwt.PrincipalMetadata.OrgName, jwt.PrincipalMetadata.Name, time.Unix(jwt.ExpiresAt, 0).Local().String())
+
+	dirname, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("there was an error getting the home directory. Err: %s", err)
+	}
+
+	credentials := auth.NewCredentials(options.audience, "user-login", options.clientId, jwt.Expiration().Format(time.RFC3339), token)
+	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
+	if err != nil {
+		return fmt.Errorf("there was an error writing the credentials file. Err: %s", err)
+	}
+	claims := jwt.PrivateClaims()["https://cloud.armory.io/principal"].(map[string]interface{})
+	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s, your token expires at: %s", claims["orgName"], claims["name"], jwt.Expiration().Format(time.RFC1123))
 	return nil
 }
