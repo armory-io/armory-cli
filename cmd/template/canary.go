@@ -37,6 +37,7 @@ func NewTemplateCanaryCmd(templateOptions *templateOptions) *cobra.Command {
 func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) error {
 	root := buildTemplateKubernetesCore()
 
+
 	// Strategies root
 	strategiesNode, strategyValuesNode := util.BuildMapNode("strategies","A map of strategies, each of which can be assigned to deployment targets in the targets map.")
 	// Strategy1
@@ -58,7 +59,7 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 	// Weight root
 	weight := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	weightNode, weightValuesNode := util.BuildMapNode("setweight","")
+	weightNode, weightValuesNode := util.BuildMapNode("setWeight","")
 	weightValuesNode.Content = append(weightValuesNode.Content, util.BuildIntNode("weight", "33", "The percentage of pods that should be running the canary version for this step. Set it to an integer between 0 and 100, inclusive.")...)
 	weight.Content = append(weight.Content, weightNode, weightValuesNode)
 
