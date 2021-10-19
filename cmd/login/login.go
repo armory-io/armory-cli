@@ -17,6 +17,8 @@ const (
 	loginExample = ""
 )
 
+var UserClientId = ""
+
 type loginOptions struct {
 	*cmd.RootOptions
 	clientId string
@@ -55,7 +57,10 @@ func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
 }
 
 func login(cmd *cobra.Command, options *loginOptions, args []string) error {
-	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(options.clientId, options.scope, options.audience, options.authUrl)
+	if options.clientId != "" {
+		UserClientId = options.clientId
+	}
+	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(UserClientId, options.scope, options.audience, options.authUrl)
 	if err != nil {
 		return fmt.Errorf("error at getting device code: %s", err)
 	}
@@ -76,7 +81,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 		fmt.Fprintf(cmd.OutOrStdout(), deviceTokenResponse.VerificationUriComplete)
 	}
 
-	token, err := auth.PollAuthorizationServerForResponse(options.clientId, options.authUrl, deviceTokenResponse, authStartedAt)
+	token, err := auth.PollAuthorizationServerForResponse(UserClientId, options.authUrl, deviceTokenResponse, authStartedAt)
 	if err != nil {
 		return fmt.Errorf("error at polling auth server for response. Err: %s", err)
 	}
@@ -90,7 +95,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 		return fmt.Errorf("there was an error getting the home directory. Err: %s", err)
 	}
 
-	credentials := auth.NewCredentials(options.audience, "user-login", options.clientId, jwt.Expiration().Format(time.RFC3339), token)
+	credentials := auth.NewCredentials(options.audience, "user-login", UserClientId, jwt.Expiration().Format(time.RFC3339), token)
 	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
 	if err != nil {
 		return fmt.Errorf("there was an error writing the credentials file. Err: %s", err)
