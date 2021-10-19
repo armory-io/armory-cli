@@ -38,7 +38,7 @@ func NewDeployCmd(rootOptions *cmd.RootOptions) *cobra.Command {
 					url = cloudConsoleStagingBaseUrl
 				}
 				url += "/deployments/" + options.deploymentId + "?environmentId=" + options.Environment
-				fmt.Fprintf(cmd.OutOrStdout(), "[%v] See the deployment status user interface: %s\n", time.Now().Format(time.RFC3339), url)
+				fmt.Fprintf(cmd.OutOrStdout(), "[%v] See the deployment status UI: %s\n", time.Now().Format(time.RFC3339), url)
 			}
 		},
 	}
