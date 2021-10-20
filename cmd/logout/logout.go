@@ -1,0 +1,68 @@
+package logout
+
+import (
+	"fmt"
+	"github.com/armory/armory-cli/cmd"
+	"github.com/armory/armory-cli/pkg/input"
+	"github.com/spf13/cobra"
+	"os"
+	"strconv"
+)
+
+const (
+	logoutShort   = "Logout from Armory Cloud."
+	logoutLong    = "Logout from Armory Cloud and delete any credentials stored."
+	logoutExample = "armory logout"
+)
+
+type logoutOptions struct {
+	*cmd.RootOptions
+}
+
+func NewLogoutCmd(rootOptions *cmd.RootOptions) *cobra.Command {
+	options := &logoutOptions{
+		RootOptions: rootOptions,
+	}
+	command := &cobra.Command{
+		Use:     "logout",
+		Aliases: []string{"logout"},
+		Short:   logoutShort,
+		Long:    logoutLong,
+		Example: logoutExample,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return logout(cmd, options, args)
+		},
+	}
+	return command
+}
+
+func logout(cmd *cobra.Command, options *logoutOptions, args []string) error {
+	promptMsg := input.PromptMsg{
+		Text:     "Are you sure you want to log out? Y/N",
+		ErrorMsg: "Invalid answer",
+	}
+	word, err := input.PromptConfirmInput(promptMsg)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(cmd.OutOrStdout(), "You choose: " + strconv.FormatBool(word))
+
+	if word {
+		dirname, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("error at getting user home dir: %s", err)
+		}
+		e := os.Remove(dirname + "/.armory/credentials")
+		if e != nil {
+			return fmt.Errorf("error at removing credentials file: %s", err)
+		}
+		fmt.Fprintln(cmd.OutOrStdout(), "You have successfully been logged out")
+	}
+	return nil
+}
+
+
+
