@@ -66,7 +66,8 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 	// Pause UntilApproved root
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	pauseUANode, pauseUAValuesNode := util.BuildMapNode("pause","")
-	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildBoolNode("untilapproved", "true", "If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.")...)
+	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildBoolNode("untilApproved", "true",
+		"If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.")...)
 	pauseUA.Content = append(pauseUA.Content, pauseUANode, pauseUAValuesNode)
 
 	stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, pauseUA)
