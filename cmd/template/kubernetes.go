@@ -33,14 +33,15 @@ func buildTemplateKubernetesCore() *yaml.Node {
 
 	// Target root
 	targetNode, targetValuesNode := util.BuildMapNode("targets","Map of Deployment Targets, " +
-		"this is set up in a way where we can do multi-target deployments (multi-region or multi-cluster)")
-	devNode, devValuesNode := util.BuildMapNode("dev-west","This in the name of a deployment, underneath it are its configuration")
+		"Map of deployment targets. You can specify more than one target, but we currently only support deploying to one. Specifying more than one target will be available in a future feature.")
+	devNode, devValuesNode := util.BuildMapNode("dev-west",
+		"Specify a deployment target. The identifier for a deployment target is its name.")
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("account",
-		"armory-cloud-hosted-services", "The name of an agent configured account")...)
+		"account-name", "The name of an agent configured account")...)
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("namespace",
-		"hosted-services-dev", "Optionally override the namespaces that are in the manifests")...)
+		"namespace", "Optionally override the namespaces that are in the manifests")...)
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("strategy",
-		"strategy1", "This is the key to a strategy under the strategies map")...)
+		"strategy1", "This is the key to a strategy specified in the strategies map below")...)
 	targetValuesNode.Content = append(targetValuesNode.Content, devNode, devValuesNode)
 	root.Content = append(root.Content, targetNode, targetValuesNode)
 
