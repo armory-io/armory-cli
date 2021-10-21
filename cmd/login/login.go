@@ -24,7 +24,6 @@ type loginOptions struct {
 	clientId string
 	scope string
 	audience string
-	authUrl string
 }
 
 func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
@@ -47,12 +46,12 @@ func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
 	command.Flags().StringVarP(&options.clientId, "clientId", "", "", "")
 	command.Flags().StringVarP(&options.scope, "scope", "", "openid profile email", "")
 	command.Flags().StringVarP(&options.audience, "audience", "", "https://api.cloud.armory.io", "")
-	command.Flags().StringVarP(&options.authUrl, "authUrl", "", "https://auth.cloud.armory.io/oauth", "")
+	command.Flags().StringVarP(&options.TokenIssuerUrl, "tokenIssuerUrl", "", "https://auth.cloud.armory.io/oauth", "")
 
 	command.Flags().MarkHidden("clientId")
 	command.Flags().MarkHidden("scope")
 	command.Flags().MarkHidden("audience")
-	command.Flags().MarkHidden("authUrl")
+	command.Flags().MarkHidden("tokenIssuerUrl")
 	return command
 }
 
@@ -60,7 +59,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 	if options.clientId != "" {
 		UserClientId = options.clientId
 	}
-	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(UserClientId, options.scope, options.audience, options.authUrl)
+	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(UserClientId, options.scope, options.audience, options.TokenIssuerUrl)
 	if err != nil {
 		return fmt.Errorf("error at getting device code: %s", err)
 	}
@@ -81,7 +80,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 		fmt.Fprintf(cmd.OutOrStdout(), deviceTokenResponse.VerificationUriComplete)
 	}
 
-	token, err := auth.PollAuthorizationServerForResponse(UserClientId, options.authUrl, deviceTokenResponse, authStartedAt)
+	token, err := auth.PollAuthorizationServerForResponse(UserClientId, options.TokenIssuerUrl, deviceTokenResponse, authStartedAt)
 	if err != nil {
 		return fmt.Errorf("error at polling auth server for response. Err: %s", err)
 	}
