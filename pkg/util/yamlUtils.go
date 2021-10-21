@@ -8,7 +8,7 @@ func BuildStringNode(key, value, comment string) []*yaml.Node {
 		Kind:        yaml.ScalarNode,
 		Tag:         "!!str",
 		Value:       key,
-		HeadComment: comment,
+		LineComment: comment,
 	}
 	valueNode := &yaml.Node{
 		Kind:  yaml.ScalarNode,
