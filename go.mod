@@ -3,8 +3,11 @@ module github.com/armory/armory-cli
 go 1.16
 
 require (
+	github.com/ahmetb/go-linq/v3 v3.2.0 // indirect
 	github.com/armory-io/deploy-engine v0.1.0-snapshot.master.fa1dd4a.0.20210923155317-2a3d611b90f9
 	github.com/lestrrat-go/jwx v1.2.6
+	github.com/manifoldco/promptui v0.8.0 // indirect
+	github.com/pkg/browser v0.0.0-20210706143420-7d21f8c997e2 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
@@ -14,7 +17,6 @@ require (
 	gopkg.in/square/go-jose.v2 v2.3.1
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
-	github.com/pkg/browser v0.0.0-20210706143420-7d21f8c997e2 // indirect
 )
 
 replace (

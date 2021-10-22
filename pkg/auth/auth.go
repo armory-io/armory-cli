@@ -80,7 +80,7 @@ func (a *Auth) GetToken() (string, error) {
 		return "", err
 	}
 
-	credentials := NewCredentials(a.audience, a.source, a.clientId, expires.Format(time.RFC3339), token)
+	credentials := NewCredentials(a.audience, a.source, a.clientId, expires.Format(time.RFC3339), token, "")
 	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
 	if err != nil {
 		return "", err
