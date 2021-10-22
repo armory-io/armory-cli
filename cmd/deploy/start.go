@@ -3,7 +3,7 @@ package deploy
 import (
 	"context"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/deploy/client"
+	de "github.com/armory-io/deploy-engine/pkg"
 	deployment "github.com/armory/armory-cli/pkg/deploy"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/spf13/cobra"

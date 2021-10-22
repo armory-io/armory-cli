@@ -36,6 +36,14 @@ func NewTemplateCanaryCmd(templateOptions *templateOptions) *cobra.Command {
 
 func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) error {
 	root := buildTemplateKubernetesCore()
+
+
+	// Strategies root
+	strategiesNode, strategyValuesNode := util.BuildMapNode("strategies","A map of strategies, each of which can be assigned to deployment targets in the targets map.")
+	// Strategy1
+	strategy1Node, strategy1ValuesNode := util.BuildMapNode("strategy1",
+		"Specify a strategy. The identifier for a strategy is its name.")
+
 	// Canary root
 	canaryNode, canaryValuesNode := util.BuildMapNode("canary","This map key, is the deployment strategy type.")
 
@@ -51,19 +59,23 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 	// Weight root
 	weight := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	weightNode, weightValuesNode := util.BuildMapNode("setweight","")
+	weightNode, weightValuesNode := util.BuildMapNode("setWeight","")
 	weightValuesNode.Content = append(weightValuesNode.Content, util.BuildIntNode("weight", "33", "The percentage of pods that should be running the canary version for this step. Set it to an integer between 0 and 100, inclusive.")...)
 	weight.Content = append(weight.Content, weightNode, weightValuesNode)
 
 	// Pause UntilApproved root
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	pauseUANode, pauseUAValuesNode := util.BuildMapNode("pause","")
-	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildBoolNode("untilapproved", "true", "If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.")...)
+	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildBoolNode("untilApproved", "true",
+		"If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.")...)
 	pauseUA.Content = append(pauseUA.Content, pauseUANode, pauseUAValuesNode)
 
 	stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, pauseUA)
 	canaryValuesNode.Content = append(canaryValuesNode.Content, stepsNode, stepsValuesNode)
-	root.Content = append(root.Content, canaryNode, canaryValuesNode)
+	strategy1ValuesNode.Content = append(strategy1ValuesNode.Content, canaryNode, canaryValuesNode)
+	strategyValuesNode.Content = append(strategyValuesNode.Content, strategy1Node, strategy1ValuesNode)
+
+	root.Content = append(root.Content, strategiesNode, strategyValuesNode)
 
 	bytes, err := yaml.Marshal(root)
 	if err != nil {

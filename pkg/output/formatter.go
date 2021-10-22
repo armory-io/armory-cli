@@ -3,7 +3,7 @@ package output
 import (
 	"encoding/json"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/deploy/client"
+	de "github.com/armory-io/deploy-engine/pkg"
 	"gopkg.in/yaml.v3"
 	_nethttp "net/http"
 )

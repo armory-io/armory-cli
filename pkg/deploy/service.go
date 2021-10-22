@@ -2,7 +2,7 @@ package deploy
 
 import (
 	"fmt"
-	de "github.com/armory-io/deploy-engine/deploy/client"
+	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
 	"io/fs"
 	"io/ioutil"
@@ -40,12 +40,12 @@ func CreateDeploymentRequest(config *model.OrchestrationConfig) (*de.KubernetesV
 		return nil, err
 	}
 	req := de.KubernetesV2StartKubernetesDeploymentRequest{
-		Application: &config.Application,
-		Account:     &target.Account,
-		Namespace:   &target.Namespace,
+		Application: config.Application,
+		Account:     target.Account,
+		Namespace:   target.Namespace,
 		Manifests:   CreateDeploymentManifests(files),
-		Canary: &de.KubernetesV2CanaryStrategy{
-			Steps: &steps,
+		Canary: de.KubernetesV2CanaryStrategy{
+			Steps: steps,
 		},
 	}
 	return &req, nil
@@ -66,12 +66,12 @@ func CreateDeploymentCanaryStep(strategy model.Strategy) ([]de.KubernetesV2Canar
 		}
 
 		if step.Pause != nil {
-			var unit *de.CanaryPauseStepTimeUnit
+			var unit *de.KubernetesV2CanaryPauseStepTimeUnit
 			var err error
 			if step.Pause.Unit == "" {
-				unit, err = de.NewCanaryPauseStepTimeUnitFromValue("NONE")
+				unit, err = de.NewKubernetesV2CanaryPauseStepTimeUnitFromValue("NONE")
 			} else {
-				unit, err = de.NewCanaryPauseStepTimeUnitFromValue(strings.ToUpper(step.Pause.Unit))
+				unit, err = de.NewKubernetesV2CanaryPauseStepTimeUnitFromValue(strings.ToUpper(step.Pause.Unit))
 			}
 
 			if err != nil {
@@ -83,7 +83,7 @@ func CreateDeploymentCanaryStep(strategy model.Strategy) ([]de.KubernetesV2Canar
 					SetWeight: nil,
 					Pause: &de.KubernetesV2CanaryPauseStep{
 						Duration:      &step.Pause.Duration,
-						Unit:          unit.Ptr(),
+						Unit:          unit,
 						UntilApproved: &step.Pause.UntilApproved,
 					},
 				})
@@ -127,16 +127,16 @@ func GetManifestsFromFile(manifests *[]model.ManifestPath) (*[]string, error) {
 	return &files, nil
 }
 
-func CreateDeploymentManifests(manifests *[]string) *[]de.KubernetesV2Manifest{
+func CreateDeploymentManifests(manifests *[]string) []de.KubernetesV2Manifest{
 	deManifests := make([]de.KubernetesV2Manifest, 0, len(*manifests))
 	for _, manifest := range *manifests {
 		deManifests = append(
 			deManifests,
 			de.KubernetesV2Manifest {
-				Inline: &de.KubernetesV2InlineManifest{
-					Value: &manifest,
+				Inline: de.KubernetesV2InlineManifest{
+					Value: manifest,
 				},
 			})
 	}
-	return &deManifests
+	return deManifests
 }
