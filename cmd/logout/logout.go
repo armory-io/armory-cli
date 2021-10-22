@@ -6,7 +6,6 @@ import (
 	"github.com/armory/armory-cli/pkg/input"
 	"github.com/spf13/cobra"
 	"os"
-	"strconv"
 )
 
 const (
@@ -48,18 +47,17 @@ func logout(cmd *cobra.Command, options *logoutOptions, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), "You choose: " + strconv.FormatBool(word))
 
 	if word {
 		dirname, err := os.UserHomeDir()
 		if err != nil {
 			return fmt.Errorf("error at getting user home dir: %s", err)
 		}
-		e := os.Remove(dirname + "/.armory/credentials")
-		if e != nil {
-			return fmt.Errorf("error at removing credentials file: %s", err)
+		if  err = os.Remove(dirname + "/.armory/credentials"); os.IsNotExist(err){
+			fmt.Fprintln(cmd.OutOrStdout(), "You are already logged out!.")
+			return nil
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), "You have successfully been logged out")
+		fmt.Fprintln(cmd.OutOrStdout(), "You have successfully been logged out!.")
 	}
 	return nil
 }
