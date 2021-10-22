@@ -16,15 +16,17 @@ type Credentials struct {
 	ClientId  		string `json:"clientId"`
 	ExpiresAt 		string `json:"expiresAt"`
 	Token     		string `json:"token"`
+	RefreshToken    string `json:"refreshToken"`
 }
 
-func NewCredentials(audience, source, clientId, expiresAt, token string) *Credentials {
+func NewCredentials(audience, source, clientId, expiresAt, token string, refreshToken string) *Credentials {
 	return &Credentials{
 		Audience:  audience,
 		Source:    source,
 		ClientId:  clientId,
 		ExpiresAt: expiresAt,
 		Token:     token,
+		RefreshToken: refreshToken,
 	}
 }
 

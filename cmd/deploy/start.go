@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/pkg"
+	deployment "github.com/armory/armory-cli/pkg/deploy"
 	"github.com/armory/armory-cli/pkg/model"
-	"github.com/armory/armory-cli/pkg/service"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -94,7 +94,7 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	if err != nil {
 		return fmt.Errorf("error invalid deployment object: %s", err)
 	}
-	deployment, err := service.CreateDeploymentRequest(&payload)
+	dep, err := deployment.CreateDeploymentRequest(&payload)
 	if err != nil {
 		return fmt.Errorf("error converting deployment object: %s", err)
 	}
@@ -103,7 +103,7 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	defer cancel()
 	// prepare request
 	request := options.DeployClient.DeploymentServiceApi.
-		DeploymentServiceStartKubernetes(ctx).Body(*deployment)
+		DeploymentServiceStartKubernetes(ctx).Body(*dep)
 	// execute request
 	raw, response, err := request.Execute()
 	// create response object

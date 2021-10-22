@@ -80,7 +80,7 @@ func (a *Auth) GetToken() (string, error) {
 		return "", err
 	}
 
-	credentials := NewCredentials(a.audience, a.source, a.clientId, expires.Format(time.RFC3339), token)
+	credentials := NewCredentials(a.audience, a.source, a.clientId, expires.Format(time.RFC3339), token, "")
 	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
 	if err != nil {
 		return "", err
@@ -108,7 +108,7 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 	data.Set("client_id", a.clientId)
 	data.Set("client_secret", a.secret)
 	data.Set("audience", a.audience)
-	req, err := http.NewRequest(http.MethodPost, a.tokenIssuerUrl, strings.NewReader(data.Encode()))
+	req, err := http.NewRequest(http.MethodPost, a.tokenIssuerUrl + "/token", strings.NewReader(data.Encode()))
 	if err != nil {
 		return "", nil, err
 	}
