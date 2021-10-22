@@ -7,12 +7,14 @@ import (
 	"github.com/armory/armory-cli/cmd"
 	"github.com/armory/armory-cli/pkg/auth"
 	"github.com/armory/armory-cli/pkg/org"
+	"github.com/armory/armory-cli/pkg/util"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -29,6 +31,7 @@ type loginOptions struct {
 	clientId string
 	scope string
 	audience string
+	envName string
 }
 
 func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
@@ -49,6 +52,7 @@ func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
 		},
 	}
 	command.Flags().StringVarP(&options.clientId, "clientId", "", "", "")
+	command.Flags().StringVarP(&options.envName, "envName", "e", "", "")
 	command.Flags().StringVarP(&options.scope, "scope", "", "openid profile email offline_access", "")
 	command.Flags().StringVarP(&options.audience, "audience", "", "https://api.cloud.armory.io", "")
 	command.Flags().StringVarP(&options.TokenIssuerUrl, "tokenIssuerUrl", "", "https://auth.cloud.armory.io/oauth", "")
@@ -64,6 +68,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 	if options.clientId != "" {
 		UserClientId = options.clientId
 	}
+	cmd.SilenceUsage = true
 	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(UserClientId, options.scope, options.audience, options.TokenIssuerUrl)
 	if err != nil {
 		return fmt.Errorf("error at getting device code: %s", err)
@@ -94,7 +99,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 		return fmt.Errorf("error at decoding jwt. Err: %s", err)
 	}
 
-	selectedEnv, err := selectEnvironment(options.audience, response.AccessToken)
+	selectedEnv, err := selectEnvironment(options.audience, response.AccessToken, options.envName)
 	if err != nil {
 		return err
 	}
@@ -114,7 +119,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 	}
 
 	claims := jwt.PrivateClaims()["https://cloud.armory.io/principal"].(map[string]interface{})
-	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s, your token expires at: %s", claims["orgName"], claims["name"], jwt.Expiration().Format(time.RFC1123))
+	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s to environment %s your token expires at: %s", claims["orgName"], claims["name"], selectedEnv.Name, jwt.Expiration().Format(time.RFC1123))
 	return nil
 }
 
@@ -132,7 +137,7 @@ func writeCredentialToFile(err error, options *loginOptions, jwt jwt.Token, resp
 	return nil
 }
 
-func selectEnvironment(audience string, accessToken string) (*org.Environment, error) {
+func selectEnvironment(audience string, accessToken string, namedEnvironment ...string) (*org.Environment, error) {
 	environments, err := org.GetEnvironments(audience, &accessToken)
 	if err != nil {
 		return nil, err
@@ -142,9 +147,24 @@ func selectEnvironment(audience string, accessToken string) (*org.Environment, e
 		return c.(org.Environment).Name
 	}).ToSlice(&environmentNames)
 
+	if len(namedEnvironment) > 0 && namedEnvironment[0] != "" {
+		requestedEnv := linq.From(environments).Where(func(c interface{}) bool {
+			return c.(org.Environment).Name == namedEnvironment[0]
+		}).Select(func(c interface{}) interface {} {
+			return c.(org.Environment)
+		}).First()
+		if requestedEnv != nil {
+			sel := requestedEnv.(org.Environment)
+			return &sel, nil
+		}
+		return nil, errors.New(fmt.Sprintf("Environment %s not found, please choose a known environment: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ",")))
+	}
+
+
 	prompt := promptui.Select{
 		Label: "Select environment",
 		Items: environmentNames,
+		Stdout: &util.BellSkipper{},
 	}
 
 	_, requestedEnv, err := prompt.Run()
