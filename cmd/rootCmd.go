@@ -71,7 +71,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 func AddLoginFlags(cmd *cobra.Command, opts *RootOptions) {
 	cmd.PersistentFlags().StringVarP(&opts.clientId, "clientId", "c", "", "configure clientId to configure Armory Cloud")
 	cmd.PersistentFlags().StringVarP(&opts.clientSecret, "clientSecret", "s", "", "configure clientSecret to configure Armory Cloud")
-	cmd.PersistentFlags().StringVarP(&opts.TokenIssuerUrl, "tokenIssuerUrl", "", "https://auth.cloud.armory.io/oauth/token", "")
+	cmd.PersistentFlags().StringVarP(&opts.TokenIssuerUrl, "tokenIssuerUrl", "", "https://auth.cloud.armory.io/oauth", "")
 	cmd.PersistentFlags().StringVarP(&opts.audience, "audience", "", "https://api.cloud.armory.io", "")
 	cmd.PersistentFlags().StringVarP(&opts.deployHostUrl, "deployHostUrl", "", "api.cloud.armory.io", "")
 	cmd.PersistentFlags().MarkHidden("tokenIssuerUrl")
