@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/armory/armory-cli/pkg/util"
 	"github.com/lestrrat-go/jwx/jwt"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -28,6 +29,7 @@ type ErrorResponse struct {
 type SuccessfulResponse struct {
 	// AccessToken Encoded JWT / Bearer Token
 	AccessToken             string `json:"access_token"`
+	RefreshToken             string `json:"refresh_token"`
 	// SecondsUtilTokenExpires the number of seconds until the JWT expires, from when it was created by the Auth Server.
 	// The JWT has the exact expiration date time
 	SecondsUtilTokenExpires int `json:"expires_in"`
@@ -73,7 +75,7 @@ func GetDeviceCodeFromAuthorizationServer(clientId, scope, audience, authUrl str
 }
 
 
-func PollAuthorizationServerForResponse(clientId, authUrl string, deviceTokenResponse *DeviceTokenData, authStartedAt time.Time) (string, error) {
+func PollAuthorizationServerForResponse(cliClientId string, authUrl string, deviceTokenResponse *DeviceTokenData, authStartedAt time.Time) (*SuccessfulResponse, error) {
 	var secondsAfterAuthStartedAtWhenDeviceFlowExpires = deviceTokenResponse.ExpiresIn * 1000 - 5000
 	deviceFlowExpiresTime := authStartedAt.Add(time.Duration(secondsAfterAuthStartedAtWhenDeviceFlowExpires) * time.Second)
 	log.Infof("Waiting for user to login")
@@ -82,65 +84,96 @@ func PollAuthorizationServerForResponse(clientId, authUrl string, deviceTokenRes
 			log.Infof("%d", secondsAfterAuthStartedAtWhenDeviceFlowExpires)
 			log.Infof(authStartedAt.Local().String())
 			log.Infof(deviceFlowExpiresTime.Local().String())
-			return "", errors.New("the device flow request has expired")
+			return nil, errors.New("the device flow request has expired")
 		}
 
 		fmt.Print(".")
 		time.Sleep(time.Duration(deviceTokenResponse.Interval) * time.Second)
+		errorResponse, response, err := getAuthToken(
+			authUrl,
+			map[string]string{
+				"client_id":   cliClientId,
+				"device_code": deviceTokenResponse.DeviceCode,
+				"grant_type":  "urn:ietf:params:oauth:grant-type:device_code",
+			})
 
-		requestBody, err := json.Marshal(map[string]string{
-			"client_id": clientId,
-			"device_code": deviceTokenResponse.DeviceCode,
-			"grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-		})
 		if err != nil {
-			return "", errors.New("failed to create request body for Armory authorization server")
+			return nil, err
 		}
 
-		getAuthTokenRequest, err := http.NewRequest(
-			"POST",
-			authUrl + "/token",
-			bytes.NewBuffer(requestBody),
-		)
-		if err != nil {
-			return "", errors.New("failed to create request for Armory authorization server")
-		}
-
-		getAuthTokenRequest.Header.Set("Content-Type", "application/json")
-		resp, err := httpClient.Do(getAuthTokenRequest)
-		if err != nil {
-			return "", err
-		}
-
-		dec := json.NewDecoder(resp.Body)
-		if resp.StatusCode == 200 {
-			fmt.Print("\n")
-			var authSuccessfulResponse SuccessfulResponse
-			err = dec.Decode(&authSuccessfulResponse)
-			if err != nil {
-				return "", err
-			}
-			err = resp.Body.Close()
-			if err != nil {
-				return "", errors.New("failed to close resource")
-			}
-			return authSuccessfulResponse.AccessToken, nil
-		}
-
-		var errorResponse *ErrorResponse
-		err = dec.Decode(&errorResponse)
-		if err != nil {
-			return "", err
-		}
-		err = resp.Body.Close()
-		if err != nil {
-			return "", errors.New("failed to close resource")
+		if response != nil {
+			return response, nil
 		}
 
 		if errorResponse.Error != "authorization_pending" {
-			return "",fmt.Errorf("there was an error polling for user auth. Err: %s, Desc: %s", errorResponse.Error, errorResponse.Description)
+			return nil, fmt.Errorf("there was an error polling for user auth. Err: %s, Desc: %s", errorResponse.Error, errorResponse.Description)
 		}
 	}
+}
+
+func RefreshAuthToken(cliClientId string, authUrl string, refreshToken string, environmentId string) (*SuccessfulResponse, error){
+	errorResponse, response, err := getAuthToken(
+		authUrl,
+		map[string]string{
+			"client_id":   cliClientId,
+			"refresh_token": refreshToken,
+			"grant_type":  "refresh_token",
+			"requestedEnvId": environmentId,
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if response != nil {
+		return response, nil
+	}
+
+	return nil, fmt.Errorf("there was an error authorizing for the requested environment. Err: %s, Desc: %s", errorResponse.Error, errorResponse.Description)
+}
+
+func getAuthToken(authUrl string, body map[string]string) (*ErrorResponse, *SuccessfulResponse, error) {
+	getAuthTokenRequest := util.NewHttpRequest(
+		"POST",
+		authUrl+"/token",
+		body,
+		nil,
+		5)
+
+	resp, err := getAuthTokenRequest.Execute()
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dec := json.NewDecoder(resp.Body)
+	//str, err := io.ReadAll(resp.Body)
+	//log.Printf("%s", string(str))
+
+	if resp.StatusCode == 200 {
+		fmt.Print("\n")
+		var authSuccessfulResponse *SuccessfulResponse
+		err = dec.Decode(&authSuccessfulResponse)
+		if err != nil {
+			return nil, nil, err
+		}
+		err = resp.Body.Close()
+		if err != nil {
+			return nil, nil, errors.New("failed to close resource")
+		}
+		return nil, authSuccessfulResponse, nil
+	}
+
+	var errorResponse *ErrorResponse
+	err = dec.Decode(&errorResponse)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = resp.Body.Close()
+	if err != nil {
+		return nil, nil, errors.New("failed to close resource")
+	}
+	return errorResponse, nil, nil
 }
 
 func ValidateJwt(encodedJwt string) (jwt.Token, error) {
