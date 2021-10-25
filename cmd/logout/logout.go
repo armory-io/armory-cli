@@ -54,10 +54,10 @@ func logout(cmd *cobra.Command, options *logoutOptions, args []string) error {
 			return fmt.Errorf("error at getting user home dir: %s", err)
 		}
 		if  err = os.Remove(dirname + "/.armory/credentials"); os.IsNotExist(err){
-			fmt.Fprintln(cmd.OutOrStdout(), "You are already logged out!.")
+			fmt.Fprintln(cmd.OutOrStdout(), "You are not logged in, skipping logout")
 			return nil
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), "You have successfully been logged out!.")
+		fmt.Fprintln(cmd.OutOrStdout(), "You have successfully been logged out")
 	}
 	return nil
 }
