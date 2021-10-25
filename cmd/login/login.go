@@ -119,7 +119,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 	}
 
 	claims := jwt.PrivateClaims()["https://cloud.armory.io/principal"].(map[string]interface{})
-	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s to environment %s your token expires at: %s", claims["orgName"], claims["name"], selectedEnv.Name, jwt.Expiration().Format(time.RFC1123))
+	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s to environment %s your token expires at: %s\n", claims["orgName"], claims["name"], selectedEnv.Name, jwt.Expiration().Format(time.RFC1123))
 	return nil
 }
 
