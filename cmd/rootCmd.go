@@ -25,12 +25,12 @@ type RootOptions struct {
 	Output         *output.Output
 }
 
-var rootCmd = &cobra.Command{
-	Use:   "armory",
-	Short: "A CLI for using Armory Cloud",
-}
 
 func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
+	rootCmd := &cobra.Command{
+		Use:   "armory",
+		Short: "A CLI for using Armory Cloud",
+	}
 	options := &RootOptions{}
 	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		if err := configureLogging(options.v); err != nil {

@@ -25,9 +25,17 @@ jobs:
           key: go-${{ hashFiles('**/go.sum') }}
           restore-keys: go-
 
-      - name: Run Make
+      - name: Run build
         run: |
-          make all
+          make build
+
+      - name: Run tests
+        run: |
+          make coverage
+
+      - name: Run integration
+        run: |
+          make integration
 
       - name: Upload Tests Reports
         if: ${{ always() }}
