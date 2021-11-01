@@ -3,13 +3,30 @@ package deploy
 import (
 	"fmt"
 	"github.com/armory/armory-cli/pkg/model"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"io/ioutil"
 	"os"
 	"testing"
 )
 
-func TestCreateDeploymentRequestSuccess(t *testing.T){
+
+func TestServiceTestSuite(t *testing.T) {
+	suite.Run(t, new(ServiceTestSuite))
+}
+
+type ServiceTestSuite struct {
+	suite.Suite
+}
+
+func (suite *ServiceTestSuite) SetupSuite() {
+	os.Setenv("ARMORY_CLI_TEST", "true")
+}
+
+func (suite *ServiceTestSuite) TearDownSuite() {
+	os.Unsetenv("ARMORY_CLI_TEST")
+}
+
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 	targets := map[string]model.DeploymentTarget{
 		"test": model.DeploymentTarget{
 			Account: "account1",
@@ -42,12 +59,11 @@ func TestCreateDeploymentRequestSuccess(t *testing.T){
 		},
 	}
 
-	tmpDir := t.TempDir()
-	tempFile1 := tempAppFile(tmpDir, "app1*.yml",testAppYamlStr)
+	tempFile1 := tempAppFile("", "app1*.yml",testAppYamlStr)
 	if tempFile1 == nil {
-		t.Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
+		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
 	}
-	defer os.Remove(tempFile1.Name())
+	suite.T().Cleanup(func() { os.Remove(tempFile1.Name()) })
 	manifests := []model.ManifestPath{
 		{
 			Path: tempFile1.Name(),
@@ -65,31 +81,32 @@ func TestCreateDeploymentRequestSuccess(t *testing.T){
 
 	received, err := CreateDeploymentRequest(&orchestration)
 	if err != nil {
-		t.Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
 	}
 	receivedJson, err := received.MarshalJSON()
 	if err != nil {
-		t.Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
 	}
 	expected, err := ioutil.ReadFile("testdata/deploymentRequest.json")
 	if err != nil {
-		t.Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
-	assert.JSONEq(t, string(receivedJson), string(expected), "json should be the same")
+	suite.JSONEq(string(receivedJson), string(expected), "json should be the same")
 }
 
-func TestGetManifestsFromPathSuccess(t *testing.T){
-	tmpDir := t.TempDir()
-	tempFile1 := tempAppFile(tmpDir, "app1*.yml",testAppYamlStr)
+func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess(){
+	tempFile1 := tempAppFile("", "app1*.yml",testAppYamlStr)
 	if tempFile1 == nil {
-		t.Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
+		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
 	}
-	defer os.Remove(tempFile1.Name())
-	tempFile2 := tempAppFile(tmpDir, "app2*.yml", testAppYamlStr)
+	tempFile2 := tempAppFile("", "app2*.yml", testAppYamlStr)
 	if tempFile2 == nil {
-		t.Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
+		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
 	}
-	defer os.Remove(tempFile2.Name())
+	suite.T().Cleanup(func() {
+		os.Remove(tempFile1.Name())
+		os.Remove(tempFile2.Name())
+	})
 	manifests := []model.ManifestPath{
 		{
 			Path: tempFile1.Name(),
@@ -100,20 +117,20 @@ func TestGetManifestsFromPathSuccess(t *testing.T){
 	}
 	files, err := GetManifestsFromFile(&manifests)
 	if err != nil {
-		t.Fatalf("TestGetManifestsFromPathSuccess failed with: %s", err)
+		suite.T().Fatalf("TestGetManifestsFromPathSuccess failed with: %s", err)
 	}
-	assert.Equal(t, len(*files), 2)
+	suite.Equal(len(*files), 2)
 }
 
-func TestCreateDeploymentManifestsSuccess(t *testing.T){
+func (suite *ServiceTestSuite) TestCreateDeploymentManifestsSuccess(){
 	manifests := make([]string, 2)
 	manifests[0] = testAppYamlStr
 	manifests[1] = testAppYamlStr
 	received := CreateDeploymentManifests(&manifests)
-	assert.Equal(t, len(received), 2)
+	suite.Equal(len(received), 2)
 }
 
-func TestCreateDeploymentCanaryStepSuccess(t *testing.T){
+func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess(){
 	weight := int32(33)
 	untilApproved := true
 	duration := int32(600)
@@ -141,16 +158,12 @@ func TestCreateDeploymentCanaryStepSuccess(t *testing.T){
 	}
 	received, err := CreateDeploymentCanaryStep(strategy)
 	if err != nil {
-		t.Fatalf("TestCreateDeploymentCanaryStepSuccess failed with: %s", err)
+		suite.T().Fatalf("TestCreateDeploymentCanaryStepSuccess failed with: %s", err)
 	}
-	assert.Equal(t, len(received), len(*strategy.Canary.Steps))
+	suite.Equal(len(received), len(*strategy.Canary.Steps))
 }
 
 func tempAppFile(tmpDir, fileName, fileContent string) *os.File {
-	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
-	if present {
-		tmpDir = gitWorkspace + tmpDir
-	}
 	tempFile, _ := ioutil.TempFile(tmpDir, fileName)
 	bytes, err := tempFile.Write([]byte(fileContent))
 	if err != nil || bytes == 0 {
