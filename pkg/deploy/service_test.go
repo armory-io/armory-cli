@@ -47,6 +47,7 @@ func TestCreateDeploymentRequestSuccess(t *testing.T){
 	if tempFile1 == nil {
 		t.Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
 	}
+	defer os.Remove(tempFile1.Name())
 	manifests := []model.ManifestPath{
 		{
 			Path: tempFile1.Name(),
@@ -146,6 +147,10 @@ func TestCreateDeploymentCanaryStepSuccess(t *testing.T){
 }
 
 func tempAppFile(tmpDir, fileName, fileContent string) *os.File {
+	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
+	if present {
+		tmpDir = gitWorkspace + tmpDir
+	}
 	tempFile, _ := ioutil.TempFile(tmpDir, fileName)
 	bytes, err := tempFile.Write([]byte(fileContent))
 	if err != nil || bytes == 0 {
