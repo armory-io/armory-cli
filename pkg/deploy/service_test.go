@@ -1,14 +1,13 @@
 package deploy
 
 import (
-	"fmt"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/armory/armory-cli/pkg/util"
 	"github.com/stretchr/testify/suite"
 	"io/ioutil"
 	"os"
 	"testing"
 )
-
 
 func TestServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ServiceTestSuite))
@@ -59,7 +58,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 		},
 	}
 
-	tempFile1 := tempAppFile("", "app1*.yml",testAppYamlStr)
+	tempFile1 := util.TempAppFile("", "app1*.yml",testAppYamlStr)
 	if tempFile1 == nil {
 		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
 	}
@@ -95,11 +94,11 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 }
 
 func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess(){
-	tempFile1 := tempAppFile("", "app1*.yml",testAppYamlStr)
+	tempFile1 := util.TempAppFile("", "app1*.yml",testAppYamlStr)
 	if tempFile1 == nil {
 		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
 	}
-	tempFile2 := tempAppFile("", "app2*.yml", testAppYamlStr)
+	tempFile2 := util.TempAppFile("", "app2*.yml", testAppYamlStr)
 	if tempFile2 == nil {
 		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
 	}
@@ -161,16 +160,6 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess(){
 		suite.T().Fatalf("TestCreateDeploymentCanaryStepSuccess failed with: %s", err)
 	}
 	suite.Equal(len(received), len(*strategy.Canary.Steps))
-}
-
-func tempAppFile(tmpDir, fileName, fileContent string) *os.File {
-	tempFile, _ := ioutil.TempFile(tmpDir, fileName)
-	bytes, err := tempFile.Write([]byte(fileContent))
-	if err != nil || bytes == 0 {
-		fmt.Println("Could not write temp file.")
-		return nil
-	}
-	return tempFile
 }
 
 const testAppYamlStr = `

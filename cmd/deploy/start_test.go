@@ -8,9 +8,10 @@ import (
 	"github.com/armory/armory-cli/cmd"
 	"github.com/armory/armory-cli/pkg/deploy"
 	"github.com/armory/armory-cli/pkg/output"
+	"github.com/armory/armory-cli/pkg/util"
 	"github.com/jarcoal/httpmock"
 	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
@@ -19,30 +20,47 @@ import (
 	"testing"
 )
 
-func TestDeployStartJsonSuccess(t *testing.T) {
+func TestDeployStartTestSuite(t *testing.T) {
+	suite.Run(t, new(DeployStartTestSuite))
+}
+
+type DeployStartTestSuite struct {
+	suite.Suite
+}
+
+func (suite *DeployStartTestSuite) SetupSuite() {
+	os.Setenv("ARMORY_CLI_TEST", "true")
+	httpmock.Activate()
+}
+
+func (suite *DeployStartTestSuite) SetupTest() {
+	httpmock.Reset()
+}
+
+func (suite *DeployStartTestSuite) TearDownSuite() {
+	os.Unsetenv("ARMORY_CLI_TEST")
+	httpmock.DeactivateAndReset()
+}
+
+func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
 	expected := &de.DeploymentV2StartDeploymentResponse{
 		DeploymentId: "12345",
 	}
-
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-
 	responder, err := httpmock.NewJsonResponder(200, expected)
 	if err != nil {
-		t.Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
 	httpmock.RegisterResponder("POST", "https://localhost/deployments/kubernetes", responder)
 
-	tempFile := tempAppFile(testAppYamlStr)
+	tempFile := util.TempAppFile("", "app", testAppYamlStr)
 	if tempFile == nil {
-		t.Fatal("TestDeployStartJsonSuccess failed with: Could not create temp app file.")
+		suite.T().Fatal("TestDeployStartJsonSuccess failed with: Could not create temp app file.")
 	}
-	defer os.Remove(tempFile.Name())
-
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
 	rootCmd, options, err := getOverrideRootCmd(outWriter)
 	if err != nil {
-		t.Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
 	rootCmd.AddCommand(NewDeployCmd(options))
 
@@ -54,40 +72,36 @@ func TestDeployStartJsonSuccess(t *testing.T) {
 	rootCmd.SetArgs(args)
 	err = rootCmd.Execute()
 	if err != nil {
-		t.Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
 	output, err := ioutil.ReadAll(outWriter)
 	if err != nil {
-		t.Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
 	var received = FormattableDeployStartResponse{}
 	json.Unmarshal(output, &received)
-	assert.Equal(t, received.DeploymentId, expected.GetDeploymentId(), "they should be equal")
+	suite.Equal(received.DeploymentId, expected.GetDeploymentId(), "they should be equal")
 }
 
-func TestDeployStartYAMLSuccess(t *testing.T) {
+func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	expected := &de.DeploymentV2StartDeploymentResponse{
 		DeploymentId: "12345",
 	}
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-
 	responder, err := httpmock.NewJsonResponder(200, expected)
 	if err != nil {
-		t.Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
 	httpmock.RegisterResponder("POST", "https://localhost/deployments/kubernetes", responder)
 
-	tempFile := tempAppFile(testAppYamlStr)
+	tempFile := util.TempAppFile("", "app", testAppYamlStr)
 	if tempFile == nil {
-		t.Fatal("TestDeployStartYAMLSuccess failed with: Could not create temp app file.")
+		suite.T().Fatal("TestDeployStartYAMLSuccess failed with: Could not create temp app file.")
 	}
-	defer os.Remove(tempFile.Name())
-
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
 	rootCmd, options, err := getOverrideRootCmd(outWriter)
 	if err != nil {
-		t.Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
 	rootCmd.AddCommand(NewDeployCmd(options))
 
@@ -99,37 +113,34 @@ func TestDeployStartYAMLSuccess(t *testing.T) {
 	rootCmd.SetArgs(args)
 	err = rootCmd.Execute()
 	if err != nil {
-		t.Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
 	output, err := ioutil.ReadAll(outWriter)
 	if err != nil {
-		t.Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
 	var received = FormattableDeployStartResponse{}
 	yaml.Unmarshal(output, &received)
-	assert.Equal(t, received.DeploymentId, expected.GetDeploymentId(), "they should be equal")
+	suite.Equal(received.DeploymentId, expected.GetDeploymentId(), "they should be equal")
 }
 
-func TestDeployStartHttpError(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-
+func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
 	responder, err := httpmock.NewJsonResponder(500, `{"code":2, "message":"invalid operation", "details":[]}`)
 	if err != nil {
-		t.Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
 	httpmock.RegisterResponder("POST", "https://localhost/deployments/kubernetes", responder)
 
-	tempFile := tempAppFile(testAppYamlStr)
+	tempFile := util.TempAppFile("", "app", testAppYamlStr)
 	if tempFile == nil {
-		t.Fatal("TestDeployStartHttpError failed with: Could not create temp app file.")
+		suite.T().Fatal("TestDeployStartHttpError failed with: Could not create temp app file.")
 	}
-	defer os.Remove(tempFile.Name())
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 
 	outWriter := bytes.NewBufferString("")
 	rootCmd, options, err := getOverrideRootCmd(outWriter)
 	if err != nil {
-		t.Fatalf("TestDeployStartHttpError failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartHttpError failed with: %s", err)
 	}
 	rootCmd.AddCommand(NewDeployCmd(options))
 
@@ -141,21 +152,21 @@ func TestDeployStartHttpError(t *testing.T) {
 	rootCmd.SetArgs(args)
 	err = rootCmd.Execute()
 	if err != nil {
-		t.Fatalf("TestDeployStartHttpError failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartHttpError failed with: %s", err)
 	}
 	output, err := ioutil.ReadAll(outWriter)
 	if err != nil {
-		t.Fatalf("TestDeployStartHttpError failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartHttpError failed with: %s", err)
 	}
-	assert.Equal(t, `error: "request returned an error: status code(500) "{\"code\":2, \"message\":\"invalid operation\", \"details\":[]}"`,
+	suite.Equal(`error: "request returned an error: status code(500) "{\"code\":2, \"message\":\"invalid operation\", \"details\":[]}"`,
 		strings.TrimSpace(string(output)), "they should be equal")
 }
 
-func TestDeployStartFlagFileRequired(t *testing.T) {
+func (suite *DeployStartTestSuite) TestDeployStartFlagFileRequired() {
 	outWriter := bytes.NewBufferString("")
 	rootCmd, options, err := getOverrideRootCmd(outWriter)
 	if err != nil {
-		t.Fatalf("TestDeployStartFlagRequired failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartFlagRequired failed with: %s", err)
 	}
 	rootCmd.AddCommand(NewDeployCmd(options))
 
@@ -166,16 +177,16 @@ func TestDeployStartFlagFileRequired(t *testing.T) {
 	rootCmd.SetArgs(args)
 	err = rootCmd.Execute()
 	if err == nil {
-		t.Fatal("TestDeployStartFlagRequired failed with: error should not be null")
+		suite.T().Fatal("TestDeployStartFlagRequired failed with: error should not be null")
 	}
-	assert.EqualError(t, err,"required flag(s) \"file\" not set")
+	suite.EqualError(err,"required flag(s) \"file\" not set")
 }
 
-func TestDeployStartBadPath(t *testing.T) {
+func (suite *DeployStartTestSuite) TestDeployStartBadPath() {
 	outWriter := bytes.NewBufferString("")
 	rootCmd, options, err := getOverrideRootCmd(outWriter)
 	if err != nil {
-		t.Fatalf("TestDeployStartBadPath failed with: %s", err)
+		suite.T().Fatalf("TestDeployStartBadPath failed with: %s", err)
 	}
 	rootCmd.AddCommand(NewDeployCmd(options))
 
@@ -187,19 +198,9 @@ func TestDeployStartBadPath(t *testing.T) {
 	rootCmd.SetArgs(args)
 	err = rootCmd.Execute()
 	if err == nil {
-		t.Fatal("TestDeployStartBadPath failed with: error should not be null")
+		suite.T().Fatal("TestDeployStartBadPath failed with: error should not be null")
 	}
-	assert.EqualError(t, err,"error trying to read the YAML file: open /badPath/test.yml: no such file or directory")
-}
-
-func tempAppFile(appContent string) *os.File {
-	tempFile, _ := ioutil.TempFile("" /* /tmp dir. */, "app")
-	bytes, err := tempFile.Write([]byte(appContent))
-	if err != nil || bytes == 0 {
-		fmt.Println("Could not write temp file.")
-		return nil
-	}
-	return tempFile
+	suite.EqualError(err,"error trying to read the YAML file: open /badPath/test.yml: no such file or directory")
 }
 
 func getOverrideRootCmd(outWriter io.Writer) (*cobra.Command, *cmd.RootOptions, error) {

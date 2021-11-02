@@ -36,11 +36,11 @@ build: build-dirs Makefile
 ############
 .PHONY: test
 test: build-dirs Makefile
-	@go test -cover ./pkg/... ./cmd/...
+	@go test -v -cover ./pkg/... ./cmd/...
 
 .PHONY: coverage
 coverage:
-	@go test -coverprofile=profile.cov ./pkg/... ./cmd/...
+	@go test -v -coverprofile=profile.cov ./pkg/... ./cmd/...
 	@go tool cover -html=profile.cov -o ${BUILD_DIR}/reports/coverage/index.html
 
 .PHONY: version
@@ -50,7 +50,3 @@ version:
 .PHONY: clean
 clean:
 	rm -rf dist
-
-.PHONY: integration
-integration: build-dirs Makefile
-	@go test -cover ./integration/...

@@ -80,7 +80,8 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	payload := model.OrchestrationConfig{}
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
-	if present {
+	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
+	if present && !isATest{
 		options.deploymentFile = gitWorkspace + options.deploymentFile
 	}
 	// read yaml file
