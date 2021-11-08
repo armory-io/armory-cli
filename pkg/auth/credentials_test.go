@@ -5,18 +5,7 @@ import (
 	"testing"
 )
 
-func TestWriteCredentialsSuccess(t *testing.T){
-	credentials := &Credentials{
-		ClientId: "123",
-		Source: "test",
-		Audience: "http://armory-deployments",
-	}
-	tempPath := t.TempDir() + "/credentials"
-	credentials.WriteCredentials(tempPath)
-	assert.FileExists(t, tempPath)
-}
-
-func TestLoadCredentialsSuccess(t *testing.T){
+func TestWriteAndLoadCredentialsSuccess(t *testing.T){
 	credentials := Credentials{
 		ClientId: "123",
 		Source: "test",
@@ -24,6 +13,7 @@ func TestLoadCredentialsSuccess(t *testing.T){
 	}
 	tempPath := t.TempDir() + "/credentials"
 	credentials.WriteCredentials(tempPath)
+	assert.FileExists(t, tempPath)
 	received, err := LoadCredentials(tempPath)
 	if err != nil {
 		t.Fatalf("TestLoadCredentialsSuccess failed with %s", err)
