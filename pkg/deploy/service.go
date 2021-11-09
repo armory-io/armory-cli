@@ -95,8 +95,9 @@ func CreateDeploymentCanaryStep(strategy model.Strategy) ([]de.KubernetesV2Canar
 func GetManifestsFromFile(manifests *[]model.ManifestPath) (*[]string, error) {
 	var fileNames []string
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
+	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
 	for _, manifestPath := range *manifests {
-		if present {
+		if present && !isATest {
 			manifestPath.Path = gitWorkspace + manifestPath.Path
 		}
 		err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
