@@ -29,6 +29,10 @@ jobs:
         run: |
           make all
 
+      - name: Run integration-tests
+        run: |
+          make integration
+
       - name: Upload Tests Reports
         if: ${{ always() }}
         uses: actions/upload-artifact@v2

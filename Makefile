@@ -50,3 +50,7 @@ version:
 .PHONY: clean
 clean:
 	rm -rf dist
+
+.PHONY: integration
+integration: build-dirs Makefile
+	@go test -v -cover ./integration/...
