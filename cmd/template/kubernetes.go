@@ -39,7 +39,7 @@ func buildTemplateKubernetesCore() *yaml.Node {
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("account",
 		"<accountName>", "The account name that was assigned to the deployment target when you installed the RNA.")...)
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("namespace",
-		"<namespace>", "(Optional) Override the namespaces that are in your manifests")...)
+		"<namespace>", "(Recommended) Set the namespace where the app gets deployed to. Overrides the namespaces that are in your manifests")...)
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("strategy",
 		"strategy1", "A named strategy from the strategies block. This example uses the name strategy1.")...)
 	targetValuesNode.Content = append(targetValuesNode.Content, devNode, devValuesNode)
