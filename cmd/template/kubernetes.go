@@ -50,7 +50,7 @@ func buildTemplateKubernetesCore() *yaml.Node {
 
 	path := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	path2 := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	path.Content = append(path.Content, util.BuildStringNode("path", "path/to/manifests", "Read all yaml|yml files in the dir and deploy all manifests in that directory.")...)
+	path.Content = append(path.Content, util.BuildStringNode("path", "path/to/manifests", "Read all yaml|yml files in the directory and deploy all the manifests found.")...)
 	path2.Content = append(path2.Content, util.BuildStringNode("path", "path/to/manifest.yaml",
 		"Deploy this specific manifest.")...)
 	manifestValuesNode.Content = append(manifestValuesNode.Content, path, path2)
