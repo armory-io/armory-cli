@@ -32,9 +32,9 @@ type FormattableDeployStartResponse struct {
 	err error
 }
 
-func newDeployStartResponse(raw *de.DeploymentV2StartDeploymentResponse, response *_nethttp.Response, err error) FormattableDeployStartResponse {
+func newDeployStartResponse(raw *de.PipelineStartPipelineResponse, response *_nethttp.Response, err error) FormattableDeployStartResponse {
 	deployment := FormattableDeployStartResponse{
-		DeploymentId: raw.GetDeploymentId(),
+		DeploymentId: raw.GetPipelineId(),
 		httpResponse: response,
 		err: err,
 	}
@@ -104,7 +104,7 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	defer cancel()
 	// prepare request
 	request := options.DeployClient.DeploymentServiceApi.
-		DeploymentServiceStartKubernetes(ctx).Body(*dep)
+		DeploymentServiceStartKubernetesPipeline(ctx).Body(*dep)
 	// execute request
 	raw, response, err := request.Execute()
 	// create response object

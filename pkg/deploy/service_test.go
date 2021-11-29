@@ -27,10 +27,27 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 	targets := map[string]model.DeploymentTarget{
-		"test": model.DeploymentTarget{
+		"test1": model.DeploymentTarget{
 			Account: "account1",
 			Namespace: "dev",
 			Strategy: "strategy1",
+		},
+		"test2": model.DeploymentTarget{
+			Account: "account2",
+			Namespace: "qa",
+			Strategy: "strategy2",
+			Constraints: &model.Constraints{
+				DependsOn: &[]string{
+					"test1",
+				},
+				BeforeDeployment: &[]model.BeforeDeployment{
+					model.BeforeDeployment {
+						Pause: &model.PauseStep {
+							UntilApproved: true,
+						},
+					},
+				},
+			},
 		},
 	}
 	strategies := map[string]model.Strategy{
@@ -56,6 +73,23 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 				},
 			},
 		},
+		"strategy2": model.Strategy{
+			Canary: &model.CanaryStrategy{
+				Steps: &[]model.CanaryStep{
+					model.CanaryStep {
+						SetWeight: &model.WeightStep{
+							Weight: 50,
+						},
+					},
+					model.CanaryStep {
+						Pause: &model.PauseStep{
+							Duration: 900,
+							Unit: "SECONDS",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	tempFile1 := util.TempAppFile("", "app1*.yml",testAppYamlStr)
@@ -66,6 +100,16 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 	manifests := []model.ManifestPath{
 		{
 			Path: tempFile1.Name(),
+			Targets: []string{
+				"test1",
+				"test2",
+			},
+		},
+		{
+			Path: tempFile1.Name(),
+			Targets: []string{
+				"test1",
+			},
 		},
 	}
 
@@ -109,12 +153,24 @@ func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess(){
 	manifests := []model.ManifestPath{
 		{
 			Path: tempFile1.Name(),
+			Targets: []string{
+				"env-test",
+			},
 		},
 		{
 			Path: tempFile2.Name(),
+			Targets: []string{
+				"env-test",
+			},
+		},
+		{
+			Path: tempFile2.Name(),
+			Targets: []string{
+				"env-test2",
+			},
 		},
 	}
-	files, err := GetManifestsFromFile(&manifests)
+	files, err := GetManifestsFromFile(&manifests, "env-test")
 	if err != nil {
 		suite.T().Fatalf("TestGetManifestsFromPathSuccess failed with: %s", err)
 	}
@@ -126,7 +182,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentManifestsSuccess(){
 	manifests[0] = testAppYamlStr
 	manifests[1] = testAppYamlStr
 	received := CreateDeploymentManifests(&manifests)
-	suite.Equal(len(received), 2)
+	suite.Equal(len(*received), 2)
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess(){
@@ -161,6 +217,30 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess(){
 	}
 	suite.Equal(len(received), len(*strategy.Canary.Steps))
 }
+
+func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess(){
+	untilApproved := true
+	duration := int32(600)
+	beforeDeployment := []model.BeforeDeployment{
+		{
+			Pause:  &model.PauseStep{
+				Duration: duration,
+				Unit: "SECONDS",
+			},
+		},
+		{
+			Pause: &model.PauseStep{
+				UntilApproved: untilApproved,
+			},
+		},
+	}
+	received, err := CreateBeforeDeploymentConstraints(&beforeDeployment)
+	if err != nil {
+		suite.T().Fatalf("TestCreateBeforeDeploymentConstraintsSuccess failed with: %s", err)
+	}
+	suite.Equal(len(received), len(beforeDeployment))
+}
+
 
 const testAppYamlStr = `
 apiVersion: apps/v1
