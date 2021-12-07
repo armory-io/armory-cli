@@ -37,7 +37,7 @@ func NewDeployCmd(rootOptions *cmd.RootOptions) *cobra.Command {
 				if strings.Contains(options.TokenIssuerUrl, "staging") {
 					url = cloudConsoleStagingBaseUrl
 				}
-				url += "/deployments/" + options.deploymentId + "?environmentId=" + options.Environment
+				url += "/deployments/pipeline/" + options.deploymentId + "?environmentId=" + options.Environment
 				fmt.Fprintf(cmd.OutOrStdout(), "[%v] See the deployment status UI: %s\n", time.Now().Format(time.RFC3339), url)
 			}
 		},

@@ -43,9 +43,8 @@ func (suite *DeployStartTestSuite) TearDownSuite() {
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
-	expected := &de.DeploymentV2StartDeploymentResponse{
-		DeploymentId: "12345",
-	}
+	expected := de.NewPipelineStartPipelineResponse()
+	expected.SetPipelineId("12345")
 	err := registerResponder(expected,  200)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
@@ -67,13 +66,12 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
 	}
 	var received = FormattableDeployStartResponse{}
 	json.Unmarshal(output, &received)
-	suite.Equal(received.DeploymentId, expected.GetDeploymentId(), "they should be equal")
+	suite.Equal(received.DeploymentId, expected.GetPipelineId(), "they should be equal")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
-	expected := &de.DeploymentV2StartDeploymentResponse{
-		DeploymentId: "12345",
-	}
+	expected := de.NewPipelineStartPipelineResponse()
+	expected.SetPipelineId("12345")
 	err := registerResponder(expected,  200)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
@@ -95,7 +93,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	}
 	var received = FormattableDeployStartResponse{}
 	yaml.Unmarshal(output, &received)
-	suite.Equal(received.DeploymentId, expected.GetDeploymentId(), "they should be equal")
+	suite.Equal(received.DeploymentId, expected.GetPipelineId(), "they should be equal")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
@@ -185,7 +183,7 @@ func registerResponder(body interface{}, status int ) error {
 	if err != nil {
 		return err
 	}
-	httpmock.RegisterResponder("POST", "https://localhost/deployments/kubernetes", responder)
+	httpmock.RegisterResponder("POST", "https://localhost/pipelines/kubernetes", responder)
 	return nil
 }
 
