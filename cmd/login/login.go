@@ -24,7 +24,7 @@ const (
 	loginExample = ""
 )
 
-var UserClientId = ""
+var ClientId = "GjHFCN83nbHZaUT4CR4mQ65QYk8uUAKy"
 
 type loginOptions struct {
 	*cmd.RootOptions
@@ -66,10 +66,10 @@ func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
 
 func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 	if options.clientId != "" {
-		UserClientId = options.clientId
+		ClientId = options.clientId
 	}
 	cmd.SilenceUsage = true
-	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(UserClientId, options.scope, options.audience, options.TokenIssuerUrl)
+	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(ClientId, options.scope, options.audience, options.TokenIssuerUrl)
 	if err != nil {
 		return fmt.Errorf("error at getting device code: %s", err)
 	}
@@ -90,7 +90,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 		fmt.Fprintf(cmd.OutOrStdout(), deviceTokenResponse.VerificationUriComplete)
 	}
 
-	response, err := auth.PollAuthorizationServerForResponse(UserClientId, options.TokenIssuerUrl, deviceTokenResponse, authStartedAt)
+	response, err := auth.PollAuthorizationServerForResponse(ClientId, options.TokenIssuerUrl, deviceTokenResponse, authStartedAt)
 	if err != nil {
 		return fmt.Errorf("error at polling auth server for response. Err: %s", err)
 	}
@@ -104,7 +104,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 		return err
 	}
 
-	response, err = auth.RefreshAuthToken(UserClientId, options.TokenIssuerUrl, response.RefreshToken, selectedEnv.Id)
+	response, err = auth.RefreshAuthToken(ClientId, options.TokenIssuerUrl, response.RefreshToken, selectedEnv.Id)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func writeCredentialToFile(err error, options *loginOptions, jwt jwt.Token, resp
 		return fmt.Errorf("there was an error getting the home directory. Err: %s", err)
 	}
 
-	credentials := auth.NewCredentials(options.audience, "user-login", UserClientId, jwt.Expiration().Format(time.RFC3339), response.AccessToken, response.RefreshToken)
+	credentials := auth.NewCredentials(options.audience, "user-login", ClientId, jwt.Expiration().Format(time.RFC3339), response.AccessToken, response.RefreshToken)
 	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
 	if err != nil {
 		return fmt.Errorf("there was an error writing the credentials file. Err: %s", err)

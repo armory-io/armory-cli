@@ -23,7 +23,7 @@ build-dirs:
 .PHONY: build
 build: build-dirs Makefile
 	@echo "Building ${DIST_DIR}/armory${CLI_EXT}..."
-	@go build -v -ldflags="-X 'github.com/armory/armory-cli/cmd/version.Version=${VERSION}' -X 'github.com/armory/armory-cli/cmd/login.UserClientId=${USER_CLIENT_ID}'" -o ${DIST_DIR}/armory${CLI_EXT} main.go
+	@go build -v -ldflags="-X 'github.com/armory/armory-cli/cmd/version.Version=${VERSION}'" -o ${DIST_DIR}/armory${CLI_EXT} main.go
 
 ############
 ## Testing
