@@ -159,7 +159,7 @@ func getAuthToken(authUrl string, body map[string]string) (*ErrorResponse, *Succ
 		}
 		err = resp.Body.Close()
 		if err != nil {
-			return nil, nil, errors.New("failed to close resource")
+			return nil, nil, err
 		}
 		return nil, authSuccessfulResponse, nil
 	}
@@ -171,7 +171,7 @@ func getAuthToken(authUrl string, body map[string]string) (*ErrorResponse, *Succ
 	}
 	err = resp.Body.Close()
 	if err != nil {
-		return nil, nil, errors.New("failed to close resource")
+		return nil, nil, err
 	}
 	return errorResponse, nil, nil
 }
