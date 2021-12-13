@@ -1,100 +1,35 @@
 {
+  "account": "account1",
   "application": "app",
-  "deployments": [
-    {
-      "constraints": {},
-      "environment": "test1",
-      "manifests": [
-        {
-          "inline": {
-            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
-          }
-        },
-        {
-          "inline": {
-            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
-          }
+  "canary": {
+    "steps": [
+      {
+        "setWeight": {
+          "weight": 33
         }
-      ],
-      "strategy": {
-        "canary": {
-          "steps": [
-            {
-              "setWeight": {
-                "weight": 33
-              }
-            },
-            {
-              "pause": {
-                "duration": 0,
-                "unit": "NONE",
-                "untilApproved": true
-              }
-            },
-            {
-              "pause": {
-                "duration": 600,
-                "unit": "SECONDS",
-                "untilApproved": false
-              }
-            }
-          ]
+      },
+      {
+        "pause": {
+          "duration": 0,
+          "unit": "NONE",
+          "untilApproved": true
+        }
+      },
+      {
+        "pause": {
+          "duration": 600,
+          "unit": "SECONDS",
+          "untilApproved": false
         }
       }
-    },
+    ]
+  },
+  "manifests": [
     {
-      "constraints": {
-        "beforeDeployments": [
-          {
-            "pause": {
-              "duration": 0,
-              "unit": "NONE",
-              "untilApproved": true
-            }
-          }
-        ],
-        "dependsOn": [
-          "test1"
-        ]
-      },
-      "environment": "test2",
-      "manifests": [
-        {
-          "inline": {
-            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
-          }
-        }
-      ],
-      "strategy": {
-        "canary": {
-          "steps": [
-            {
-              "setWeight": {
-                "weight": 50
-              }
-            },
-            {
-              "pause": {
-                "duration": 900,
-                "unit": "SECONDS",
-                "untilApproved": false
-              }
-            }
-          ]
-        }
+      "inline": {
+        "value": "\napiVersion: apps/v1\nkind: Deployment\n"
       }
     }
   ],
-  "environments": [
-    {
-      "account": "account1",
-      "name": "test1",
-      "namespace": "dev"
-    },
-    {
-      "account": "account2",
-      "name": "test2",
-      "namespace": "qa"
-    }
-  ]
+  "namespace": "dev"
 }
