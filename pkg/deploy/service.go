@@ -47,7 +47,7 @@ func CreateDeploymentRequest(config *model.OrchestrationConfig) (*de.PipelineSta
 			}
 
 			pipelineConstraint.SetDependsOn(*target.Constraints.DependsOn)
-			pipelineConstraint.SetBeforeDeployments(beforeDeployment)
+			pipelineConstraint.SetBeforeDeployment(beforeDeployment)
 		}
 
 		deployments = append(deployments, de.PipelinePipelineDeployment{
@@ -164,12 +164,12 @@ func CreateDeploymentManifests(manifests *[]string) *[]de.KubernetesV2Manifest{
 func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeployment) ([]de.PipelineConstraint, error) {
 	pipelineConstraints := make([]de.PipelineConstraint, 0, len(*beforeDeployment))
 	for _, obj := range *beforeDeployment {
-		var unit *de.PipelinePauseConstraintTimeUnit
+		var unit *de.TimeTimeUnit
 		var err error
 		if obj.Pause.Unit == "" {
-			unit, err = de.NewPipelinePauseConstraintTimeUnitFromValue("NONE")
+			unit, err = de.NewTimeTimeUnitFromValue("NONE")
 		} else {
-			unit, err = de.NewPipelinePauseConstraintTimeUnitFromValue(strings.ToUpper(obj.Pause.Unit))
+			unit, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(obj.Pause.Unit))
 		}
 		if err != nil {
 			return nil, err
