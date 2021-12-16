@@ -35,17 +35,13 @@ func GetEnvironments(baseUrl string, accessToken *string) ([]Environment, error)
 	if err != nil {
 		return nil, errors.New("unable to retrieve environments to login to; please try again")
 	}
-
+	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)
 	if resp.StatusCode == 200 {
 		var environments []Environment
 		err = dec.Decode(&environments)
 		if err != nil {
 			return nil, err
-		}
-		err = resp.Body.Close()
-		if err != nil {
-			return nil, errors.New("failure reading environments response")
 		}
 		return environments, nil
 	}
@@ -55,10 +51,5 @@ func GetEnvironments(baseUrl string, accessToken *string) ([]Environment, error)
 	if err != nil {
 		return nil, err
 	}
-	err = resp.Body.Close()
-	if err != nil {
-		return nil, errors.New("failed to close resource")
-	}
-
 	return nil, fmt.Errorf("error retrieving environment to login to. ErrorId: %s, Desc: %s", errorResponse.ErrorId, errorResponse.Errors)
 }
