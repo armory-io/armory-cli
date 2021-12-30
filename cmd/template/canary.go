@@ -39,22 +39,22 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 
 	// Strategies root
-	strategiesNode, strategyValuesNode := util.BuildMapNode("strategies","A map of strategies, each of which can be assigned to deployment targets in the targets map.")
+	strategiesNode, strategyValuesNode := util.BuildMapNode("strategies","A map of named strategies that can be assigned to deployment targets in the targets block.")
 	// Strategy1
 	strategy1Node, strategy1ValuesNode := util.BuildMapNode("strategy1",
-		"Specify a strategy. The identifier for a strategy is its name.")
+		"Name for a strategy that you use to refer to it. Used in the target block. This example uses strategy1 as the name.")
 
 	// Canary root
-	canaryNode, canaryValuesNode := util.BuildMapNode("canary","This map key, is the deployment strategy type.")
+	canaryNode, canaryValuesNode := util.BuildMapNode("canary","The deployment strategy type. Use canary.")
 
 	// Steps sequence/array
-	stepsNode, stepsValuesNode := util.BuildSequenceNode("steps", "A list of progressive canary steps.")
+	stepsNode, stepsValuesNode := util.BuildSequenceNode("steps", "The steps for your deployment strategy.")
 
 	// Pause root
 	pause := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	pauseNode, pauseValuesNode := util.BuildMapNode("pause", "The map key is the step type")
-	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildIntNode("duration", "1", "The duration of the pause before the deployment continues. If duration is not zero, set untilApproved to false.")...)
-	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildStringNode("unit", "SECONDS", "")...)
+	pauseNode, pauseValuesNode := util.BuildMapNode("pause", "A pause step type. The pipeline stops until the pause behavior is completed. The pause behavior can be duration or untilApproved. ")
+	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildIntNode("duration", "1", "The pause behavior is time (integer) before the deployment continues. If duration is set for this step, omit untilApproved.")...)
+	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildStringNode("unit", "seconds", "The unit of time to use for the pause. Can be seconds, minutes, or hours. Required if duration is set.")...)
 	pause.Content = append(pause.Content, pauseNode, pauseValuesNode)
 
 	// Weight root
@@ -65,9 +65,9 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 	// Pause UntilApproved root
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	pauseUANode, pauseUAValuesNode := util.BuildMapNode("pause","")
+	pauseUANode, pauseUAValuesNode := util.BuildMapNode("pause","A pause step type. The pipeline stops until the pause behavior is completed.")
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildBoolNode("untilApproved", "true",
-		"If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.")...)
+		"The pause behavior is the deployment waits until a manual approval is given to continue. Only set this to true if there is no duration pause behavior for this step.")...)
 	pauseUA.Content = append(pauseUA.Content, pauseUANode, pauseUAValuesNode)
 
 	stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, pauseUA)

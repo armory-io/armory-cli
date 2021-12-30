@@ -139,17 +139,12 @@ func getAuthToken(authUrl string, body map[string]string) (*ErrorResponse, *Succ
 		body,
 		nil,
 		5)
-
 	resp, err := getAuthTokenRequest.Execute()
-
 	if err != nil {
 		return nil, nil, err
 	}
-
+	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)
-	//str, err := io.ReadAll(resp.Body)
-	//log.Printf("%s", string(str))
-
 	if resp.StatusCode == 200 {
 		fmt.Print("\n")
 		var authSuccessfulResponse *SuccessfulResponse
@@ -157,21 +152,12 @@ func getAuthToken(authUrl string, body map[string]string) (*ErrorResponse, *Succ
 		if err != nil {
 			return nil, nil, err
 		}
-		err = resp.Body.Close()
-		if err != nil {
-			return nil, nil, errors.New("failed to close resource")
-		}
 		return nil, authSuccessfulResponse, nil
 	}
-
 	var errorResponse *ErrorResponse
 	err = dec.Decode(&errorResponse)
 	if err != nil {
 		return nil, nil, err
-	}
-	err = resp.Body.Close()
-	if err != nil {
-		return nil, nil, errors.New("failed to close resource")
 	}
 	return errorResponse, nil, nil
 }

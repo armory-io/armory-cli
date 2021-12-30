@@ -28,19 +28,19 @@ func buildTemplateKubernetesCore() *yaml.Node {
 	//Core
 	root.Content = append(root.Content, util.BuildStringNode("version", "v1", "")...)
 	root.Content = append(root.Content, util.BuildStringNode("kind", "kubernetes", "")...)
-	root.Content = append(root.Content, util.BuildStringNode("application", "<App Name>", "The name of the deployed application.")...)
+	root.Content = append(root.Content, util.BuildStringNode("application", "<AppName>", "The name of the application to deploy.")...)
 
 	// Target root
-	targetNode, targetValuesNode := util.BuildMapNode("targets","Map of Deployment Targets, " +
-		"Map of deployment targets. You can specify more than one target")
-	devNode, devValuesNode := util.BuildMapNode("dev-west",
-		"Specify a deployment target. The identifier for a deployment target is its name.")
+	targetNode, targetValuesNode := util.BuildMapNode("targets","Map of your deployment target, " +
+		"Borealis supports deploying to one target cluster.")
+	devNode, devValuesNode := util.BuildMapNode("<deploymentName>",
+		"Name for your deployment. Use a descriptive value such as the environment name.")
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("account",
-		"account-name", "The name of an agent configured account")...)
+		"<accountName>", "The account name that was assigned to the deployment target when you installed the RNA.")...)
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("namespace",
-		"namespace", "Optionally override the namespaces that are in the manifests")...)
+		"<namespace>", "(Recommended) Set the namespace that the app gets deployed to. Overrides the namespaces that are in your manifests")...)
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("strategy",
-		"strategy1", "This is the key to a strategy specified in the strategies map below")...)
+		"strategy1", "A named strategy from the strategies block. This example uses the name strategy1.")...)
 
 	constraintNode, constraintValuesNode := util.BuildMapNode("constraints", "")
 	dependsOnNode, dependsOnValuesNode := util.BuildSequenceNode("dependsOn", "Defines the deployments that must reach a successful state (defined as status == SUCCEEDED) before this deployment can start.Deployments with the same dependsOn criteria will execute in parallel.")
@@ -60,7 +60,7 @@ func buildTemplateKubernetesCore() *yaml.Node {
 	root.Content = append(root.Content, targetNode, targetValuesNode)
 
 	// Manifest sequence/array
-	manifestsNode, manifestValuesNode := util.BuildSequenceNode("manifests", "The list of manifest sources.")
+	manifestsNode, manifestValuesNode := util.BuildSequenceNode("manifests", "The list of manifest sources. Can be a directory or file.")
 
 	targetsOnNode, targetsValuesNode := util.BuildSequenceNode("targets", "")
 	targetsValuesNode.Content = append(targetsValuesNode.Content, &yaml.Node{
@@ -71,10 +71,10 @@ func buildTemplateKubernetesCore() *yaml.Node {
 
 	path := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	path2 := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	path.Content = append(path.Content, util.BuildStringNode("path", "infrastructure/manifests/configmaps", "This will read all yaml|yml files in a dir and deploy all manifests in that directory to all targets.")...)
+	path.Content = append(path.Content, util.BuildStringNode("path", "path/to/manifests", "Read all yaml|yml files in the directory and deploy all the manifests found.")...)
 	path.Content = append(path.Content, targetsOnNode, targetsValuesNode)
-	path2.Content = append(path2.Content, util.BuildStringNode("path", "infrastructure/manifests/deployment.yaml",
-		"This will read all yaml|yml files in a dir and deploy all manifests in that directory to all targets.")...)
+	path2.Content = append(path2.Content, util.BuildStringNode("path", "path/to/manifest.yaml",
+		"Deploy this specific manifest.")...)
 	path2.Content = append(path2.Content, targetsOnNode, targetsValuesNode)
 	manifestValuesNode.Content = append(manifestValuesNode.Content, path, path2)
 
