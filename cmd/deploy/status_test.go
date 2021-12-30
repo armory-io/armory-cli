@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	de "github.com/armory-io/deploy-engine/pkg"
+	"github.com/armory/armory-cli/pkg/model"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
@@ -13,18 +14,17 @@ import (
 )
 
 func TestDeployStatusJsonSuccess(t *testing.T) {
-	expected := &de.DeploymentV2DeploymentStatusResponse{
-		Id: "12345",
-		Application: "app",
-		Status: de.DEPLOYMENTV2DEPLOYMENTSTATUSRESPONSESTATUS_RUNNING,
-	}
+	expected := &de.PipelinePipelineStatusResponse{}
+	expected.SetId("12345")
+	expected.SetApplication("app")
+	expected.SetStatus(de.PIPELINEPIPELINESTATUS_RUNNING)
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 	responder, err := httpmock.NewJsonResponder(200, expected)
 	if err != nil {
 		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
 	}
-	httpmock.RegisterResponder("GET", "https://localhost/deployments/12345", responder)
+	httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
 	outWriter := bytes.NewBufferString("")
 	rootCmd, options, err := getOverrideRootCmd(outWriter)
 	if err != nil {
@@ -46,27 +46,26 @@ func TestDeployStatusJsonSuccess(t *testing.T) {
 		t.Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
 	var received = FormattableDeployStatus{
-		DeployResp: de.DeploymentV2DeploymentStatusResponse{},
+		DeployResp: model.Pipeline{},
 	}
 	json.Unmarshal(output, &received.DeployResp)
-	assert.Equal(t, received.DeployResp.GetId(), expected.GetId(), "they should be equal")
-	assert.Equal(t, received.DeployResp.GetApplication(), expected.GetApplication(), "they should be equal")
-	assert.Equal(t, received.DeployResp.GetStatus(), expected.GetStatus(), "they should be equal")
+	assert.Equal(t, *received.DeployResp.Id, expected.GetId(), "they should be equal")
+	assert.Equal(t, *received.DeployResp.Application, expected.GetApplication(), "they should be equal")
+	assert.Equal(t, *received.DeployResp.Status, expected.GetStatus(), "they should be equal")
 }
 
 func TestDeployStatusYAMLSuccess(t *testing.T) {
-	expected := &de.DeploymentV2DeploymentStatusResponse{
-		Id: "12345",
-		Application: "app",
-		Status: de.DEPLOYMENTV2DEPLOYMENTSTATUSRESPONSESTATUS_RUNNING,
-	}
+	expected := &de.PipelinePipelineStatusResponse{}
+	expected.SetId("12345")
+	expected.SetApplication("app")
+	expected.SetStatus(de.PIPELINEPIPELINESTATUS_RUNNING)
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 	responder, err := httpmock.NewJsonResponder(200, expected)
 	if err != nil {
 		t.Fatalf("TestDeployStatusYAMLSuccess failed with: %s", err)
 	}
-	httpmock.RegisterResponder("GET", "https://localhost/deployments/12345", responder)
+	httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
 	outWriter := bytes.NewBufferString("")
 	rootCmd, options, err := getOverrideRootCmd(outWriter)
 	if err != nil {
@@ -88,12 +87,12 @@ func TestDeployStatusYAMLSuccess(t *testing.T) {
 		t.Fatalf("TestDeployStatusYAMLSuccess failed with: %s", err)
 	}
 	var received = FormattableDeployStatus{
-		DeployResp: de.DeploymentV2DeploymentStatusResponse{},
+		DeployResp: model.Pipeline{},
 	}
 	yaml.Unmarshal(output, &received.DeployResp)
-	assert.Equal(t, received.DeployResp.GetId(), expected.GetId(), "they should be equal")
-	assert.Equal(t, received.DeployResp.GetApplication(), expected.GetApplication(), "they should be equal")
-	assert.Equal(t, received.DeployResp.GetStatus(), expected.GetStatus(), "they should be equal")
+	assert.Equal(t, *received.DeployResp.Id, expected.GetId(), "they should be equal")
+	assert.Equal(t, *received.DeployResp.Application, expected.GetApplication(), "they should be equal")
+	assert.Equal(t, *received.DeployResp.Status, expected.GetStatus(), "they should be equal")
 }
 
 func TestDeployStatusHttpError(t *testing.T) {
@@ -103,7 +102,7 @@ func TestDeployStatusHttpError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("TestDeployStatusHttpError failed with: %s", err)
 	}
-	httpmock.RegisterResponder("GET", "https://localhost/deployments/12345", responder)
+	httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
 	outWriter := bytes.NewBufferString("")
 	rootCmd, options, err := getOverrideRootCmd(outWriter)
 	if err != nil {
