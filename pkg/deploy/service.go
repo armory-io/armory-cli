@@ -162,6 +162,9 @@ func CreateDeploymentManifests(manifests *[]string) *[]de.KubernetesV2Manifest{
 }
 
 func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeployment) ([]de.PipelineConstraint, error) {
+	if beforeDeployment == nil {
+		return []de.PipelineConstraint{}, nil
+	}
 	pipelineConstraints := make([]de.PipelineConstraint, 0, len(*beforeDeployment))
 	for _, obj := range *beforeDeployment {
 		var unit *de.TimeTimeUnit

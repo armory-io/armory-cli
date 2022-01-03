@@ -94,8 +94,8 @@ func status(cmd *cobra.Command, options *deployStatusOptions) error {
 	var steps []model.Step
 	if response != nil && response.StatusCode == 200 && options.O != "" {
 		for _, stages := range pipelineResp.GetSteps(){
-			var deployResp = &deploy.DeploymentV2DeploymentStatusResponse{}
-			if stages.GetType() == "deployment"{
+			var step = model.Step{}
+			if stages.GetType() == "deployment" && stages.GetStatus() != deploy.PIPELINEPIPELINESTATUS_NOT_STARTED{
 				deployment := stages.GetDeployment()
 				request := options.DeployClient.DeploymentServiceApi.DeploymentServiceStatus(ctx, deployment.GetId())
 				deploy, response, err := request.Execute()
@@ -103,9 +103,10 @@ func status(cmd *cobra.Command, options *deployStatusOptions) error {
 				if err != nil {
 					return err
 				}
-				deployResp = &deploy
+				step = model.NewStep(stages, &deploy)
+			}else{
+				step = model.NewStep(stages, nil)
 			}
-			step := model.NewStep(stages, deployResp)
 			steps = append(steps, step)
 		}
 	}
