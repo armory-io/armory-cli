@@ -1,11 +1,14 @@
 package deploy
 
 import (
+	"encoding/json"
+	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/stretchr/testify/suite"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -126,15 +129,17 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
 	}
-	receivedJson, err := received.MarshalJSON()
-	if err != nil {
-		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
-	}
-	expected, err := ioutil.ReadFile("testdata/deploymentRequest.json")
+
+	expectedJsonStr, err := ioutil.ReadFile("testdata/deploymentRequest.json")
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
-	suite.JSONEq(string(receivedJson), string(expected), "json should be the same")
+	expectedReq := de.PipelineStartPipelineRequest {}
+	err = json.Unmarshal(expectedJsonStr, &expectedReq)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+	}
+	reflect.DeepEqual(received, expectedReq)
 }
 
 func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess(){
