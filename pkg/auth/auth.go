@@ -26,9 +26,10 @@ type Auth struct {
 	audience       string `yaml:"audience,omitempty" json:"audience,omitempty"`
 	verify         bool   `yaml:"verify" json:"verify"`
 	source         string `yaml:"source" json:"source"`
+	token          string `yaml:"token" json:"token"`
 }
 
-func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience  string) *Auth {
+func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience, token  string) *Auth {
 	return &Auth{
 		clientId:       clientId,
 		secret:         clientSecret,
@@ -36,10 +37,14 @@ func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience  string) *
 		tokenIssuerUrl: tokenIssuerUrl,
 		audience:       audience,
 		verify:         true,
+		token: 			token,
 	}
 }
 
 func (a *Auth) GetToken() (string, error) {
+	if a.token != "" {
+		return a.token, nil
+	}
 	dirname, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -90,6 +95,10 @@ func (a *Auth) GetToken() (string, error) {
 }
 
 func (a *Auth) GetEnvironment() (string, error) {
+	if a.token != "" {
+		return NewCredentials("", "", "", "", a.token, "").GetEnvironment()
+	}
+
 	dirname, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -103,6 +112,9 @@ func (a *Auth) GetEnvironment() (string, error) {
 }
 
 func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
+	if a.token != "" {
+		return "", nil, errors.New("do not try to execute remote authentication when a Token has been provided to the command")
+	}
 	data := url.Values{}
 	data.Set("grant_type", a.source)
 	data.Set("client_id", a.clientId)
