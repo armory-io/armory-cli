@@ -13,11 +13,28 @@ import (
 	"testing"
 )
 
-func TestDeployStatusJsonSuccess(t *testing.T) {
+func getExpectedPipelineDeployment() (*de.PipelinePipelineStatusResponse, *de.DeploymentV2DeploymentStatusResponse){
 	expected := &de.PipelinePipelineStatusResponse{}
 	expected.SetId("12345")
 	expected.SetApplication("app")
 	expected.SetStatus(de.PIPELINEPIPELINESTATUS_RUNNING)
+	stage := &de.PipelinePipelineStage{}
+	stage.SetType("deployment")
+	stage.SetStatus(de.PIPELINEPIPELINESTATUS_RUNNING)
+	deploy := &de.PipelinePipelineDeploymentStage{}
+	deploy.SetId("5678")
+	stage.SetDeployment(*deploy)
+	expected.SetSteps([]de.PipelinePipelineStage{*stage})
+
+	expectedDeploy:= &de.DeploymentV2DeploymentStatusResponse{}
+	expectedDeploy.SetId("5678")
+	expectedDeploy.SetStatus(de.DEPLOYMENTV2DEPLOYMENTSTATUSRESPONSESTATUS_RUNNING)
+
+	return expected, expectedDeploy
+}
+
+func TestDeployStatusJsonSuccess(t *testing.T) {
+	expected, expectedDeploy := getExpectedPipelineDeployment()
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 	responder, err := httpmock.NewJsonResponder(200, expected)
@@ -25,6 +42,11 @@ func TestDeployStatusJsonSuccess(t *testing.T) {
 		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
 	}
 	httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
+	responderDeploy, err := httpmock.NewJsonResponder(200, expectedDeploy)
+	if err != nil {
+		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
+	}
+	httpmock.RegisterResponder("GET", "https://localhost/deployments/5678", responderDeploy)
 	outWriter := bytes.NewBufferString("")
 	rootCmd, options, err := getOverrideRootCmd(outWriter)
 	if err != nil {
@@ -52,13 +74,15 @@ func TestDeployStatusJsonSuccess(t *testing.T) {
 	assert.Equal(t, *received.DeployResp.Id, expected.GetId(), "they should be equal")
 	assert.Equal(t, *received.DeployResp.Application, expected.GetApplication(), "they should be equal")
 	assert.Equal(t, *received.DeployResp.Status, expected.GetStatus(), "they should be equal")
+	assert.Equal(t, len(*received.DeployResp.Steps), len(expected.GetSteps()), "they should be equal")
+	receivedDeployment := *received.DeployResp.Steps
+	expectedDeployment := expected.GetSteps()[0].GetDeployment()
+	assert.Equal(t, receivedDeployment[0].Deployment.Id, expectedDeployment.GetId(), "they should be equal")
+
 }
 
 func TestDeployStatusYAMLSuccess(t *testing.T) {
-	expected := &de.PipelinePipelineStatusResponse{}
-	expected.SetId("12345")
-	expected.SetApplication("app")
-	expected.SetStatus(de.PIPELINEPIPELINESTATUS_RUNNING)
+	expected, expectedDeploy := getExpectedPipelineDeployment()
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 	responder, err := httpmock.NewJsonResponder(200, expected)
@@ -66,6 +90,11 @@ func TestDeployStatusYAMLSuccess(t *testing.T) {
 		t.Fatalf("TestDeployStatusYAMLSuccess failed with: %s", err)
 	}
 	httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
+	responderDeploy, err := httpmock.NewJsonResponder(200, expectedDeploy)
+	if err != nil {
+		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
+	}
+	httpmock.RegisterResponder("GET", "https://localhost/deployments/5678", responderDeploy)
 	outWriter := bytes.NewBufferString("")
 	rootCmd, options, err := getOverrideRootCmd(outWriter)
 	if err != nil {
@@ -93,6 +122,9 @@ func TestDeployStatusYAMLSuccess(t *testing.T) {
 	assert.Equal(t, *received.DeployResp.Id, expected.GetId(), "they should be equal")
 	assert.Equal(t, *received.DeployResp.Application, expected.GetApplication(), "they should be equal")
 	assert.Equal(t, *received.DeployResp.Status, expected.GetStatus(), "they should be equal")
+	receivedDeployment := *received.DeployResp.Steps
+	expectedDeployment := expected.GetSteps()[0].GetDeployment()
+	assert.Equal(t, receivedDeployment[0].Deployment.Id, expectedDeployment.GetId(), "they should be equal")
 }
 
 func TestDeployStatusHttpError(t *testing.T) {
