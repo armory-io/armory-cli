@@ -47,6 +47,7 @@ type DeploymentTarget struct {
 type ManifestPath struct {
 	Path string `yaml:"path,omitempty"`
 	Targets []string `yaml:"targets,omitempty"`
+	Inline string `yaml:"inline,omitempty"`
 }
 
 type Constraints struct {
