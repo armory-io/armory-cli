@@ -54,7 +54,8 @@ jobs:
           path: |
             build/reports/*
 
-      - uses: sonarsource/sonarqube-scan-action@master
+      - name: SonarQube Analysis
+        uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
