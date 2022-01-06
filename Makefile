@@ -22,7 +22,6 @@ build-dirs:
 .PHONY: pre
 pre:
 #	@go env -w GOPRIVATE=github.com/armory-io/deploy-engine
-	@git config --global url."https://$(PVT_GITHUB_ACCESS_TOKEN):x-oauth-basic@github.com/".insteadOf "https://github.com/"
 	@go env
 	@GOPRIVATE=github.com/armory-io/deploy-engine go get github.com/armory-io/deploy-engine@v0.2.0
 
@@ -36,8 +35,7 @@ build: build-dirs Makefile
 ############
 .PHONY: test
 test: build-dirs Makefile
-	@go test -v -cover ./pkg/... ./cmd/...
-
+	@go test -v -cover ./pkg/... ./cmd/... -json > test-report.json
 .PHONY: coverage
 coverage:
 	@go test -v -coverprofile=profile.cov ./pkg/... ./cmd/...

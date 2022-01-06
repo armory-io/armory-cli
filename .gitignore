@@ -1,6 +1,7 @@
 .idea
 .vscode
 profile.cov
+test-report.json
 *.iml
 build
 armory
