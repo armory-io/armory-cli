@@ -27,7 +27,7 @@ jobs:
 
       - name: Configure git for private modules
         run: |
-          git config --global http.extraheader "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+          git config --global http.extraheader "authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
 
       - name: Run build
         run: |
