@@ -8,7 +8,6 @@ jobs:
   setup:
     env:
       BASE_PROJECT: armory-cli
-      PVT_GITHUB_ACCESS_TOKEN: ${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
       GRGIT_USER: GitHub
       GRGIT_PASS: ${{ secrets.GITHUB_TOKEN }}
     runs-on: ubuntu-latest
@@ -55,9 +54,54 @@ jobs:
           CHANGELOG="${CHANGELOG//$'\r'/%0D}"
           echo ::set-output name=CHANGELOG::$(echo -e "${CHANGELOG}")
 
+  run-quality-suite:
+    name: Run Quality Suite
+    needs:
+      - setup
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.push_tag.outputs.new_tag }}
+      changelog: ${{ steps.changelog.outputs.CHANGELOG }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.4
+
+      - name: Cache Dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-
+
+      - name: Configure git for private modules
+        run: |
+          git config --global http.extraheader "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Run build
+        run: |
+          make all
+
+      - name: Run integration-tests
+        run: |
+          make integration
+
+      - name: SonarQube Analysis
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
   create-release:
     name: Create Release
-    needs: setup
+    needs:
+      - setup
+      - run-quality-suite
     runs-on: ubuntu-latest
     outputs:
       release-url: ${{ steps.create-release.outputs.upload_url }}
@@ -76,8 +120,6 @@ jobs:
           prerelease: false
 
   compile:
-    env:
-      PVT_GITHUB_ACCESS_TOKEN: ${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
     name: Compile Binaries and Upload to Release
     needs:
       - setup
@@ -108,6 +150,11 @@ jobs:
           path: ~/go/pkg/mod
           key: go-${{ hashFiles('**/go.sum') }}
           restore-keys: go-
+
+      - name: Configure git for private modules
+      run: |
+        git config --global http.extraheader "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+
       - name: Fix private repo access
         run: make pre
 
@@ -132,8 +179,6 @@ jobs:
           asset_content_type: binary/octet-stream
 
   build-push:
-    env:
-      PVT_GITHUB_ACCESS_TOKEN: ${{ secrets.PVT_GITHUB_ACCESS_TOKEN }}
     name: Build and Push Docker Image
     needs:
       - setup
@@ -154,6 +199,11 @@ jobs:
           path: ~/go/pkg/mod
           key: go-${{ hashFiles('**/go.sum') }}
           restore-keys: go-
+
+      - name: Configure git for private modules
+        run: |
+          git config --global http.extraheader "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+
       - name: Fix private repo access
         run: make pre
 

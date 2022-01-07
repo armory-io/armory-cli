@@ -1,7 +1,11 @@
 .idea
 .vscode
 profile.cov
+test-report.json
+integration.cov
+integration-test-report.json
 *.iml
 build
 armory
 armory-cli
+.scannerwork
