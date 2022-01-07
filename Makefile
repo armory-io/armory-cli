@@ -8,7 +8,7 @@ DIST_DIR        := ${BUILD_DIR}/dist/$(GOOS)_$(GOARCH)
 REPORTS_DIR     := ${BUILD_DIR}/reports/coverage
 
 .PHONY: all
-all: pre version clean test coverage build
+all: version clean test coverage build
 
 ############
 ## Building
@@ -18,12 +18,6 @@ build-dirs:
 	@mkdir -p ${BUILD_DIR}
 	@mkdir -p ${DIST_DIR}
 	@mkdir -p ${REPORTS_DIR}
-
-.PHONY: pre
-pre:
-#	@go env -w GOPRIVATE=github.com/armory-io/deploy-engine
-	@go env
-	@GOPRIVATE=github.com/armory-io/deploy-engine go get github.com/armory-io/deploy-engine@v0.2.0
 
 .PHONY: build
 build: build-dirs Makefile
