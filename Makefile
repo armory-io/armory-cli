@@ -8,7 +8,7 @@ DIST_DIR        := ${BUILD_DIR}/dist/$(GOOS)_$(GOARCH)
 REPORTS_DIR     := ${BUILD_DIR}/reports/coverage
 
 .PHONY: all
-all: pre version clean test coverage build
+all: version clean test coverage build
 
 ############
 ## Building
@@ -19,12 +19,6 @@ build-dirs:
 	@mkdir -p ${DIST_DIR}
 	@mkdir -p ${REPORTS_DIR}
 
-.PHONY: pre
-pre:
-#	@go env -w GOPRIVATE=github.com/armory-io/deploy-engine
-	@git config --global url."https://$(PVT_GITHUB_ACCESS_TOKEN):x-oauth-basic@github.com/".insteadOf "https://github.com/"
-	@go env
-	@GOPRIVATE=github.com/armory-io/deploy-engine go get github.com/armory-io/deploy-engine@v0.3.0
 
 .PHONY: build
 build: build-dirs Makefile
@@ -36,8 +30,7 @@ build: build-dirs Makefile
 ############
 .PHONY: test
 test: build-dirs Makefile
-	@go test -v -cover ./pkg/... ./cmd/...
-
+	@go test -v -cover ./pkg/... ./cmd/... -json > test-report.json
 .PHONY: coverage
 coverage:
 	@go test -v -coverprofile=profile.cov ./pkg/... ./cmd/...
@@ -53,4 +46,5 @@ clean:
 
 .PHONY: integration
 integration: build-dirs Makefile
-	@go test -v -cover ./integration/...
+	@go test -v -cover ./integration/... -json > integration-test-report.json
+	@go test -v -coverprofile=integration.cov ./integration/...
