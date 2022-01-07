@@ -24,7 +24,7 @@ pre:
 #	@go env -w GOPRIVATE=github.com/armory-io/deploy-engine
 	@git config --global http.extraheader "authorization: Bearer {GITHUB_TOKEN}"
 	@go env
-	@GOPRIVATE=github.com/armory-io/deploy-engine go get github.com/armory-io/deploy-engine@v0.2.0
+	#@GOPRIVATE=github.com/armory-io/deploy-engine go get github.com/armory-io/deploy-engine@v0.2.0
 
 .PHONY: build
 build: build-dirs Makefile
