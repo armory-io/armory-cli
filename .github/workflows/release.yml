@@ -15,13 +15,6 @@ jobs:
       version: ${{ steps.push_tag.outputs.new_tag }}
       changelog: ${{ steps.changelog.outputs.CHANGELOG }}
     steps:
-      - name: Get GitHub App Installation Token for Private Go Repos
-        id: get_token
-        uses: machine-learning-apps/actions-app-token@0.21
-        with:
-          APP_PEM: ${{ secrets.GO_PRIVATE_REPO_APP_KEY }}
-          APP_ID: ${{ secrets.GO_PRIVATE_REPO_APP_ID }}
-
       - name: Checkout Code
         uses: actions/checkout@v2
 
@@ -70,6 +63,13 @@ jobs:
       version: ${{ steps.push_tag.outputs.new_tag }}
       changelog: ${{ steps.changelog.outputs.CHANGELOG }}
     steps:
+      - name: Get GitHub App Installation Token for Private Go Repos
+        id: get_token
+        uses: machine-learning-apps/actions-app-token@0.21
+        with:
+          APP_PEM: ${{ secrets.GO_PRIVATE_REPO_APP_KEY }}
+          APP_ID: ${{ secrets.GO_PRIVATE_REPO_APP_ID }}
+
       - name: Checkout Code
         uses: actions/checkout@v2
         with:
@@ -145,6 +145,13 @@ jobs:
           - os: windows
             arch: arm64
     steps:
+      - name: Get GitHub App Installation Token for Private Go Repos
+        id: get_token
+        uses: machine-learning-apps/actions-app-token@0.21
+        with:
+          APP_PEM: ${{ secrets.GO_PRIVATE_REPO_APP_KEY }}
+          APP_ID: ${{ secrets.GO_PRIVATE_REPO_APP_ID }}
+
       - name: Checkout Code
         uses: actions/checkout@v2
 
@@ -193,6 +200,13 @@ jobs:
       - compile
     runs-on: ubuntu-latest
     steps:
+      - name: Get GitHub App Installation Token for Private Go Repos
+        id: get_token
+        uses: machine-learning-apps/actions-app-token@0.21
+        with:
+          APP_PEM: ${{ secrets.GO_PRIVATE_REPO_APP_KEY }}
+          APP_ID: ${{ secrets.GO_PRIVATE_REPO_APP_ID }}
+
       - name: Checkout Code
         uses: actions/checkout@v2
 
@@ -211,7 +225,6 @@ jobs:
         env:
           TOKEN: ${{ steps.get_token.outputs.app_token }}
         run: git config --global url."https://x-access-token:${TOKEN}@github.com".insteadOf "https://github.com"
-
 
       - name: Build CLI
         env:
