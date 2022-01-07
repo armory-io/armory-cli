@@ -25,11 +25,13 @@ jobs:
           key: go-${{ hashFiles('**/go.sum') }}
           restore-keys: go-
 
-      - name: Configure git for private modules
-        run: |
-          git config --global http.extraheader "authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+#      - name: Configure git for private modules
+#        run: |
+#          git config --global http.extraheader "authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
 
       - name: Run build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           make all
 
