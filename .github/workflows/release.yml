@@ -152,8 +152,8 @@ jobs:
           restore-keys: go-
 
       - name: Configure git for private modules
-      run: |
-        git config --global http.extraheader "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          git config --global http.extraheader "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
 
       - name: Fix private repo access
         run: make pre
