@@ -112,30 +112,40 @@ func CreateDeploymentCanaryStep(strategy model.Strategy) ([]de.KubernetesV2Canar
 
 func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]string, error) {
 	var fileNames []string
+	var files []string
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
 	for _, manifestPath := range *manifests {
-		if contains(manifestPath.Targets, env) {
+		if manifestPath.Targets != nil && len(manifestPath.Targets) == 0 {
+			return nil, fmt.Errorf("please omit targets to include the manifests for all targets or specify the targets")
+		}
+
+		if contains(manifestPath.Targets, env) || manifestPath.Targets == nil {
+			if manifestPath.Inline != "" {
+				files = append(files, manifestPath.Inline)
+			}
 			if present && !isATest {
 				manifestPath.Path = gitWorkspace + manifestPath.Path
 			}
-			err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
-				if err != nil {
-					fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
-					return err
-				}
-				if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml" {
-					fileNames = append(fileNames, path)
-				}
+			if manifestPath.Path != "" {
+				err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
+					if err != nil {
+						fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+						return err
+					}
+					if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml" {
+						fileNames = append(fileNames, path)
+					}
 
-				return nil
-			})
-			if err != nil {
-				return nil, fmt.Errorf("unable to read manifest(s) from file: %s", err)
+					return nil
+				})
+				if err != nil {
+					return nil, fmt.Errorf("unable to read manifest(s) from file: %s", err)
+				}
 			}
 		}
 	}
-	var files []string
+
 	for _, fileName := range fileNames {
 		file, err := ioutil.ReadFile(fileName)
 		if err != nil {

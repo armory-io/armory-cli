@@ -174,12 +174,44 @@ func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess(){
 				"env-test2",
 			},
 		},
+		{
+			Inline: testAppYamlStr,
+			Targets: []string{
+				"env-test2",
+			},
+		},
+		{
+			Inline: testAppYamlStr,
+		},
 	}
 	files, err := GetManifestsFromFile(&manifests, "env-test")
 	if err != nil {
 		suite.T().Fatalf("TestGetManifestsFromPathSuccess failed with: %s", err)
 	}
-	suite.Equal(len(*files), 2)
+	suite.Equal(len(*files), 3)
+	files, err = GetManifestsFromFile(&manifests, "env-test2")
+	if err != nil {
+		suite.T().Fatalf("TestGetManifestsFromPathSuccess failed with: %s", err)
+	}
+	suite.Equal(len(*files), 3)
+	for _, file := range *files {
+		suite.Equal(testAppYamlStr, file, "TestGetManifestsFromPathSuccess expected files to match")
+	}
+}
+
+func (suite *ServiceTestSuite) TestGetManifestsEmptyTargets(){
+	manifests := []model.ManifestPath{
+		{
+			Inline: testAppYamlStr,
+			Targets: []string{},
+		},
+	}
+	_, err := GetManifestsFromFile(&manifests, "env-test")
+	if err == nil {
+		suite.T().Fatalf("TestGetManifestsFromPathSuccess failed. Expected error")
+	}
+
+	suite.Equal("please omit targets to include the manifests for all targets or specify the targets", err.Error())
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentManifestsSuccess(){
