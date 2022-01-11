@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-func TestWriteAndLoadCredentialsSuccess(t *testing.T){
+func TestWriteAndLoadCredentialsSuccess(t *testing.T) {
 	credentials := Credentials{
 		ClientId: "123",
-		Source: "test",
+		Source:   "test",
 		Audience: "http://armory-deployments",
 	}
 	tempPath := t.TempDir() + "/credentials"
@@ -21,7 +21,7 @@ func TestWriteAndLoadCredentialsSuccess(t *testing.T){
 	assert.EqualValues(t, credentials, received)
 }
 
-func TestGetEnvironmentSuccess(t *testing.T){
+func TestGetEnvironmentSuccess(t *testing.T) {
 	token, err := createFakeJwt()
 	if err != nil {
 		t.Fatalf("TestGetEnvironmentSuccess failed with %s", err)

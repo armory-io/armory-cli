@@ -26,7 +26,7 @@ func NewDeployClient(basePath, token string) (*Client, error) {
 	cfg := deploy.NewConfiguration()
 	cfg.Host = basePath
 	cfg.Scheme = "https"
-	cfg.AddDefaultHeader("X-Armory-Client", fmt.Sprintf("%s", source) + "/" + version.Version)
+	cfg.AddDefaultHeader("X-Armory-Client", fmt.Sprintf("%s", source)+"/"+version.Version)
 	deployClient.APIClient = deploy.NewAPIClient(cfg)
 	deployClient.Context = context.WithValue(deployClient.Context, deploy.ContextAccessToken, token)
 	return deployClient, nil

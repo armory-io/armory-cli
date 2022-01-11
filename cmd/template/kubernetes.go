@@ -31,7 +31,7 @@ func buildTemplateKubernetesCore() *yaml.Node {
 	root.Content = append(root.Content, util.BuildStringNode("application", "<AppName>", "The name of the application to deploy.")...)
 
 	// Target root
-	targetNode, targetValuesNode := util.BuildMapNode("targets","Map of your deployment target, " +
+	targetNode, targetValuesNode := util.BuildMapNode("targets", "Map of your deployment target, "+
 		"Borealis supports deploying to one target cluster.")
 	devNode, devValuesNode := util.BuildMapNode("<deploymentName>",
 		"Name for your deployment. Use a descriptive value such as the environment name.")

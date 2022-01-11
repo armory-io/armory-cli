@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 )
+
 const aLongLongTimeAgo = 233431200
 
 func TestAuthTestSuite(t *testing.T) {
@@ -100,12 +101,12 @@ func (suite *AuthTestSuite) TestAuthFailWithInvalidJwt() {
 	}
 	httpmock.RegisterResponder("POST", "http://localhost/oauth/token",
 		httpmock.NewStringResponder(200, string(resp)))
-	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://differentaudience/" , "")
+	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://differentaudience/", "")
 	_, _, err = auth.authentication(nil)
 	suite.NotNil(err, "TestAuthFailWithInvalidJwt failed with: err is null")
 }
 
-func createFakeJwt() (string, error){
+func createFakeJwt() (string, error) {
 	armoryCustomClaims := map[string]interface{}{
 		"envId": "12345",
 	}
@@ -128,6 +129,3 @@ func createFakeJwt() (string, error){
 	}
 	return string(signed), nil
 }
-
-
-

@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 	err := os.Chdir("..")
 	if err != nil {
 		fmt.Printf("could not change dir: %v", err)
-				os.Exit(1)
+		os.Exit(1)
 	}
 	dir, err := os.Getwd()
 	if err != nil {
@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 	goos := runtime.GOOS
 	cmd := exec.Command("make", "build")
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "PWD=" +  dir, "GOARCH=" + goarch, "GOOS=" + goos, "VERSION=" + version)
+	cmd.Env = append(cmd.Env, "PWD="+dir, "GOARCH="+goarch, "GOOS="+goos, "VERSION="+version)
 	binaryPath = fmt.Sprintf("%s/build/dist/%s_%s/%s", dir, goos, goarch, binaryName)
 	if err := cmd.Run(); err != nil {
 		fmt.Printf("could not make binary for %s: %v", binaryName, err)

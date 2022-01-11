@@ -28,24 +28,24 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 	os.Unsetenv("ARMORY_CLI_TEST")
 }
 
-func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 	targets := map[string]model.DeploymentTarget{
 		"test1": model.DeploymentTarget{
-			Account: "account1",
+			Account:   "account1",
 			Namespace: "dev",
-			Strategy: "strategy1",
+			Strategy:  "strategy1",
 		},
 		"test2": model.DeploymentTarget{
-			Account: "account2",
+			Account:   "account2",
 			Namespace: "qa",
-			Strategy: "strategy2",
+			Strategy:  "strategy2",
 			Constraints: &model.Constraints{
 				DependsOn: &[]string{
 					"test1",
 				},
 				BeforeDeployment: &[]model.BeforeDeployment{
-					model.BeforeDeployment {
-						Pause: &model.PauseStep {
+					model.BeforeDeployment{
+						Pause: &model.PauseStep{
 							UntilApproved: true,
 						},
 					},
@@ -57,20 +57,20 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 		"strategy1": model.Strategy{
 			Canary: &model.CanaryStrategy{
 				Steps: &[]model.CanaryStep{
-					model.CanaryStep {
+					model.CanaryStep{
 						SetWeight: &model.WeightStep{
 							Weight: 33,
 						},
 					},
-					model.CanaryStep {
+					model.CanaryStep{
 						Pause: &model.PauseStep{
 							UntilApproved: true,
 						},
 					},
-					model.CanaryStep {
+					model.CanaryStep{
 						Pause: &model.PauseStep{
 							Duration: 600,
-							Unit: "SECONDS",
+							Unit:     "SECONDS",
 						},
 					},
 				},
@@ -79,15 +79,15 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 		"strategy2": model.Strategy{
 			Canary: &model.CanaryStrategy{
 				Steps: &[]model.CanaryStep{
-					model.CanaryStep {
+					model.CanaryStep{
 						SetWeight: &model.WeightStep{
 							Weight: 50,
 						},
 					},
-					model.CanaryStep {
+					model.CanaryStep{
 						Pause: &model.PauseStep{
 							Duration: 900,
-							Unit: "SECONDS",
+							Unit:     "SECONDS",
 						},
 					},
 				},
@@ -95,7 +95,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 		},
 	}
 
-	tempFile1 := util.TempAppFile("", "app1*.yml",testAppYamlStr)
+	tempFile1 := util.TempAppFile("", "app1*.yml", testAppYamlStr)
 	if tempFile1 == nil {
 		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
 	}
@@ -117,12 +117,12 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 	}
 
 	orchestration := model.OrchestrationConfig{
-		Version: "v1",
-		Kind: "kubernetes",
+		Version:     "v1",
+		Kind:        "kubernetes",
 		Application: "app",
-		Targets: &targets,
-		Strategies: &strategies,
-		Manifests: &manifests,
+		Targets:     &targets,
+		Strategies:  &strategies,
+		Manifests:   &manifests,
 	}
 
 	received, err := CreateDeploymentRequest(&orchestration)
@@ -134,7 +134,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
-	expectedReq := de.PipelineStartPipelineRequest {}
+	expectedReq := de.PipelineStartPipelineRequest{}
 	err = json.Unmarshal(expectedJsonStr, &expectedReq)
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
@@ -142,8 +142,8 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 	reflect.DeepEqual(received, expectedReq)
 }
 
-func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess(){
-	tempFile1 := util.TempAppFile("", "app1*.yml",testAppYamlStr)
+func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
+	tempFile1 := util.TempAppFile("", "app1*.yml", testAppYamlStr)
 	if tempFile1 == nil {
 		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
 	}
@@ -199,10 +199,10 @@ func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess(){
 	}
 }
 
-func (suite *ServiceTestSuite) TestGetManifestsEmptyTargets(){
+func (suite *ServiceTestSuite) TestGetManifestsEmptyTargets() {
 	manifests := []model.ManifestPath{
 		{
-			Inline: testAppYamlStr,
+			Inline:  testAppYamlStr,
 			Targets: []string{},
 		},
 	}
@@ -214,7 +214,7 @@ func (suite *ServiceTestSuite) TestGetManifestsEmptyTargets(){
 	suite.Equal("please omit targets to include the manifests for all targets or specify the targets", err.Error())
 }
 
-func (suite *ServiceTestSuite) TestCreateDeploymentManifestsSuccess(){
+func (suite *ServiceTestSuite) TestCreateDeploymentManifestsSuccess() {
 	manifests := make([]string, 2)
 	manifests[0] = testAppYamlStr
 	manifests[1] = testAppYamlStr
@@ -222,27 +222,27 @@ func (suite *ServiceTestSuite) TestCreateDeploymentManifestsSuccess(){
 	suite.Equal(len(*received), 2)
 }
 
-func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess(){
+func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess() {
 	weight := int32(33)
 	untilApproved := true
 	duration := int32(600)
 	strategy := model.Strategy{
 		Canary: &model.CanaryStrategy{
 			Steps: &[]model.CanaryStep{
-				model.CanaryStep {
+				model.CanaryStep{
 					SetWeight: &model.WeightStep{
 						Weight: weight,
 					},
 				},
-				model.CanaryStep {
+				model.CanaryStep{
 					Pause: &model.PauseStep{
 						UntilApproved: untilApproved,
 					},
 				},
-				model.CanaryStep {
+				model.CanaryStep{
 					Pause: &model.PauseStep{
 						Duration: duration,
-						Unit: "SECONDS",
+						Unit:     "SECONDS",
 					},
 				},
 			},
@@ -255,14 +255,14 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess(){
 	suite.Equal(len(received), len(*strategy.Canary.Steps))
 }
 
-func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess(){
+func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess() {
 	untilApproved := true
 	duration := int32(600)
 	beforeDeployment := []model.BeforeDeployment{
 		{
-			Pause:  &model.PauseStep{
+			Pause: &model.PauseStep{
 				Duration: duration,
-				Unit: "SECONDS",
+				Unit:     "SECONDS",
 			},
 		},
 		{
@@ -277,7 +277,6 @@ func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess(){
 	}
 	suite.Equal(len(received), len(beforeDeployment))
 }
-
 
 const testAppYamlStr = `
 apiVersion: apps/v1

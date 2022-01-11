@@ -11,21 +11,21 @@ const (
 )
 
 type Credentials struct {
-	Audience  		string `json:"audience"`
-	Source    		string `json:"source"`
-	ClientId  		string `json:"clientId"`
-	ExpiresAt 		string `json:"expiresAt"`
-	Token     		string `json:"token"`
-	RefreshToken    string `json:"refreshToken"`
+	Audience     string `json:"audience"`
+	Source       string `json:"source"`
+	ClientId     string `json:"clientId"`
+	ExpiresAt    string `json:"expiresAt"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 func NewCredentials(audience, source, clientId, expiresAt, token string, refreshToken string) *Credentials {
 	return &Credentials{
-		Audience:  audience,
-		Source:    source,
-		ClientId:  clientId,
-		ExpiresAt: expiresAt,
-		Token:     token,
+		Audience:     audience,
+		Source:       source,
+		ClientId:     clientId,
+		ExpiresAt:    expiresAt,
+		Token:        token,
 		RefreshToken: refreshToken,
 	}
 }

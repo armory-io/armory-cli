@@ -29,7 +29,7 @@ type Auth struct {
 	token          string `yaml:"token" json:"token"`
 }
 
-func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience, token  string) *Auth {
+func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience, token string) *Auth {
 	return &Auth{
 		clientId:       clientId,
 		secret:         clientSecret,
@@ -37,7 +37,7 @@ func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience, token  st
 		tokenIssuerUrl: tokenIssuerUrl,
 		audience:       audience,
 		verify:         true,
-		token: 			token,
+		token:          token,
 	}
 }
 
@@ -50,7 +50,7 @@ func (a *Auth) GetToken() (string, error) {
 		return "", err
 	}
 	if _, err := os.Stat(dirname + "/.armory"); os.IsNotExist(err) {
-		err := os.Mkdir(dirname + "/.armory", os.ModePerm)
+		err := os.Mkdir(dirname+"/.armory", os.ModePerm)
 		if err != nil {
 			return "", err
 		}
@@ -120,7 +120,7 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 	data.Set("client_id", a.clientId)
 	data.Set("client_secret", a.secret)
 	data.Set("audience", a.audience)
-	req, err := http.NewRequest(http.MethodPost, a.tokenIssuerUrl + "/token", strings.NewReader(data.Encode()))
+	req, err := http.NewRequest(http.MethodPost, a.tokenIssuerUrl+"/token", strings.NewReader(data.Encode()))
 	if err != nil {
 		return "", nil, err
 	}

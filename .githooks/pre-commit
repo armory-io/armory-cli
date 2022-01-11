@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo "Formatting go..."
+go fmt ./...
+echo "Done."

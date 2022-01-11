@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	deployShort   = ""
-	deployLong    = ""
-	deployExample = ""
-	cloudConsoleBaseUrl = "https://console.cloud.armory.io"
+	deployShort                = ""
+	deployLong                 = ""
+	deployExample              = ""
+	cloudConsoleBaseUrl        = "https://console.cloud.armory.io"
 	cloudConsoleStagingBaseUrl = "https://console.staging.cloud.armory.io"
 )
 
