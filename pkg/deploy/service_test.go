@@ -125,7 +125,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 		Manifests:   &manifests,
 	}
 
-	received, err := CreateDeploymentRequest(&orchestration)
+	received, err := CreateDeploymentRequest("", &orchestration)
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
 	}
