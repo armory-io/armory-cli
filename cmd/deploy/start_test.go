@@ -161,6 +161,59 @@ func (suite *DeployStartTestSuite) TestDeployStartBadPath() {
 	suite.EqualError(err, "error trying to read the YAML file: open /badPath/test.yml: no such file or directory")
 }
 
+func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnErrorIsRaised() {
+	expected := de.NewPipelineStartPipelineResponse()
+	expected.SetPipelineId("12345")
+	err := registerResponder(expected, 200)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+	}
+	tempFile := util.TempAppFile("", "app", testAppYamlStrWithoutApplicationName)
+	if tempFile == nil {
+		suite.T().Fatal("TestWhenTheManifestAndFlagDoNotHaveAppNameAnErrorIsRaised failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
+	outWriter := bytes.NewBufferString("")
+	rootCmd, err := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
+	err = rootCmd.Execute()
+	if err == nil {
+		suite.T().Fatal("TestWhenTheManifestAndFlagDoNotHaveAppNameAnErrorIsRaised failed with: error should not be null")
+	}
+	suite.EqualError(err, "application name must be defined in deployment file or by application-name opt")
+}
+
+func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameButFlagIsSuppliedAnErrorIsNotRaised() {
+	expected := de.NewPipelineStartPipelineResponse()
+	expected.SetPipelineId("12345")
+	err := registerResponder(expected, 200)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+	}
+	tempFile := util.TempAppFile("", "app", testAppYamlStrWithoutApplicationName)
+	if tempFile == nil {
+		suite.T().Fatal("TestWhenTheManifestAndFlagDoNotHaveAppNameButFlagIsSuppliedAnErrorIsNotRaised failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
+	outWriter := bytes.NewBufferString("")
+	rootCmd, options, err := getOverrideRootCmd(outWriter)
+	if err != nil {
+		suite.T().Fatalf("TestWhenTheManifestAndFlagDoNotHaveAppNameButFlagIsSuppliedAnErrorIsNotRaised failed with: %s", err)
+	}
+	rootCmd.AddCommand(NewDeployCmd(options))
+	args := []string{
+		"deploy", "start",
+		"--file=" + tempFile.Name(),
+		"--application=foo",
+		"--output=json",
+	}
+	rootCmd.SetArgs(args)
+
+	err = rootCmd.Execute()
+	if err != nil {
+		suite.T().Fatalf("TestWhenTheManifestAndFlagDoNotHaveAppNameButFlagIsSuppliedAnErrorIsNotRaised failed with: %s", err)
+	}
+}
+
 func getOverrideRootCmd(outWriter io.Writer) (*cobra.Command, *cmd.RootOptions, error) {
 	rootCmd, options := cmd.NewCmdRoot(outWriter, ioutil.Discard)
 	client, err := deploy.NewDeployClient(
@@ -206,6 +259,24 @@ const testAppYamlStr = `
 version: apps/v1
 kind: kubernetes
 application: deployment-test
+targets:
+    dev-west:
+        account: dev
+        namespace: test
+        strategy: strategy1
+manifests: []
+strategies:
+    strategy1:
+        canary:
+            steps:
+                - pause:
+                    duration: 1
+                    unit: SECONDS
+`
+
+const testAppYamlStrWithoutApplicationName = `
+version: apps/v1
+kind: kubernetes
 targets:
     dev-west:
         account: dev
