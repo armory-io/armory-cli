@@ -19,6 +19,7 @@ build-dirs:
 	@mkdir -p ${DIST_DIR}
 	@mkdir -p ${REPORTS_DIR}
 
+
 .PHONY: build
 build: build-dirs Makefile
 	@echo "Building ${DIST_DIR}/armory${CLI_EXT}..."

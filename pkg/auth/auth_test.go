@@ -35,6 +35,31 @@ func (suite *AuthTestSuite) TearDownSuite() {
 	httpmock.DeactivateAndReset()
 }
 
+func (suite *AuthTestSuite) TestTokenAuthSuccess() {
+	jwt, err := createFakeJwt()
+	if err != nil {
+		suite.T().Fatalf("TestTokenAuthSuccess failed with: %s", err)
+	}
+	auth := NewAuth("", "", "", "", "", jwt)
+	token, err := auth.GetToken()
+	suite.Nilf(err, "TestTokenAuthSuccess failed getting token: %s", err)
+	suite.Equal(jwt, token, "TestTokenAuthSuccess: Token and Jwt must be equal")
+	environment, err := auth.GetEnvironment()
+	suite.Nilf(err, "TestTokenAuthSuccess failed getting environment: %s", err)
+	suite.Equal(environment, "12345", "TestTokenAuthSuccess: Environment and Jwt envId must be equal")
+}
+
+func (suite *AuthTestSuite) TestAuthenticationShouldErrorWhenTokenIsProvided() {
+	jwt, err := createFakeJwt()
+	if err != nil {
+		suite.T().Fatalf("TestTokenAuthSuccess failed with: %s", err)
+	}
+	authy := NewAuth("", "", "", "", "", jwt)
+	_, _, err = authy.authentication(nil)
+	suite.NotNil(err, "AuthenticationShouldErrorWhenTokenIsProvided expects an error with authenticating remotely %s", err)
+	suite.Equal("do not try to execute remote authentication when a Token has been provided to the command", err.Error(), "AuthenticationShouldErrorWhenTokenIsProvided: expected a specific error but found: %s", err)
+}
+
 func (suite *AuthTestSuite) TestAuthSuccess() {
 	jwt, err := createFakeJwt()
 	if err != nil {
@@ -49,7 +74,7 @@ func (suite *AuthTestSuite) TestAuthSuccess() {
 	}
 	httpmock.RegisterResponder("POST", "http://localhost/oauth/token",
 		httpmock.NewStringResponder(200, string(resp)))
-	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://localhost")
+	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://localhost", "")
 	token, exp, err := auth.authentication(nil)
 	suite.Nilf(err, "TestAuthSuccess failed with: %s", err)
 	suite.NotNil(exp, "TestAuthSuccess failed with: expiration must not be null")
@@ -59,7 +84,7 @@ func (suite *AuthTestSuite) TestAuthSuccess() {
 func (suite *AuthTestSuite) TestAuthFail() {
 	httpmock.RegisterResponder("POST", "http://localhost/oauth/token",
 		httpmock.NewStringResponder(401, ""))
-	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://localhost")
+	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://localhost", "")
 	_, _, err := auth.authentication(nil)
 	suite.NotNil(err, "TestAuthFail failed with: err is null")
 	suite.Error(err, "unexpected status code while getting token 401")
@@ -75,7 +100,7 @@ func (suite *AuthTestSuite) TestAuthFailWithInvalidJwt() {
 	}
 	httpmock.RegisterResponder("POST", "http://localhost/oauth/token",
 		httpmock.NewStringResponder(200, string(resp)))
-	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://differentaudience/")
+	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://differentaudience/" , "")
 	_, _, err = auth.authentication(nil)
 	suite.NotNil(err, "TestAuthFailWithInvalidJwt failed with: err is null")
 }

@@ -8,45 +8,63 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
-func CreateDeploymentRequest(config *model.OrchestrationConfig) (*de.KubernetesV2StartKubernetesDeploymentRequest, error) {
-	if len(*config.Targets) != 1 {
-		return nil, fmt.Errorf("exactly one target is required for a deployment")
-	}
-	targetKeys := make([]string, 0, len(*config.Targets))
-	for key := range *config.Targets {
-		targetKeys = append(targetKeys, key)
-	}
-	target := (*config.Targets)[targetKeys[0]]
+func CreateDeploymentRequest(config *model.OrchestrationConfig) (*de.PipelineStartPipelineRequest, error) {
+	environments := make([]de.PipelinePipelineEnvironment, 0, len(*config.Targets))
+	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
+	for key, element  := range *config.Targets {
+		envName := key
+		target := element
+		environments = append(environments, de.PipelinePipelineEnvironment{
+			Name: &envName,
+			Namespace: &target.Namespace,
+			Account: &target.Account,
+		})
 
-	strategyKeys := make([]string, 0, len(*config.Strategies))
-	for key := range *config.Strategies {
-		strategyKeys = append(strategyKeys, key)
-	}
+		strategy := (*config.Strategies)[element.Strategy]
+		if &strategy.Canary == nil  {
+			return nil, fmt.Errorf("error converting steps for canary deployment strategy; canary strategy not provided and is required")
+		}
 
-	strategy := (*config.Strategies)[target.Strategy]
-	if &strategy.Canary == nil  {
-		return nil, fmt.Errorf("error converting steps for canary deployment strategy; canary strategy not provided and is required")
-	}
+		steps, err := CreateDeploymentCanaryStep(strategy)
+		if err != nil {
+			return nil, err
+		}
 
-	steps, err := CreateDeploymentCanaryStep(strategy)
-	if err != nil {
-		return nil, err
+		files, err := GetManifestsFromFile(config.Manifests, envName)
+		if err != nil {
+			return nil, err
+		}
+
+		pipelineConstraint := de.PipelineConstraintConfiguration{}
+		if target.Constraints != nil {
+			beforeDeployment, err := CreateBeforeDeploymentConstraints(target.Constraints.BeforeDeployment)
+			if err != nil {
+				return nil, err
+			}
+
+			pipelineConstraint.SetDependsOn(*target.Constraints.DependsOn)
+			pipelineConstraint.SetBeforeDeployment(beforeDeployment)
+		}
+
+		deployments = append(deployments, de.PipelinePipelineDeployment{
+			Environment: &envName,
+			Manifests: CreateDeploymentManifests(files),
+			Strategy: &de.PipelinePipelineStrategy{
+				Canary: &de.KubernetesV2CanaryStrategy{
+					Steps: steps,
+				},
+			},
+			Constraints: &pipelineConstraint,
+		})
 	}
-	files, err := GetManifestsFromFile(config.Manifests)
-	if err != nil {
-		return nil, err
-	}
-	req := de.KubernetesV2StartKubernetesDeploymentRequest{
-		Application: config.Application,
-		Account:     target.Account,
-		Namespace:   target.Namespace,
-		Manifests:   CreateDeploymentManifests(files),
-		Canary: de.KubernetesV2CanaryStrategy{
-			Steps: steps,
-		},
+	req := de.PipelineStartPipelineRequest{
+		Application: &config.Application,
+		Environments: &environments,
+		Deployments: &deployments,
 	}
 	return &req, nil
 }
@@ -92,31 +110,42 @@ func CreateDeploymentCanaryStep(strategy model.Strategy) ([]de.KubernetesV2Canar
 	return steps, nil
 }
 
-func GetManifestsFromFile(manifests *[]model.ManifestPath) (*[]string, error) {
+func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]string, error) {
 	var fileNames []string
+	var files []string
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
 	for _, manifestPath := range *manifests {
-		if present && !isATest {
-			manifestPath.Path = gitWorkspace + manifestPath.Path
-		}
-		err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
-			if err != nil {
-				fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
-				return err
-			}
-			if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml"  {
-				fileNames = append(fileNames, path)
-			}
-
-			return nil
-		})
-		if err != nil {
-			return nil, fmt.Errorf("unable to read manifest(s) from file: %s", err)
+		if manifestPath.Targets != nil && len(manifestPath.Targets) == 0 {
+			return nil, fmt.Errorf("please omit targets to include the manifests for all targets or specify the targets")
 		}
 
+		if contains(manifestPath.Targets, env) || manifestPath.Targets == nil {
+			if manifestPath.Inline != "" {
+				files = append(files, manifestPath.Inline)
+			}
+			if present && !isATest {
+				manifestPath.Path = gitWorkspace + manifestPath.Path
+			}
+			if manifestPath.Path != "" {
+				err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
+					if err != nil {
+						fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+						return err
+					}
+					if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml" {
+						fileNames = append(fileNames, path)
+					}
+
+					return nil
+				})
+				if err != nil {
+					return nil, fmt.Errorf("unable to read manifest(s) from file: %s", err)
+				}
+			}
+		}
 	}
-	var files []string
+
 	for _, fileName := range fileNames {
 		file, err := ioutil.ReadFile(fileName)
 		if err != nil {
@@ -128,7 +157,7 @@ func GetManifestsFromFile(manifests *[]model.ManifestPath) (*[]string, error) {
 	return &files, nil
 }
 
-func CreateDeploymentManifests(manifests *[]string) []de.KubernetesV2Manifest{
+func CreateDeploymentManifests(manifests *[]string) *[]de.KubernetesV2Manifest{
 	deManifests := make([]de.KubernetesV2Manifest, 0, len(*manifests))
 	for _, manifest := range *manifests {
 		deManifests = append(
@@ -139,5 +168,38 @@ func CreateDeploymentManifests(manifests *[]string) []de.KubernetesV2Manifest{
 				},
 			})
 	}
-	return deManifests
+	return &deManifests
+}
+
+func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeployment) ([]de.PipelineConstraint, error) {
+	if beforeDeployment == nil {
+		return []de.PipelineConstraint{}, nil
+	}
+	pipelineConstraints := make([]de.PipelineConstraint, 0, len(*beforeDeployment))
+	for _, obj := range *beforeDeployment {
+		var unit *de.TimeTimeUnit
+		var err error
+		if obj.Pause.Unit == "" {
+			unit, err = de.NewTimeTimeUnitFromValue("NONE")
+		} else {
+			unit, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(obj.Pause.Unit))
+		}
+		if err != nil {
+			return nil, err
+		}
+		pause := de.NewPipelinePauseConstraint()
+		pause.SetUnit(*unit)
+		pause.SetUntilApproved(obj.Pause.UntilApproved)
+		pause.SetDuration(obj.Pause.Duration)
+		constraint := de.PipelineConstraint{
+			Pause: pause,
+		}
+		pipelineConstraints = append(pipelineConstraints, constraint)
+	}
+	return pipelineConstraints, nil
+}
+
+func contains(s []string, searchterm string) bool {
+	i := sort.SearchStrings(s, searchterm)
+	return i < len(s) && s[i] == searchterm
 }

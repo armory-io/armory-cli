@@ -1,11 +1,14 @@
 package deploy
 
 import (
+	"encoding/json"
+	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/stretchr/testify/suite"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -27,10 +30,27 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 	targets := map[string]model.DeploymentTarget{
-		"test": model.DeploymentTarget{
+		"test1": model.DeploymentTarget{
 			Account: "account1",
 			Namespace: "dev",
 			Strategy: "strategy1",
+		},
+		"test2": model.DeploymentTarget{
+			Account: "account2",
+			Namespace: "qa",
+			Strategy: "strategy2",
+			Constraints: &model.Constraints{
+				DependsOn: &[]string{
+					"test1",
+				},
+				BeforeDeployment: &[]model.BeforeDeployment{
+					model.BeforeDeployment {
+						Pause: &model.PauseStep {
+							UntilApproved: true,
+						},
+					},
+				},
+			},
 		},
 	}
 	strategies := map[string]model.Strategy{
@@ -56,6 +76,23 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 				},
 			},
 		},
+		"strategy2": model.Strategy{
+			Canary: &model.CanaryStrategy{
+				Steps: &[]model.CanaryStep{
+					model.CanaryStep {
+						SetWeight: &model.WeightStep{
+							Weight: 50,
+						},
+					},
+					model.CanaryStep {
+						Pause: &model.PauseStep{
+							Duration: 900,
+							Unit: "SECONDS",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	tempFile1 := util.TempAppFile("", "app1*.yml",testAppYamlStr)
@@ -66,6 +103,16 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 	manifests := []model.ManifestPath{
 		{
 			Path: tempFile1.Name(),
+			Targets: []string{
+				"test1",
+				"test2",
+			},
+		},
+		{
+			Path: tempFile1.Name(),
+			Targets: []string{
+				"test1",
+			},
 		},
 	}
 
@@ -82,15 +129,17 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess(){
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
 	}
-	receivedJson, err := received.MarshalJSON()
-	if err != nil {
-		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
-	}
-	expected, err := ioutil.ReadFile("testdata/deploymentRequest.json")
+
+	expectedJsonStr, err := ioutil.ReadFile("testdata/deploymentRequest.json")
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
-	suite.JSONEq(string(receivedJson), string(expected), "json should be the same")
+	expectedReq := de.PipelineStartPipelineRequest {}
+	err = json.Unmarshal(expectedJsonStr, &expectedReq)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+	}
+	reflect.DeepEqual(received, expectedReq)
 }
 
 func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess(){
@@ -109,16 +158,60 @@ func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess(){
 	manifests := []model.ManifestPath{
 		{
 			Path: tempFile1.Name(),
+			Targets: []string{
+				"env-test",
+			},
 		},
 		{
 			Path: tempFile2.Name(),
+			Targets: []string{
+				"env-test",
+			},
+		},
+		{
+			Path: tempFile2.Name(),
+			Targets: []string{
+				"env-test2",
+			},
+		},
+		{
+			Inline: testAppYamlStr,
+			Targets: []string{
+				"env-test2",
+			},
+		},
+		{
+			Inline: testAppYamlStr,
 		},
 	}
-	files, err := GetManifestsFromFile(&manifests)
+	files, err := GetManifestsFromFile(&manifests, "env-test")
 	if err != nil {
 		suite.T().Fatalf("TestGetManifestsFromPathSuccess failed with: %s", err)
 	}
-	suite.Equal(len(*files), 2)
+	suite.Equal(len(*files), 3)
+	files, err = GetManifestsFromFile(&manifests, "env-test2")
+	if err != nil {
+		suite.T().Fatalf("TestGetManifestsFromPathSuccess failed with: %s", err)
+	}
+	suite.Equal(len(*files), 3)
+	for _, file := range *files {
+		suite.Equal(testAppYamlStr, file, "TestGetManifestsFromPathSuccess expected files to match")
+	}
+}
+
+func (suite *ServiceTestSuite) TestGetManifestsEmptyTargets(){
+	manifests := []model.ManifestPath{
+		{
+			Inline: testAppYamlStr,
+			Targets: []string{},
+		},
+	}
+	_, err := GetManifestsFromFile(&manifests, "env-test")
+	if err == nil {
+		suite.T().Fatalf("TestGetManifestsFromPathSuccess failed. Expected error")
+	}
+
+	suite.Equal("please omit targets to include the manifests for all targets or specify the targets", err.Error())
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentManifestsSuccess(){
@@ -126,7 +219,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentManifestsSuccess(){
 	manifests[0] = testAppYamlStr
 	manifests[1] = testAppYamlStr
 	received := CreateDeploymentManifests(&manifests)
-	suite.Equal(len(received), 2)
+	suite.Equal(len(*received), 2)
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess(){
@@ -161,6 +254,30 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess(){
 	}
 	suite.Equal(len(received), len(*strategy.Canary.Steps))
 }
+
+func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess(){
+	untilApproved := true
+	duration := int32(600)
+	beforeDeployment := []model.BeforeDeployment{
+		{
+			Pause:  &model.PauseStep{
+				Duration: duration,
+				Unit: "SECONDS",
+			},
+		},
+		{
+			Pause: &model.PauseStep{
+				UntilApproved: untilApproved,
+			},
+		},
+	}
+	received, err := CreateBeforeDeploymentConstraints(&beforeDeployment)
+	if err != nil {
+		suite.T().Fatalf("TestCreateBeforeDeploymentConstraintsSuccess failed with: %s", err)
+	}
+	suite.Equal(len(received), len(beforeDeployment))
+}
+
 
 const testAppYamlStr = `
 apiVersion: apps/v1

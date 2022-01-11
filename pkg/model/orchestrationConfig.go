@@ -34,7 +34,6 @@ type PauseStep struct {
 	UntilApproved bool `yaml:"untilApproved,omitempty"`
 }
 
-
 type DeploymentTarget struct {
 	// The name of the Kubernetes account to be used for this deployment.
 	Account string `yaml:"account,omitempty"`
@@ -42,10 +41,20 @@ type DeploymentTarget struct {
 	Namespace string `yaml:"namespace,omitempty"`
 	// This is the key to a strategy under the strategies map
 	Strategy string `yaml:"strategy,omitempty"`
+	Constraints *Constraints `yaml:"constraints,omitempty"`
 }
 
 type ManifestPath struct {
 	Path string `yaml:"path,omitempty"`
+	Targets []string `yaml:"targets,omitempty"`
+	Inline string `yaml:"inline,omitempty"`
 }
 
+type Constraints struct {
+	DependsOn *[]string `yaml:"dependsOn,omitempty"`
+	BeforeDeployment *[]BeforeDeployment `yaml:"beforeDeployment,omitempty"`
+}
 
+type BeforeDeployment struct {
+	Pause *PauseStep `yaml:"pause,omitempty"`
+}
