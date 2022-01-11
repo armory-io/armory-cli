@@ -175,7 +175,6 @@ jobs:
       - name: Build CLI
         env:
           VERSION: ${{ needs.setup.outputs.version }}
-          USER_CLIENT_ID: ${{ secrets.USER_CLIENT_ID }}
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           CLI_EXT: ${{ matrix.ext }}
@@ -229,7 +228,6 @@ jobs:
       - name: Build CLI
         env:
           VERSION: ${{ needs.setup.outputs.version }}
-          USER_CLIENT_ID: ${{ secrets.USER_CLIENT_ID }}
         run: make build
 
       - name: Docker meta
