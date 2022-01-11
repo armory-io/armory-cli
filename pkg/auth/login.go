@@ -13,10 +13,10 @@ import (
 )
 
 type DeviceTokenData struct {
-	DeviceCode     			string `json:"device_code"`
-	UserCode       			string `json:"user_code"`
-	VerificationUri 		string `json:"verification_uri"`
-	ExpiresIn       		int    `json:"expires_in"`
+	DeviceCode              string `json:"device_code"`
+	UserCode                string `json:"user_code"`
+	VerificationUri         string `json:"verification_uri"`
+	ExpiresIn               int    `json:"expires_in"`
 	Interval                int    `json:"interval"`
 	VerificationUriComplete string `json:"verification_uri_complete"`
 }
@@ -28,8 +28,8 @@ type ErrorResponse struct {
 
 type SuccessfulResponse struct {
 	// AccessToken Encoded JWT / Bearer Token
-	AccessToken             string `json:"access_token"`
-	RefreshToken             string `json:"refresh_token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 	// SecondsUtilTokenExpires the number of seconds until the JWT expires, from when it was created by the Auth Server.
 	// The JWT has the exact expiration date time
 	SecondsUtilTokenExpires int `json:"expires_in"`
@@ -43,8 +43,8 @@ var httpClient = http.Client{
 func GetDeviceCodeFromAuthorizationServer(clientId, scope, audience, authUrl string) (*DeviceTokenData, error) {
 	requestBody, err := json.Marshal(map[string]string{
 		"client_id": clientId,
-		"scope": scope,
-		"audience": audience,
+		"scope":     scope,
+		"audience":  audience,
 	})
 	if err != nil {
 		return nil, errors.New("failed to create request body for Armory authorization server")
@@ -52,7 +52,7 @@ func GetDeviceCodeFromAuthorizationServer(clientId, scope, audience, authUrl str
 
 	getDeviceCodeRequest, err := http.NewRequest(
 		"POST",
-		authUrl + "/device/code",
+		authUrl+"/device/code",
 		bytes.NewBuffer(requestBody),
 	)
 	if err != nil {
@@ -74,9 +74,8 @@ func GetDeviceCodeFromAuthorizationServer(clientId, scope, audience, authUrl str
 	return &deviceTokenResponse, nil
 }
 
-
 func PollAuthorizationServerForResponse(cliClientId string, authUrl string, deviceTokenResponse *DeviceTokenData, authStartedAt time.Time) (*SuccessfulResponse, error) {
-	var secondsAfterAuthStartedAtWhenDeviceFlowExpires = deviceTokenResponse.ExpiresIn * 1000 - 5000
+	var secondsAfterAuthStartedAtWhenDeviceFlowExpires = deviceTokenResponse.ExpiresIn*1000 - 5000
 	deviceFlowExpiresTime := authStartedAt.Add(time.Duration(secondsAfterAuthStartedAtWhenDeviceFlowExpires) * time.Second)
 	log.Infof("Waiting for user to login")
 	for {
@@ -111,13 +110,13 @@ func PollAuthorizationServerForResponse(cliClientId string, authUrl string, devi
 	}
 }
 
-func RefreshAuthToken(cliClientId string, authUrl string, refreshToken string, environmentId string) (*SuccessfulResponse, error){
+func RefreshAuthToken(cliClientId string, authUrl string, refreshToken string, environmentId string) (*SuccessfulResponse, error) {
 	errorResponse, response, err := getAuthToken(
 		authUrl,
 		map[string]string{
-			"client_id":   cliClientId,
-			"refresh_token": refreshToken,
-			"grant_type":  "refresh_token",
+			"client_id":      cliClientId,
+			"refresh_token":  refreshToken,
+			"grant_type":     "refresh_token",
 			"requestedEnvId": environmentId,
 		})
 

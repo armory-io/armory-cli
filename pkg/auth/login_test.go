@@ -30,13 +30,12 @@ func (suite *LoginTestSuite) TearDownSuite() {
 
 func (suite *LoginTestSuite) TestGetDeviceCodeSuccess() {
 	device := &DeviceTokenData{
-		DeviceCode: "123",
-		UserCode: "ABCDE",
-		VerificationUri: "http://localhost/activate",
-		ExpiresIn: 900,
-		Interval: 5,
+		DeviceCode:              "123",
+		UserCode:                "ABCDE",
+		VerificationUri:         "http://localhost/activate",
+		ExpiresIn:               900,
+		Interval:                5,
 		VerificationUriComplete: "http://localhost/activate?user_code=ABCDE",
-
 	}
 	resp, err := json.Marshal(device)
 	if err != nil {
@@ -66,8 +65,8 @@ func (suite *LoginTestSuite) TestGetDeviceCodeFail() {
 
 func (suite *LoginTestSuite) TestRefreshAuthTokenSuccess() {
 	success := &SuccessfulResponse{
-		AccessToken: "XYV",
-		RefreshToken: "ABCDE",
+		AccessToken:             "XYV",
+		RefreshToken:            "ABCDE",
 		SecondsUtilTokenExpires: 900,
 	}
 	resp, err := json.Marshal(success)
@@ -88,7 +87,7 @@ func (suite *LoginTestSuite) TestRefreshAuthTokenSuccess() {
 
 func (suite *LoginTestSuite) TestRefreshAuthTokenFail() {
 	failed := &ErrorResponse{
-		Error: "Invalid request",
+		Error:       "Invalid request",
 		Description: "This is a test",
 	}
 	resp, err := json.Marshal(failed)
@@ -106,15 +105,15 @@ func (suite *LoginTestSuite) TestRefreshAuthTokenFail() {
 
 func (suite *LoginTestSuite) TestPollAuthorizationServerForResponseDeviceExpired() {
 	device := &DeviceTokenData{
-		DeviceCode: "12345",
-		UserCode: "ABCDE",
-		VerificationUri: "http://localhost/activate",
-		ExpiresIn: 0,
-		Interval: 0,
+		DeviceCode:              "12345",
+		UserCode:                "ABCDE",
+		VerificationUri:         "http://localhost/activate",
+		ExpiresIn:               0,
+		Interval:                0,
 		VerificationUriComplete: "http://localhost/activate?user_code=ABCDE",
 	}
 	authStartedAt := time.Date(1990, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-	result, err := PollAuthorizationServerForResponse("123","http://localhost/oauth", device, authStartedAt)
+	result, err := PollAuthorizationServerForResponse("123", "http://localhost/oauth", device, authStartedAt)
 	suite.Nil(result)
 	suite.NotNil(err)
 	suite.EqualError(err, "the device flow request has expired")
@@ -122,7 +121,7 @@ func (suite *LoginTestSuite) TestPollAuthorizationServerForResponseDeviceExpired
 
 func (suite *LoginTestSuite) TestPollAuthorizationServerForResponseHttpFailed() {
 	failed := &ErrorResponse{
-		Error: "Invalid request",
+		Error:       "Invalid request",
 		Description: "This is a test",
 	}
 	resp, err := json.Marshal(failed)
@@ -132,15 +131,15 @@ func (suite *LoginTestSuite) TestPollAuthorizationServerForResponseHttpFailed() 
 	httpmock.RegisterResponder("POST", "http://localhost/oauth/token",
 		httpmock.NewStringResponder(400, string(resp)))
 	device := &DeviceTokenData{
-		DeviceCode: "12345",
-		UserCode: "ABCDE",
-		VerificationUri: "http://localhost/activate",
-		ExpiresIn: 0,
-		Interval: 0,
+		DeviceCode:              "12345",
+		UserCode:                "ABCDE",
+		VerificationUri:         "http://localhost/activate",
+		ExpiresIn:               0,
+		Interval:                0,
 		VerificationUriComplete: "http://localhost/activate?user_code=ABCDE",
 	}
 	authStartedAt := time.Date(2999, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-	result, err := PollAuthorizationServerForResponse("123","http://localhost/oauth", device, authStartedAt)
+	result, err := PollAuthorizationServerForResponse("123", "http://localhost/oauth", device, authStartedAt)
 	suite.Nil(result)
 	suite.NotNil(err)
 	suite.EqualError(err, "there was an error polling for user auth. Err: Invalid request, Desc: This is a test")
@@ -148,8 +147,8 @@ func (suite *LoginTestSuite) TestPollAuthorizationServerForResponseHttpFailed() 
 
 func (suite *LoginTestSuite) TestPollAuthorizationServerForResponseSuccess() {
 	success := &SuccessfulResponse{
-		AccessToken: "XYV",
-		RefreshToken: "ABCDE",
+		AccessToken:             "XYV",
+		RefreshToken:            "ABCDE",
 		SecondsUtilTokenExpires: 900,
 	}
 	resp, err := json.Marshal(success)
@@ -159,15 +158,15 @@ func (suite *LoginTestSuite) TestPollAuthorizationServerForResponseSuccess() {
 	httpmock.RegisterResponder("POST", "http://localhost/oauth/token",
 		httpmock.NewStringResponder(200, string(resp)))
 	device := &DeviceTokenData{
-		DeviceCode: "12345",
-		UserCode: "ABCDE",
-		VerificationUri: "http://localhost/activate",
-		ExpiresIn: 0,
-		Interval: 0,
+		DeviceCode:              "12345",
+		UserCode:                "ABCDE",
+		VerificationUri:         "http://localhost/activate",
+		ExpiresIn:               0,
+		Interval:                0,
 		VerificationUriComplete: "http://localhost/activate?user_code=ABCDE",
 	}
 	authStartedAt := time.Date(2999, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-	received, err := PollAuthorizationServerForResponse("123","http://localhost/oauth", device, authStartedAt)
+	received, err := PollAuthorizationServerForResponse("123", "http://localhost/oauth", device, authStartedAt)
 	suite.Nil(err)
 	suite.NotNil(received)
 	suite.EqualValues(received, success)

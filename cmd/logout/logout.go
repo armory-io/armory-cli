@@ -53,7 +53,7 @@ func logout(cmd *cobra.Command, options *logoutOptions, args []string) error {
 		if err != nil {
 			return fmt.Errorf("error at getting user home dir: %s", err)
 		}
-		if  err = os.Remove(dirname + "/.armory/credentials"); os.IsNotExist(err){
+		if err = os.Remove(dirname + "/.armory/credentials"); os.IsNotExist(err) {
 			fmt.Fprintln(cmd.OutOrStdout(), "You are not logged in, skipping logout")
 			return nil
 		}
@@ -61,6 +61,3 @@ func logout(cmd *cobra.Command, options *logoutOptions, args []string) error {
 	}
 	return nil
 }
-
-
-

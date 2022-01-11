@@ -51,7 +51,7 @@ func (suite *OrgTestSuite) TestGetEnvironmentsSuccess() {
 	if err != nil {
 		suite.T().Fatalf("TestGetEnvironmentsSuccess failed with: %s", err)
 	}
-	suite.Equal( len(envs),  len(received), "size should be the same")
+	suite.Equal(len(envs), len(received), "size should be the same")
 }
 
 func (suite *OrgTestSuite) TestGetEnvironmentsHttpFail() {

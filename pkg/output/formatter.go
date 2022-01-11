@@ -16,7 +16,6 @@ type Formattable interface {
 
 type Formatter func(Formattable) (string, error)
 
-
 type Output struct {
 	Formatter Formatter
 }

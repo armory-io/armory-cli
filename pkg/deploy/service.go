@@ -15,17 +15,17 @@ import (
 func CreateDeploymentRequest(config *model.OrchestrationConfig) (*de.PipelineStartPipelineRequest, error) {
 	environments := make([]de.PipelinePipelineEnvironment, 0, len(*config.Targets))
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
-	for key, element  := range *config.Targets {
+	for key, element := range *config.Targets {
 		envName := key
 		target := element
 		environments = append(environments, de.PipelinePipelineEnvironment{
-			Name: &envName,
+			Name:      &envName,
 			Namespace: &target.Namespace,
-			Account: &target.Account,
+			Account:   &target.Account,
 		})
 
 		strategy := (*config.Strategies)[element.Strategy]
-		if &strategy.Canary == nil  {
+		if &strategy.Canary == nil {
 			return nil, fmt.Errorf("error converting steps for canary deployment strategy; canary strategy not provided and is required")
 		}
 
@@ -52,7 +52,7 @@ func CreateDeploymentRequest(config *model.OrchestrationConfig) (*de.PipelineSta
 
 		deployments = append(deployments, de.PipelinePipelineDeployment{
 			Environment: &envName,
-			Manifests: CreateDeploymentManifests(files),
+			Manifests:   CreateDeploymentManifests(files),
 			Strategy: &de.PipelinePipelineStrategy{
 				Canary: &de.KubernetesV2CanaryStrategy{
 					Steps: steps,
@@ -62,9 +62,9 @@ func CreateDeploymentRequest(config *model.OrchestrationConfig) (*de.PipelineSta
 		})
 	}
 	req := de.PipelineStartPipelineRequest{
-		Application: &config.Application,
+		Application:  &config.Application,
 		Environments: &environments,
-		Deployments: &deployments,
+		Deployments:  &deployments,
 	}
 	return &req, nil
 }
@@ -157,12 +157,12 @@ func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]strin
 	return &files, nil
 }
 
-func CreateDeploymentManifests(manifests *[]string) *[]de.KubernetesV2Manifest{
+func CreateDeploymentManifests(manifests *[]string) *[]de.KubernetesV2Manifest {
 	deManifests := make([]de.KubernetesV2Manifest, 0, len(*manifests))
 	for _, manifest := range *manifests {
 		deManifests = append(
 			deManifests,
-			de.KubernetesV2Manifest {
+			de.KubernetesV2Manifest{
 				Inline: de.KubernetesV2InlineManifest{
 					Value: manifest,
 				},

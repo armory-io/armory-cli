@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-func getExpectedPipelineDeployment() (*de.PipelinePipelineStatusResponse, *de.DeploymentV2DeploymentStatusResponse){
+func getExpectedPipelineDeployment() (*de.PipelinePipelineStatusResponse, *de.DeploymentV2DeploymentStatusResponse) {
 	expected := &de.PipelinePipelineStatusResponse{}
 	expected.SetId("12345")
 	expected.SetApplication("app")
@@ -26,7 +26,7 @@ func getExpectedPipelineDeployment() (*de.PipelinePipelineStatusResponse, *de.De
 	stage.SetDeployment(*deploy)
 	expected.SetSteps([]de.PipelinePipelineStage{*stage})
 
-	expectedDeploy:= &de.DeploymentV2DeploymentStatusResponse{}
+	expectedDeploy := &de.DeploymentV2DeploymentStatusResponse{}
 	expectedDeploy.SetId("5678")
 	expectedDeploy.SetStatus(de.DEPLOYMENTV2DEPLOYMENTSTATUSRESPONSESTATUS_RUNNING)
 
@@ -176,5 +176,5 @@ func TestDeployStatusFlagDeploymentIdRequired(t *testing.T) {
 	if err == nil {
 		t.Fatal("TestDeployStatusFlagDeploymentIdRequired failed with: error should not be null")
 	}
-	assert.EqualError(t, err,"required flag(s) \"deploymentId\" not set")
+	assert.EqualError(t, err, "required flag(s) \"deploymentId\" not set")
 }

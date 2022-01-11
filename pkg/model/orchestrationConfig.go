@@ -1,12 +1,12 @@
 package model
 
 type OrchestrationConfig struct {
-	Version string `yaml:"version,omitempty"`
-	Kind string `yaml:"kind,omitempty"`
-	Application string                   `yaml:"application,omitempty"`
-	Targets *map[string]DeploymentTarget `yaml:"targets,omitempty"`
-	Manifests *[]ManifestPath `yaml:"manifests,omitempty"`
-	Strategies *map[string]Strategy `yaml:"strategies,omitempty"`
+	Version     string                       `yaml:"version,omitempty"`
+	Kind        string                       `yaml:"kind,omitempty"`
+	Application string                       `yaml:"application,omitempty"`
+	Targets     *map[string]DeploymentTarget `yaml:"targets,omitempty"`
+	Manifests   *[]ManifestPath              `yaml:"manifests,omitempty"`
+	Strategies  *map[string]Strategy         `yaml:"strategies,omitempty"`
 }
 
 type Strategy struct {
@@ -19,7 +19,7 @@ type CanaryStrategy struct {
 
 type CanaryStep struct {
 	SetWeight *WeightStep `yaml:"setWeight,omitempty"`
-	Pause *PauseStep      `yaml:"pause,omitempty"`
+	Pause     *PauseStep  `yaml:"pause,omitempty"`
 }
 
 type WeightStep struct {
@@ -28,8 +28,8 @@ type WeightStep struct {
 
 type PauseStep struct {
 	// The duration of the pause. If duration is non-zero, untilApproved should be set to false.
-	Duration int32 `yaml:"duration,omitempty"`
-	Unit string `yaml:"unit,omitempty"`
+	Duration int32  `yaml:"duration,omitempty"`
+	Unit     string `yaml:"unit,omitempty"`
 	// If set to true, the progressive canary will wait until a manual judgment to continue. This field should not be set to true unless duration and unit are unset.
 	UntilApproved bool `yaml:"untilApproved,omitempty"`
 }
@@ -40,18 +40,18 @@ type DeploymentTarget struct {
 	// The Kubernetes namespace where the provided manifests will be deployed.
 	Namespace string `yaml:"namespace,omitempty"`
 	// This is the key to a strategy under the strategies map
-	Strategy string `yaml:"strategy,omitempty"`
+	Strategy    string       `yaml:"strategy,omitempty"`
 	Constraints *Constraints `yaml:"constraints,omitempty"`
 }
 
 type ManifestPath struct {
-	Path string `yaml:"path,omitempty"`
+	Path    string   `yaml:"path,omitempty"`
 	Targets []string `yaml:"targets,omitempty"`
-	Inline string `yaml:"inline,omitempty"`
+	Inline  string   `yaml:"inline,omitempty"`
 }
 
 type Constraints struct {
-	DependsOn *[]string `yaml:"dependsOn,omitempty"`
+	DependsOn        *[]string           `yaml:"dependsOn,omitempty"`
 	BeforeDeployment *[]BeforeDeployment `yaml:"beforeDeployment,omitempty"`
 }
 

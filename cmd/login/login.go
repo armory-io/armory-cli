@@ -29,9 +29,9 @@ var UserClientId = ""
 type loginOptions struct {
 	*cmd.RootOptions
 	clientId string
-	scope string
+	scope    string
 	audience string
-	envName string
+	envName  string
 }
 
 func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
@@ -143,14 +143,14 @@ func selectEnvironment(audience string, accessToken string, namedEnvironment ...
 		return nil, err
 	}
 	var environmentNames []string
-	linq.From(environments).Select(func(c interface{}) interface {} {
+	linq.From(environments).Select(func(c interface{}) interface{} {
 		return c.(org.Environment).Name
 	}).ToSlice(&environmentNames)
 
 	if len(namedEnvironment) > 0 && namedEnvironment[0] != "" {
 		requestedEnv := linq.From(environments).Where(func(c interface{}) bool {
 			return c.(org.Environment).Name == namedEnvironment[0]
-		}).Select(func(c interface{}) interface {} {
+		}).Select(func(c interface{}) interface{} {
 			return c.(org.Environment)
 		}).First()
 		if requestedEnv != nil {
@@ -160,10 +160,9 @@ func selectEnvironment(audience string, accessToken string, namedEnvironment ...
 		return nil, errors.New(fmt.Sprintf("Environment %s not found, please choose a known environment: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ",")))
 	}
 
-
 	prompt := promptui.Select{
-		Label: "Select environment",
-		Items: environmentNames,
+		Label:  "Select environment",
+		Items:  environmentNames,
 		Stdout: &util.BellSkipper{},
 	}
 
@@ -181,7 +180,7 @@ func selectEnvironment(audience string, accessToken string, namedEnvironment ...
 	if selectedEnv == nil {
 		return nil, errors.New("unable to select chosen environment")
 	}
-	sel:= selectedEnv.(org.Environment)
+	sel := selectedEnv.(org.Environment)
 
 	return &sel, nil
 }

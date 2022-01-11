@@ -26,7 +26,6 @@ type RootOptions struct {
 	Output         *output.Output
 }
 
-
 func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 	rootCmd := &cobra.Command{
 		Use:   "armory",
@@ -37,7 +36,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 		if err := configureLogging(options.v); err != nil {
 			return fmt.Errorf("error at configuring logging: %s", err)
 		}
-		if options.O != "" && options.O != "json" && options.O != "yaml"{
+		if options.O != "" && options.O != "json" && options.O != "yaml" {
 			return errors.New("the output type is invalid. Do not specify parameter to get plain output. Available options: [json]")
 		}
 		options.Output = output.NewOutput(options.O)
@@ -88,7 +87,7 @@ func configureLogging(verboseFlag bool) error {
 	}
 	log.SetLevel(lvl)
 	log.SetFormatter(&easy.Formatter{
-		LogFormat:       "%msg%\n",
+		LogFormat: "%msg%\n",
 	})
 	return nil
 }

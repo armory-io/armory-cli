@@ -8,10 +8,9 @@ import (
 )
 
 type PromptMsg struct {
-	Text    string
+	Text     string
 	ErrorMsg string
 }
-
 
 func PromptConfirmInput(pm PromptMsg) (bool, error) {
 	val := func(input string) error {

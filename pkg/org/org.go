@@ -8,20 +8,20 @@ import (
 )
 
 type Environment struct {
-	Id		string `json:"id"`
-	Name	string `json:"name"`
-	OrgId	string `json:"orgId"`
+	Id    string `json:"id"`
+	Name  string `json:"name"`
+	OrgId string `json:"orgId"`
 }
 
 type ApiError struct {
 	//{"error_id":"a814890f-e0cf-4ae5-a78a-39040ed51a35","errors":[{"code":99001,"message":"No valid auth credentials found."}]}
-	ErrorId		string `json:"error_id"`
-	Errors		*[]AppError `json:"errors"`
+	ErrorId string      `json:"error_id"`
+	Errors  *[]AppError `json:"errors"`
 }
 
 type AppError struct {
-	Code		string `json:"code"`
-	Message		string `json:"errors"`
+	Code    string `json:"code"`
+	Message string `json:"errors"`
 }
 
 const (
@@ -29,7 +29,7 @@ const (
 )
 
 func GetEnvironments(baseUrl string, accessToken *string) ([]Environment, error) {
-	request := util.NewHttpRequest("GET", baseUrl + ENVIRONMENT_URI, nil, accessToken)
+	request := util.NewHttpRequest("GET", baseUrl+ENVIRONMENT_URI, nil, accessToken)
 	request.BearerToken = accessToken
 	resp, err := request.Execute()
 	if err != nil {

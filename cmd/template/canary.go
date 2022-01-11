@@ -37,15 +37,14 @@ func NewTemplateCanaryCmd(templateOptions *templateOptions) *cobra.Command {
 func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) error {
 	root := buildTemplateKubernetesCore()
 
-
 	// Strategies root
-	strategiesNode, strategyValuesNode := util.BuildMapNode("strategies","A map of named strategies that can be assigned to deployment targets in the targets block.")
+	strategiesNode, strategyValuesNode := util.BuildMapNode("strategies", "A map of named strategies that can be assigned to deployment targets in the targets block.")
 	// Strategy1
 	strategy1Node, strategy1ValuesNode := util.BuildMapNode("strategy1",
 		"Name for a strategy that you use to refer to it. Used in the target block. This example uses strategy1 as the name.")
 
 	// Canary root
-	canaryNode, canaryValuesNode := util.BuildMapNode("canary","The deployment strategy type. Use canary.")
+	canaryNode, canaryValuesNode := util.BuildMapNode("canary", "The deployment strategy type. Use canary.")
 
 	// Steps sequence/array
 	stepsNode, stepsValuesNode := util.BuildSequenceNode("steps", "The steps for your deployment strategy.")
@@ -59,13 +58,13 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 	// Weight root
 	weight := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	weightNode, weightValuesNode := util.BuildMapNode("setWeight","")
+	weightNode, weightValuesNode := util.BuildMapNode("setWeight", "")
 	weightValuesNode.Content = append(weightValuesNode.Content, util.BuildIntNode("weight", "33", "The percentage of pods that should be running the canary version for this step. Set it to an integer between 0 and 100, inclusive.")...)
 	weight.Content = append(weight.Content, weightNode, weightValuesNode)
 
 	// Pause UntilApproved root
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	pauseUANode, pauseUAValuesNode := util.BuildMapNode("pause","A pause step type. The pipeline stops until the pause behavior is completed.")
+	pauseUANode, pauseUAValuesNode := util.BuildMapNode("pause", "A pause step type. The pipeline stops until the pause behavior is completed.")
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildBoolNode("untilApproved", "true",
 		"The pause behavior is the deployment waits until a manual approval is given to continue. Only set this to true if there is no duration pause behavior for this step.")...)
 	pauseUA.Content = append(pauseUA.Content, pauseUANode, pauseUAValuesNode)

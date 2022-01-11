@@ -29,14 +29,14 @@ type FormattableDeployStartResponse struct {
 	// The deployment's ID.
 	DeploymentId string `json:"deploymentId,omitempty" yaml:"deploymentId,omitempty"`
 	httpResponse *_nethttp.Response
-	err error
+	err          error
 }
 
 func newDeployStartResponse(raw *de.PipelineStartPipelineResponse, response *_nethttp.Response, err error) FormattableDeployStartResponse {
 	deployment := FormattableDeployStartResponse{
 		DeploymentId: raw.GetPipelineId(),
 		httpResponse: response,
-		err: err,
+		err:          err,
 	}
 	return deployment
 }
@@ -81,7 +81,7 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
-	if present && !isATest{
+	if present && !isATest {
 		options.deploymentFile = gitWorkspace + options.deploymentFile
 	}
 	// read yaml file
@@ -100,7 +100,7 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 		return fmt.Errorf("error converting deployment object: %s", err)
 	}
 
-	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second * 5)
+	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second*5)
 	defer cancel()
 	// prepare request
 	request := options.DeployClient.DeploymentServiceApi.

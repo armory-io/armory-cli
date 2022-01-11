@@ -9,11 +9,11 @@ import (
 )
 
 type HttpRequest struct {
-	Body *map[string]string
-	Url string
-	Method string //one of POST, GET, etc.
+	Body        *map[string]string
+	Url         string
+	Method      string //one of POST, GET, etc.
 	BearerToken *string
-	httpClient http.Client
+	httpClient  http.Client
 }
 
 func NewHttpRequest(method string, url string, body map[string]string, bearerToken *string, optionalTimeoutSeconds ...time.Duration) HttpRequest {
@@ -22,9 +22,9 @@ func NewHttpRequest(method string, url string, body map[string]string, bearerTok
 		timeout = optionalTimeoutSeconds[0]
 	}
 	return HttpRequest{
-		Url: url,
-		Body: &body,
-		Method: method,
+		Url:         url,
+		Body:        &body,
+		Method:      method,
 		BearerToken: bearerToken,
 		httpClient: http.Client{
 			Timeout: time.Second * timeout,
@@ -32,7 +32,7 @@ func NewHttpRequest(method string, url string, body map[string]string, bearerTok
 	}
 }
 
-func (request *HttpRequest) Execute() (*http.Response, error){
+func (request *HttpRequest) Execute() (*http.Response, error) {
 	requestBody, err := json.Marshal(&request.Body)
 
 	clientRequest, err := http.NewRequest(
@@ -44,7 +44,7 @@ func (request *HttpRequest) Execute() (*http.Response, error){
 		return nil, errors.New("failed to create http request")
 	}
 	if request.BearerToken != nil {
-		clientRequest.Header.Set("Authorization", "Bearer " + *request.BearerToken)
+		clientRequest.Header.Set("Authorization", "Bearer "+*request.BearerToken)
 	}
 	clientRequest.Header.Set("Content-Type", "application/json")
 	resp, err := request.httpClient.Do(clientRequest)

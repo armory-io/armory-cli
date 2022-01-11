@@ -45,7 +45,7 @@ func (suite *DeployStartTestSuite) TearDownSuite() {
 func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
 	expected := de.NewPipelineStartPipelineResponse()
 	expected.SetPipelineId("12345")
-	err := registerResponder(expected,  200)
+	err := registerResponder(expected, 200)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
@@ -72,7 +72,7 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
 func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	expected := de.NewPipelineStartPipelineResponse()
 	expected.SetPipelineId("12345")
-	err := registerResponder(expected,  200)
+	err := registerResponder(expected, 200)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -97,7 +97,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
-	err := registerResponder(`{"code":2, "message":"invalid operation", "details":[]}`,  500)
+	err := registerResponder(`{"code":2, "message":"invalid operation", "details":[]}`, 500)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -137,7 +137,7 @@ func (suite *DeployStartTestSuite) TestDeployStartFlagFileRequired() {
 	if err == nil {
 		suite.T().Fatal("TestDeployStartFlagRequired failed with: error should not be null")
 	}
-	suite.EqualError(err,"required flag(s) \"file\" not set")
+	suite.EqualError(err, "required flag(s) \"file\" not set")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartBadPath() {
@@ -158,7 +158,7 @@ func (suite *DeployStartTestSuite) TestDeployStartBadPath() {
 	if err == nil {
 		suite.T().Fatal("TestDeployStartBadPath failed with: error should not be null")
 	}
-	suite.EqualError(err,"error trying to read the YAML file: open /badPath/test.yml: no such file or directory")
+	suite.EqualError(err, "error trying to read the YAML file: open /badPath/test.yml: no such file or directory")
 }
 
 func getOverrideRootCmd(outWriter io.Writer) (*cobra.Command, *cmd.RootOptions, error) {
@@ -178,7 +178,7 @@ func getOverrideRootCmd(outWriter io.Writer) (*cobra.Command, *cmd.RootOptions, 
 	return rootCmd, options, nil
 }
 
-func registerResponder(body interface{}, status int ) error {
+func registerResponder(body interface{}, status int) error {
 	responder, err := httpmock.NewJsonResponder(status, body)
 	if err != nil {
 		return err
@@ -196,7 +196,7 @@ func getDeployCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output strin
 	args := []string{
 		"deploy", "start",
 		"--file=" + tmpFile.Name(),
-		"--output="+ output,
+		"--output=" + output,
 	}
 	rootCmd.SetArgs(args)
 	return rootCmd, nil
