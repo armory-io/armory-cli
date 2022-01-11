@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func CreateDeploymentRequest(applicationName string, config *model.OrchestrationConfig) (*de.PipelineStartPipelineRequest, error) {
+func CreateDeploymentRequest(application string, config *model.OrchestrationConfig) (*de.PipelineStartPipelineRequest, error) {
 	environments := make([]de.PipelinePipelineEnvironment, 0, len(*config.Targets))
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
 	for key, element := range *config.Targets {
@@ -62,7 +62,7 @@ func CreateDeploymentRequest(applicationName string, config *model.Orchestration
 		})
 	}
 	req := de.PipelineStartPipelineRequest{
-		Application:  &applicationName,
+		Application:  &application,
 		Environments: &environments,
 		Deployments:  &deployments,
 	}

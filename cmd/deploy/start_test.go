@@ -12,6 +12,7 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
+	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
 	"os"
@@ -202,7 +203,7 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameBut
 	args := []string{
 		"deploy", "start",
 		"--file=" + tempFile.Name(),
-		"--application-name=foo",
+		"--application=foo",
 		"--output=json",
 	}
 	rootCmd.SetArgs(args)
