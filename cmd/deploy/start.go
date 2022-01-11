@@ -22,7 +22,8 @@ const (
 
 type deployStartOptions struct {
 	*deployOptions
-	deploymentFile string
+	deploymentFile  string
+	applicationName string
 }
 
 type FormattableDeployStartResponse struct {
@@ -72,6 +73,7 @@ func NewDeployStartCmd(deployOptions *deployOptions) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
+	cmd.Flags().StringVarP(&options.applicationName, "application-name", "n", "", "application name for deployment")
 	cmd.MarkFlagRequired("file")
 	return cmd
 }
@@ -95,7 +97,19 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	if err != nil {
 		return fmt.Errorf("error invalid deployment object: %s", err)
 	}
-	dep, err := deployment.CreateDeploymentRequest(&payload)
+	applicationNameOpt := options.applicationName
+	var applicationName string
+	if len(applicationNameOpt) > 0 {
+		applicationName = applicationNameOpt
+	} else {
+		applicationName = payload.Application
+	}
+
+	if len(applicationName) < 1 {
+		return fmt.Errorf("application name must be defined in deployment file or by application-name opt")
+	}
+
+	dep, err := deployment.CreateDeploymentRequest(applicationName, &payload)
 	if err != nil {
 		return fmt.Errorf("error converting deployment object: %s", err)
 	}
