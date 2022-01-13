@@ -45,8 +45,11 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			if err != nil {
 				return nil, err
 			}
-
-			pipelineConstraint.SetDependsOn(*target.Constraints.DependsOn)
+			if target.Constraints.DependsOn != nil {
+				pipelineConstraint.SetDependsOn(*target.Constraints.DependsOn)
+			} else {
+				pipelineConstraint.SetDependsOn([]string{})
+			}
 			pipelineConstraint.SetBeforeDeployment(beforeDeployment)
 		}
 
