@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
-	"github.com/armory/armory-cli/pkg/util"
 	"github.com/stretchr/testify/suite"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"testing"
 )
+
+const PathToTestManifest1 = "testdata/testManifest1.yaml"
+const PathToTestManifest2 = "testdata/testManifest1.yaml"
 
 func TestServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ServiceTestSuite))
@@ -29,108 +31,25 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
-	targets := map[string]model.DeploymentTarget{
-		"test1": model.DeploymentTarget{
-			Account:   "account1",
-			Namespace: "dev",
-			Strategy:  "strategy1",
-		},
-		"test2": model.DeploymentTarget{
-			Account:   "account2",
-			Namespace: "qa",
-			Strategy:  "strategy2",
-			Constraints: &model.Constraints{
-				DependsOn: &[]string{
-					"test1",
-				},
-				BeforeDeployment: &[]model.BeforeDeployment{
-					model.BeforeDeployment{
-						Pause: &model.PauseStep{
-							UntilApproved: true,
-						},
-					},
-				},
-			},
-		},
-	}
-	strategies := map[string]model.Strategy{
-		"strategy1": model.Strategy{
-			Canary: &model.CanaryStrategy{
-				Steps: &[]model.CanaryStep{
-					model.CanaryStep{
-						SetWeight: &model.WeightStep{
-							Weight: 33,
-						},
-					},
-					model.CanaryStep{
-						Pause: &model.PauseStep{
-							UntilApproved: true,
-						},
-					},
-					model.CanaryStep{
-						Pause: &model.PauseStep{
-							Duration: 600,
-							Unit:     "SECONDS",
-						},
-					},
-				},
-			},
-		},
-		"strategy2": model.Strategy{
-			Canary: &model.CanaryStrategy{
-				Steps: &[]model.CanaryStep{
-					model.CanaryStep{
-						SetWeight: &model.WeightStep{
-							Weight: 50,
-						},
-					},
-					model.CanaryStep{
-						Pause: &model.PauseStep{
-							Duration: 900,
-							Unit:     "SECONDS",
-						},
-					},
-				},
-			},
-		},
-	}
+	received := createDeploymentForTests(suite, "testdata/happyPathDeploymentFile.yaml")
 
-	tempFile1 := util.TempAppFile("", "app1*.yml", testAppYamlStr)
-	if tempFile1 == nil {
-		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
-	}
-	suite.T().Cleanup(func() { os.Remove(tempFile1.Name()) })
-	manifests := []model.ManifestPath{
-		{
-			Path: tempFile1.Name(),
-			Targets: []string{
-				"test1",
-				"test2",
-			},
-		},
-		{
-			Path: tempFile1.Name(),
-			Targets: []string{
-				"test1",
-			},
-		},
-	}
-
-	orchestration := model.OrchestrationConfig{
-		Version:     "v1",
-		Kind:        "kubernetes",
-		Application: "app",
-		Targets:     &targets,
-		Strategies:  &strategies,
-		Manifests:   &manifests,
-	}
-
-	received, err := CreateDeploymentRequest("", &orchestration)
+	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequest.json")
 	if err != nil {
-		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
 
-	expectedJsonStr, err := ioutil.ReadFile("testdata/deploymentRequest.json")
+	expectedReq := de.PipelineStartPipelineRequest{}
+	err = json.Unmarshal(expectedJsonStr, &expectedReq)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+	}
+	suite.EqualValues(expectedReq, *received)
+}
+
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithoutDependsOnConstraintSuccess() {
+	received := createDeploymentForTests(suite, "testdata/happyPathDeploymentFileNoDependsOn.yaml")
+
+	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequestNoDependsOn.json")
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
@@ -139,37 +58,25 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
 	}
-	reflect.DeepEqual(received, expectedReq)
+	suite.EqualValues(expectedReq, *received)
 }
 
 func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
-	tempFile1 := util.TempAppFile("", "app1*.yml", testAppYamlStr)
-	if tempFile1 == nil {
-		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
-	}
-	tempFile2 := util.TempAppFile("", "app2*.yml", testAppYamlStr)
-	if tempFile2 == nil {
-		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
-	}
-	suite.T().Cleanup(func() {
-		os.Remove(tempFile1.Name())
-		os.Remove(tempFile2.Name())
-	})
 	manifests := []model.ManifestPath{
 		{
-			Path: tempFile1.Name(),
+			Path: PathToTestManifest1,
 			Targets: []string{
 				"env-test",
 			},
 		},
 		{
-			Path: tempFile2.Name(),
+			Path: PathToTestManifest2,
 			Targets: []string{
 				"env-test",
 			},
 		},
 		{
-			Path: tempFile2.Name(),
+			Path: PathToTestManifest2,
 			Targets: []string{
 				"env-test2",
 			},
@@ -276,6 +183,26 @@ func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess() {
 		suite.T().Fatalf("TestCreateBeforeDeploymentConstraintsSuccess failed with: %s", err)
 	}
 	suite.Equal(len(received), len(beforeDeployment))
+}
+
+func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) *de.PipelineStartPipelineRequest {
+	inputYamlStr, err := ioutil.ReadFile(pathToInput)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+	}
+	orchestration := model.OrchestrationConfig{}
+	err = yaml.Unmarshal(inputYamlStr, &orchestration)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling YAML string to Request obj %s", err)
+	}
+
+	received, err := CreateDeploymentRequest(orchestration.Application, &orchestration)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
+	}
+
+	return received
+
 }
 
 const testAppYamlStr = `

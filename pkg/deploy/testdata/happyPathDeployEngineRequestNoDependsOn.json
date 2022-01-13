@@ -1,0 +1,98 @@
+{
+  "application": "app",
+  "deployments": [
+    {
+      "constraints": {},
+      "environment": "test1",
+      "manifests": [
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        },
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        }
+      ],
+      "strategy": {
+        "canary": {
+          "steps": [
+            {
+              "setWeight": {
+                "weight": 33
+              }
+            },
+            {
+              "pause": {
+                "duration": 0,
+                "unit": "NONE",
+                "untilApproved": true
+              }
+            },
+            {
+              "pause": {
+                "duration": 600,
+                "unit": "SECONDS",
+                "untilApproved": false
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "constraints": {
+        "beforeDeployment": [
+          {
+            "pause": {
+              "duration": 0,
+              "unit": "NONE",
+              "untilApproved": true
+            }
+          }
+        ],
+        "dependsOn": []
+      },
+      "environment": "test2",
+      "manifests": [
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        }
+      ],
+      "strategy": {
+        "canary": {
+          "steps": [
+            {
+              "setWeight": {
+                "weight": 50
+              }
+            },
+            {
+              "pause": {
+                "duration": 900,
+                "unit": "SECONDS",
+                "untilApproved": false
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "environments": [
+    {
+      "account": "account1",
+      "name": "test1",
+      "namespace": "dev"
+    },
+    {
+      "account": "account2",
+      "name": "test2",
+      "namespace": "qa"
+    }
+  ]
+}
