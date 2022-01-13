@@ -115,61 +115,70 @@ func CreateDeploymentCanaryStep(strategy model.Strategy) ([]de.KubernetesV2Canar
 		}
 
 		if step.Analysis != nil {
-			var rollBackMode *de.AnalysisRollMode
-			var rollForwardMode *de.AnalysisRollMode
-			var units *de.TimeTimeUnit
-			var lookbackMethod *de.AnalysisLookbackMethod
-			var err error
-
-			if step.Analysis.RollBackMode != "" {
-				rollBackMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(step.Analysis.RollBackMode))
-			} else {
-				rollBackMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
-			}
+			analysis, err := createDeploymentCanaryAnalysisStep(step.Analysis)
 			if err != nil {
 				return nil, err
-			}
-
-			if step.Analysis.RollForwardMode != "" {
-				rollForwardMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(step.Analysis.RollForwardMode))
-			} else {
-				rollForwardMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
-			}
-			if err != nil {
-				return nil, err
-			}
-			if step.Analysis.Units != "" {
-				units, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(step.Analysis.Units))
-			} else {
-				units, err = de.NewTimeTimeUnitFromValue("NONE")
-			}
-			if err != nil {
-				return nil, err
-			}
-			if step.Analysis.LookbackMethod != "" {
-				lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue(strings.ToUpper(step.Analysis.LookbackMethod))
-			} else {
-				lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue("UNSET")
 			}
 
 			steps = append(
 				steps,
 				de.KubernetesV2CanaryStep{
-					Analysis: &de.AnalysisAnalysisStepInput{
-						Context:               &step.Analysis.Context,
-						RollBackMode:          rollBackMode,
-						RollForwardMode:       rollForwardMode,
-						Interval:              &step.Analysis.Interval,
-						Units:                 units,
-						NumberOfJudgmentRuns:  &step.Analysis.Count,
-						AbortOnFailedJudgment: &step.Analysis.AbortOnFailedJudgment,
-						LookbackMethod:        lookbackMethod,
-						Queries:               step.Analysis.Queries,
-					},
+					Analysis: analysis,
 				})
 		}
 	}
 	return steps, nil
+}
+
+func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep) (*de.AnalysisAnalysisStepInput, error) {
+	var rollBackMode *de.AnalysisRollMode
+	var rollForwardMode *de.AnalysisRollMode
+	var units *de.TimeTimeUnit
+	var lookbackMethod *de.AnalysisLookbackMethod
+	var err error
+
+	if analysis.RollBackMode != "" {
+		rollBackMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(analysis.RollBackMode))
+	} else {
+		rollBackMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if analysis.RollForwardMode != "" {
+		rollForwardMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(analysis.RollForwardMode))
+	} else {
+		rollForwardMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
+	}
+	if err != nil {
+		return nil, err
+	}
+	if analysis.Units != "" {
+		units, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(analysis.Units))
+	} else {
+		units, err = de.NewTimeTimeUnitFromValue("NONE")
+	}
+	if err != nil {
+		return nil, err
+	}
+	if analysis.LookbackMethod != "" {
+		lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue(strings.ToUpper(analysis.LookbackMethod))
+	} else {
+		lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue("UNSET")
+	}
+
+	return &de.AnalysisAnalysisStepInput{
+		Context:               &analysis.Context,
+		RollBackMode:          rollBackMode,
+		RollForwardMode:       rollForwardMode,
+		Interval:              &analysis.Interval,
+		Units:                 units,
+		NumberOfJudgmentRuns:  &analysis.Count,
+		AbortOnFailedJudgment: &analysis.AbortOnFailedJudgment,
+		LookbackMethod:        lookbackMethod,
+		Queries:               analysis.Queries,
+	}, nil
 }
 
 func CreateAnalysisQueries(queries []model.Query, defaultAccount string) *[]de.AnalysisAnalysisQueries {
