@@ -73,6 +73,23 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 							Unit:     "SECONDS",
 						},
 					},
+					model.CanaryStep{
+						Analysis: &model.AnalysisStep{
+							Context: map[string]string{
+								"foo":  "bar",
+								"fizz": "baz",
+							},
+							RollBackMode:    "manual",
+							RollForwardMode: "manual",
+							Interval:        5,
+							Units:           "minutes",
+							Count:           5,
+							Queries: &[]string{
+								"Average http error rate is less than 10%",
+								"Average RPM is greater than 5",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -94,7 +111,30 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 			},
 		},
 	}
-
+	queries := []model.Query{
+		{
+			Name: "Average http error rate is less than 10%",
+			QueryTemplate: "SELECT filter(count(http.server.requests), WHERE outcome != 'SUCCESS' and percentile is null) " +
+				"filter(count(http.server.requests), WHERE percentile is null) * 100 FROM Metric " +
+				"WHERE application_name = '${application-name}' AND environment = '${environment}' " +
+				"AND replica_set = '${replica-set}' TIMESERIES AUTO;",
+			AggregationMethod: "avg",
+			UpperLimit:        10,
+		},
+		{
+			Name: "Average RPM is greater than 5",
+			QueryTemplate: "SELECT rate(count(http.server.requests), 1 minute) / 60 FROM Metric " +
+				"WHERE application_name = '${application-name}' AND environment = '${environment}' " +
+				"AND replica_set = '${replica-set}' TIMESERIES AUTO",
+			AggregationMethod: "avg",
+			LowerLimit:        5,
+		},
+	}
+	analysis := model.AnalysisConfig{
+		DefaultAccount: "newrelic-prod",
+		DefaultType:    "newrelic",
+		Queries:        &queries,
+	}
 	tempFile1 := util.TempAppFile("", "app1*.yml", testAppYamlStr)
 	if tempFile1 == nil {
 		suite.T().Fatal("TestGetManifestsFromFileSuccess failed with: Could not create temp app file.")
@@ -123,6 +163,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 		Targets:     &targets,
 		Strategies:  &strategies,
 		Manifests:   &manifests,
+		Analysis:    &analysis,
 	}
 
 	received, err := CreateDeploymentRequest("", &orchestration)

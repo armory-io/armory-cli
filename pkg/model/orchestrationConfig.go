@@ -7,6 +7,7 @@ type OrchestrationConfig struct {
 	Targets     *map[string]DeploymentTarget `yaml:"targets,omitempty"`
 	Manifests   *[]ManifestPath              `yaml:"manifests,omitempty"`
 	Strategies  *map[string]Strategy         `yaml:"strategies,omitempty"`
+	Analysis    *AnalysisConfig              `yaml:"analysis,omitempty"`
 }
 
 type Strategy struct {
@@ -18,8 +19,9 @@ type CanaryStrategy struct {
 }
 
 type CanaryStep struct {
-	SetWeight *WeightStep `yaml:"setWeight,omitempty"`
-	Pause     *PauseStep  `yaml:"pause,omitempty"`
+	SetWeight *WeightStep   `yaml:"setWeight,omitempty"`
+	Pause     *PauseStep    `yaml:"pause,omitempty"`
+	Analysis  *AnalysisStep `yaml:"analysis,omitempty"`
 }
 
 type WeightStep struct {
@@ -34,6 +36,18 @@ type PauseStep struct {
 	UntilApproved bool `yaml:"untilApproved,omitempty"`
 }
 
+type AnalysisStep struct {
+	Context               map[string]string `yaml:"context,omitempty"`
+	RollBackMode          string            `yaml:"rollBackMode,omitempty"`
+	RollForwardMode       string            `yaml:"rollForwardMode,omitempty"`
+	Interval              int32             `yaml:"interval,omitempty"`
+	Units                 string            `yaml:"units,omitempty"`
+	Count                 int32             `yaml:"count,omitempty"`
+	Queries               *[]string         `yaml:"queries,omitempty"`
+	LookbackMethod        string            `yaml:"lookbackMethod,omitempty"`
+	AbortOnFailedJudgment bool              `yaml:"abortOnFailedJudgment,omitempty"`
+}
+
 type DeploymentTarget struct {
 	// The name of the Kubernetes account to be used for this deployment.
 	Account string `yaml:"account,omitempty"`
@@ -42,6 +56,20 @@ type DeploymentTarget struct {
 	// This is the key to a strategy under the strategies map
 	Strategy    string       `yaml:"strategy,omitempty"`
 	Constraints *Constraints `yaml:"constraints,omitempty"`
+}
+
+type AnalysisConfig struct {
+	DefaultType    string   `yaml:"defaultType,omitempty"`
+	DefaultAccount string   `yaml:"defaultAccount,omitempty"`
+	Queries        *[]Query `yaml:"queries,omitempty"`
+}
+
+type Query struct {
+	Name              string `yaml:"name,omitempty"`
+	QueryTemplate     string `yaml:"queryTemplate,omitempty"`
+	AggregationMethod string `yaml:"aggregationMethod,omitempty"`
+	UpperLimit        int32  `yaml:"upperLimit,omitempty"`
+	LowerLimit        int32  `yaml:"lowerLimit,omitempty"`
 }
 
 type ManifestPath struct {

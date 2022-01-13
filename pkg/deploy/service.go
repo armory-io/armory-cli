@@ -15,6 +15,12 @@ import (
 func CreateDeploymentRequest(application string, config *model.OrchestrationConfig) (*de.PipelineStartPipelineRequest, error) {
 	environments := make([]de.PipelinePipelineEnvironment, 0, len(*config.Targets))
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
+	var analysis de.AnalysisAnalysisConfig
+	if &config.Analysis != nil {
+		analysis.DefaultAccount = &config.Analysis.DefaultAccount
+		analysis.DefaultType = &config.Analysis.DefaultType
+		analysis.Queries = CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultAccount)
+	}
 	for key, element := range *config.Targets {
 		envName := key
 		target := element
@@ -59,6 +65,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 				},
 			},
 			Constraints: &pipelineConstraint,
+			Analysis:    &analysis,
 		})
 	}
 	req := de.PipelineStartPipelineRequest{
@@ -84,12 +91,12 @@ func CreateDeploymentCanaryStep(strategy model.Strategy) ([]de.KubernetesV2Canar
 		}
 
 		if step.Pause != nil {
-			var unit *de.KubernetesV2CanaryPauseStepTimeUnit
+			var unit *de.TimeTimeUnit
 			var err error
 			if step.Pause.Unit == "" {
-				unit, err = de.NewKubernetesV2CanaryPauseStepTimeUnitFromValue("NONE")
+				unit, err = de.NewTimeTimeUnitFromValue("NONE")
 			} else {
-				unit, err = de.NewKubernetesV2CanaryPauseStepTimeUnitFromValue(strings.ToUpper(step.Pause.Unit))
+				unit, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(step.Pause.Unit))
 			}
 
 			if err != nil {
@@ -106,8 +113,78 @@ func CreateDeploymentCanaryStep(strategy model.Strategy) ([]de.KubernetesV2Canar
 					},
 				})
 		}
+
+		if step.Analysis != nil {
+			var rollBackMode *de.AnalysisRollMode
+			var rollForwardMode *de.AnalysisRollMode
+			var units *de.TimeTimeUnit
+			var lookbackMethod *de.AnalysisLookbackMethod
+			var err error
+
+			if step.Analysis.RollBackMode != "" {
+				rollBackMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(step.Analysis.RollBackMode))
+			} else {
+				rollBackMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
+			}
+			if err != nil {
+				return nil, err
+			}
+
+			if step.Analysis.RollForwardMode != "" {
+				rollForwardMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(step.Analysis.RollForwardMode))
+			} else {
+				rollForwardMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
+			}
+			if err != nil {
+				return nil, err
+			}
+			if step.Analysis.Units != "" {
+				units, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(step.Analysis.Units))
+			} else {
+				units, err = de.NewTimeTimeUnitFromValue("NONE")
+			}
+			if err != nil {
+				return nil, err
+			}
+			if step.Analysis.LookbackMethod != "" {
+				lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue(strings.ToUpper(step.Analysis.LookbackMethod))
+			} else {
+				lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue("UNSET")
+			}
+
+			steps = append(
+				steps,
+				de.KubernetesV2CanaryStep{
+					Analysis: &de.AnalysisAnalysisStepInput{
+						Context:               &step.Analysis.Context,
+						RollBackMode:          rollBackMode,
+						RollForwardMode:       rollForwardMode,
+						Interval:              &step.Analysis.Interval,
+						Units:                 units,
+						NumberOfJudgmentRuns:  &step.Analysis.Count,
+						AbortOnFailedJudgment: &step.Analysis.AbortOnFailedJudgment,
+						LookbackMethod:        lookbackMethod,
+						Queries:               step.Analysis.Queries,
+					},
+				})
+		}
 	}
 	return steps, nil
+}
+
+func CreateAnalysisQueries(queries []model.Query, defaultAccount string) *[]de.AnalysisAnalysisQueries {
+	analysisQueries := make([]de.AnalysisAnalysisQueries, 0, len(queries))
+	for _, query := range queries {
+
+		analysisQueries = append(analysisQueries, de.AnalysisAnalysisQueries{
+			Name:               &query.Name,
+			QueryTemplate:      &query.QueryTemplate,
+			UpperLimit:         &query.UpperLimit,
+			LowerLimit:         &query.LowerLimit,
+			MetricProviderName: &defaultAccount,
+		})
+	}
+	return &analysisQueries
 }
 
 func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]string, error) {

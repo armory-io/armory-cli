@@ -2,6 +2,22 @@
   "application": "app",
   "deployments": [
     {
+      "analysis":{
+        "defaultType" : "newrelic",
+        "defaultAccount": "newrelic-prod",
+        "queries": [
+          {
+            "name": "Average http error rate is less than 10%",
+            "queryTemplate": "SELECT filter(count(http.server.requests), WHERE outcome != 'SUCCESS' and percentile is null) filter(count(http.server.requests), WHERE percentile is null) * 100 FROM Metric WHERE application_name = '${application-name}' AND environment = '${environment}' AND replica_set = '${replica-set}' TIMESERIES AUTO;",
+            "upperLimit": 10
+          },
+          {
+            "name": "Average RPM is greater than 5",
+            "queryTemplate": "SELECT rate(count(http.server.requests), 1 minute) / 60 FROM Metric WHERE application_name = '${application-name}' AND environment = '${environment}' AND replica_set = '${replica-set}' TIMESERIES AUTO",
+            "LowerLimit": 5
+          }
+        ]
+      },
       "constraints": {},
       "environment": "test1",
       "manifests": [
@@ -36,6 +52,23 @@
                 "duration": 600,
                 "unit": "SECONDS",
                 "untilApproved": false
+              }
+            },
+            {
+              "analysis": {
+                "context": {
+                  "foo": "bar",
+                  "fizz": "baz"
+                },
+                "rollBackMode": "MANUAL",
+                "rollForwardMode": "MANUAL",
+                "interval": 5,
+                "unit": "MINUTES",
+                "numberOfJudgmentRuns": 5,
+                "queries": [
+                  "Average http error rate is less than 10%",
+                  "Average RPM is greater than 5"
+                ]
               }
             }
           ]
