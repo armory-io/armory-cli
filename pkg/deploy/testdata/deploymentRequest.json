@@ -1,7 +1,33 @@
 {
   "application": "app",
+  "environments": [
+    {
+      "account": "account1",
+      "name": "test1",
+      "namespace": "dev"
+    },
+    {
+      "account": "account2",
+      "name": "test2",
+      "namespace": "qa"
+    }
+  ],
   "deployments": [
     {
+      "environment": "test1",
+      "constraints": {},
+      "manifests": [
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        },
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        }
+      ],
       "analysis":{
         "defaultType" : "newrelic",
         "defaultAccount": "newrelic-prod",
@@ -18,20 +44,6 @@
           }
         ]
       },
-      "constraints": {},
-      "environment": "test1",
-      "manifests": [
-        {
-          "inline": {
-            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
-          }
-        },
-        {
-          "inline": {
-            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
-          }
-        }
-      ],
       "strategy": {
         "canary": {
           "steps": [
@@ -76,6 +88,7 @@
       }
     },
     {
+      "environment": "test2",
       "constraints": {
         "beforeDeployment": [
           {
@@ -90,7 +103,6 @@
           "test1"
         ]
       },
-      "environment": "test2",
       "manifests": [
         {
           "inline": {
@@ -116,18 +128,6 @@
           ]
         }
       }
-    }
-  ],
-  "environments": [
-    {
-      "account": "account1",
-      "name": "test1",
-      "namespace": "dev"
-    },
-    {
-      "account": "account2",
-      "name": "test2",
-      "namespace": "qa"
     }
   ]
 }
