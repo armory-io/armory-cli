@@ -22,6 +22,7 @@ build-dirs:
 
 .PHONY: build
 build: build-dirs Makefile
+	@go env -w CGO_ENABLED=0
 	@echo "Building ${DIST_DIR}/armory${CLI_EXT}..."
 	@go build -v -ldflags="-X 'github.com/armory/armory-cli/cmd/version.Version=${VERSION}'" -o ${DIST_DIR}/armory${CLI_EXT} main.go
 
@@ -42,7 +43,7 @@ version:
 
 .PHONY: clean
 clean:
-	rm -rf dist
+	rm -rf build
 
 .PHONY: integration
 integration: build-dirs Makefile

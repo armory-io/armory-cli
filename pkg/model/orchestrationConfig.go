@@ -65,11 +65,12 @@ type AnalysisConfig struct {
 }
 
 type Query struct {
-	Name              string `yaml:"name,omitempty"`
-	QueryTemplate     string `yaml:"queryTemplate,omitempty"`
-	AggregationMethod string `yaml:"aggregationMethod,omitempty"`
-	UpperLimit        int32  `yaml:"upperLimit,omitempty"`
-	LowerLimit        int32  `yaml:"lowerLimit,omitempty"`
+	Name               *string `yaml:"name,omitempty"`
+	QueryTemplate      *string `yaml:"queryTemplate,omitempty"`
+	AggregationMethod  *string `yaml:"aggregationMethod,omitempty"`
+	UpperLimit         *int32  `yaml:"upperLimit,omitempty"`
+	LowerLimit         *int32  `yaml:"lowerLimit,omitempty"`
+	MetricProviderName *string `yaml:"metricProviderName,omitempty"`
 }
 
 type ManifestPath struct {

@@ -22,6 +22,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		analysis.Queries = CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultAccount)
 	}
 	for key, element := range *config.Targets {
+
 		envName := key
 		target := element
 		environments = append(environments, de.PipelinePipelineEnvironment{
@@ -51,12 +52,14 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			if err != nil {
 				return nil, err
 			}
-
-			pipelineConstraint.SetDependsOn(*target.Constraints.DependsOn)
+			if target.Constraints.DependsOn != nil {
+				pipelineConstraint.SetDependsOn(*target.Constraints.DependsOn)
+			} else {
+				pipelineConstraint.SetDependsOn([]string{})
+			}
 			pipelineConstraint.SetBeforeDeployment(beforeDeployment)
 		}
-
-		deployments = append(deployments, de.PipelinePipelineDeployment{
+		deploymentToAdd := de.PipelinePipelineDeployment{
 			Environment: &envName,
 			Manifests:   CreateDeploymentManifests(files),
 			Strategy: &de.PipelinePipelineStrategy{
@@ -65,8 +68,11 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 				},
 			},
 			Constraints: &pipelineConstraint,
-			Analysis:    &analysis,
-		})
+		}
+		if analysis.DefaultAccount != nil {
+			deploymentToAdd.Analysis = &analysis
+		}
+		deployments = append(deployments, deploymentToAdd)
 	}
 	req := de.PipelineStartPipelineRequest{
 		Application:  &application,
@@ -185,12 +191,15 @@ func CreateAnalysisQueries(queries []model.Query, defaultAccount string) *[]de.A
 	analysisQueries := make([]de.AnalysisAnalysisQueries, 0, len(queries))
 	for _, query := range queries {
 
+		if query.MetricProviderName == nil {
+			query.MetricProviderName = &defaultAccount
+		}
 		analysisQueries = append(analysisQueries, de.AnalysisAnalysisQueries{
-			Name:               &query.Name,
-			QueryTemplate:      &query.QueryTemplate,
-			UpperLimit:         &query.UpperLimit,
-			LowerLimit:         &query.LowerLimit,
-			MetricProviderName: &defaultAccount,
+			Name:               query.Name,
+			QueryTemplate:      query.QueryTemplate,
+			UpperLimit:         query.UpperLimit,
+			LowerLimit:         query.LowerLimit,
+			MetricProviderName: query.MetricProviderName,
 		})
 	}
 	return &analysisQueries

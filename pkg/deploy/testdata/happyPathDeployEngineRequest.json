@@ -1,0 +1,176 @@
+{
+  "application": "app",
+  "environments": [
+    {
+      "account": "account1",
+      "name": "test1",
+      "namespace": "dev"
+    },
+    {
+      "account": "account2",
+      "name": "test2",
+      "namespace": "qa"
+    }
+  ],
+  "deployments": [
+    {
+      "environment": "test1",
+      "constraints": {},
+      "manifests": [
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        },
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        }
+      ],
+      "analysis":{
+        "defaultType" : "newrelic",
+        "defaultAccount": "newrelic-prod",
+        "queries": [
+          {
+            "name": "Average http error rate is less than 10%",
+            "queryTemplate": "SELECT filter(count(http.server.requests), WHERE outcome != 'SUCCESS' and percentile is null) / filter(count(http.server.requests), WHERE percentile is null) * 100 FROM Metric WHERE application_name = '${application-name}' AND environment = '${environment}' AND replica_set = '${replica-set}' TIMESERIES AUTO;",
+            "upperLimit": 10,
+            "metricProviderName": "newrelic-prod"
+          },
+          {
+            "name": "Average RPM is greater than 5",
+            "queryTemplate": "SELECT rate(count(http.server.requests), 1 minute) / 60 FROM Metric WHERE application_name = '${application-name}' AND environment = '${environment}' AND replica_set = '${replica-set}' TIMESERIES AUTO;",
+            "LowerLimit": 5,
+            "metricProviderName": "newrelic-prod"
+          }
+        ]
+      },
+      "strategy": {
+        "canary": {
+          "steps": [
+            {
+              "setWeight": {
+                "weight": 33
+              }
+            },
+            {
+              "pause": {
+                "duration": 0,
+                "unit": "NONE",
+                "untilApproved": true
+              }
+            },
+            {
+              "analysis": {
+                "context": {
+                  "foo": "bar",
+                  "fizz": "baz"
+                },
+                "rollBackMode": "AUTOMATIC",
+                "rollForwardMode": "AUTOMATIC",
+                "interval": 5,
+                "units": "MINUTES",
+                "numberOfJudgmentRuns": 5,
+                "AbortOnFailedJudgment": false,
+                "LookbackMethod": "UNSET",
+                "queries": [
+                  "Average http error rate is less than 10%",
+                  "Average RPM is greater than 5"
+                ]
+              }
+            },
+            {
+              "pause": {
+                "duration": 600,
+                "unit": "SECONDS",
+                "untilApproved": false
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "environment": "test2",
+      "constraints": {
+        "beforeDeployment": [
+          {
+            "pause": {
+              "duration": 0,
+              "unit": "NONE",
+              "untilApproved": true
+            }
+          }
+        ],
+        "dependsOn": [
+          "test1"
+        ]
+      },
+      "analysis":{
+        "defaultType" : "newrelic",
+        "defaultAccount": "newrelic-prod",
+        "AbortOnFailedJudgment": true,
+        "LookbackMethod": "GROWING",
+        "queries": [
+          {
+            "name": "Average http error rate is less than 10%",
+            "queryTemplate": "SELECT filter(count(http.server.requests), WHERE outcome != 'SUCCESS' and percentile is null) / filter(count(http.server.requests), WHERE percentile is null) * 100 FROM Metric WHERE application_name = '${application-name}' AND environment = '${environment}' AND replica_set = '${replica-set}' TIMESERIES AUTO;",
+            "upperLimit": 10,
+            "metricProviderName": "newrelic-prod"
+          },
+          {
+            "name": "Average RPM is greater than 5",
+            "queryTemplate": "SELECT rate(count(http.server.requests), 1 minute) / 60 FROM Metric WHERE application_name = '${application-name}' AND environment = '${environment}' AND replica_set = '${replica-set}' TIMESERIES AUTO;",
+            "LowerLimit": 5,
+            "metricProviderName": "newrelic-prod"
+          }
+        ]
+      },
+      "manifests": [
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        }
+      ],
+      "strategy": {
+        "canary": {
+          "steps": [
+            {
+              "setWeight": {
+                "weight": 50
+              }
+            },
+            {
+              "analysis": {
+                "context": {
+                  "foo": "bar",
+                  "fizz": "baz"
+                },
+                "rollBackMode": "MANUAL",
+                "rollForwardMode": "MANUAL",
+                "interval": 5,
+                "units": "MINUTES",
+                "numberOfJudgmentRuns": 10,
+                "AbortOnFailedJudgment": true,
+                "LookbackMethod": "GROWING",
+                "queries": [
+                  "Average http error rate is less than 10%",
+                  "Average RPM is greater than 5"
+                ]
+              }
+            },
+            {
+              "pause": {
+                "duration": 900,
+                "unit": "SECONDS",
+                "untilApproved": false
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
