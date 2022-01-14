@@ -3,14 +3,21 @@ kind: kubernetes
 application: app
 targets:
   test1:
-    account:
+    account: account1
     namespace: dev
     strategy: strategy1
     constraints:
-
+  test2:
+    account: account2
+    namespace: staging
+    strategy: strategy1
+    constraints:
+      dependsOn: ["test1"]
 manifests:
   - path: testdata/testManifest1.yaml
     targets: ["test1"]
+  - path: testdata/testManifest1.yaml
+    targets: ["test2"]
 
 strategies:
   strategy1:

@@ -77,6 +77,22 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithoutDependsOnConstr
 	suite.EqualValues(expectedReq, *received)
 }
 
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccessNoBeforeDeploymentConstraint() {
+	received := createDeploymentForTests(suite, "testdata/happyPathDeploymentFileNoBeforeDeploymentConstraint.yaml")
+
+	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequestNoBeforeDeploymentConstraint.json")
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+	}
+
+	expectedReq := de.PipelineStartPipelineRequest{}
+	err = json.Unmarshal(expectedJsonStr, &expectedReq)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+	}
+	suite.EqualValues(expectedReq, *received)
+}
+
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestFailureDueToNoTargetsProvided() {
 	createDeploymentWithErrorForTests(suite, "testdata/sadPathDeployFileNoTargets.yaml", "at least one target must be specified")
 }
