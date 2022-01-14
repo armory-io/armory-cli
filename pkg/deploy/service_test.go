@@ -61,6 +61,25 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithoutDependsOnConstr
 	suite.EqualValues(expectedReq, *received)
 }
 
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestFailureDueToNoTargetsProvided() {
+	createDeploymentWithErrorForTests(suite, "testdata/sadPathDeployFileNoTargets.yaml", "at least one target must be specified")
+}
+
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestFailureDueToNonExistantManifest() {
+	createDeploymentWithErrorForTests(suite, "testdata/sadPathDeployFileNonExistentManifest.yaml", "unable to read manifest(s) from file: lstat testdata/fake.yaml: no such file or directory")
+}
+
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestFailureDueToInvalidTimeUnitInCanary() {
+	createDeploymentWithErrorForTests(suite, "testdata/sadPathDeployFileInvalidTimeUnit.yaml", "invalid value 'FAKE_TIME!' for KubernetesV2CanaryPauseStepTimeUnit: valid values are [NONE SECONDS MINUTES HOURS]")
+}
+
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestFailureDueToMissingCanaryStrategy() {
+	createDeploymentWithErrorForTests(suite, "testdata/sadPathDeployFileMissingCanaryStrategy.yaml", "error converting steps for canary deployment strategy; canary strategy not provided and is required")
+}
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestFailureDueToInvalidTimeUnitInBeforeConstraint() {
+	createDeploymentWithErrorForTests(suite, "testdata/sadPathDeployFileInvalidTimeInBeforeConstraint.yaml", "invalid value 'FAKE_TIME!' for TimeTimeUnit: valid values are [NONE SECONDS MINUTES HOURS]")
+}
+
 func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
 	manifests := []model.ManifestPath{
 		{
@@ -202,6 +221,24 @@ func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) *de.P
 	}
 
 	return received
+
+}
+
+func createDeploymentWithErrorForTests(suite *ServiceTestSuite, pathToInput, expectedError string) {
+	inputYamlStr, err := ioutil.ReadFile(pathToInput)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+	}
+	orchestration := model.OrchestrationConfig{}
+	err = yaml.Unmarshal(inputYamlStr, &orchestration)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling YAML string to Request obj %s", err)
+	}
+
+	_, err = CreateDeploymentRequest(orchestration.Application, &orchestration)
+	if suite.Error(err) {
+		suite.Equal(expectedError, err.Error())
+	}
 
 }
 

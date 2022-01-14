@@ -1,0 +1,26 @@
+version: v1
+kind: kubernetes
+application: app
+targets:
+  test1:
+    account:
+    namespace: dev
+    strategy: strategy1
+    constraints:
+      beforeDeployment:
+        - pause:
+            duration: 60
+            unit: FAKE_TIME!
+
+manifests:
+  - path: testdata/testManifest1.yaml
+    targets: ["test1"]
+
+strategies:
+  strategy1:
+    canary:
+      steps:
+        - pause:
+            duration: 600
+            unit: seconds
+

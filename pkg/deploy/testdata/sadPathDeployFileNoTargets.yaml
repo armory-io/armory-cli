@@ -1,0 +1,16 @@
+version: v1
+kind: kubernetes
+application: app
+#Targets are missing
+manifests:
+  - path: testdata/testManifest1.yaml
+    targets: ["test1"]
+
+strategies:
+  strategy1:
+    canary:
+      steps:
+        - pause:
+            duration: 600
+            unit: seconds
+

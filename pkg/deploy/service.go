@@ -13,6 +13,9 @@ import (
 )
 
 func CreateDeploymentRequest(application string, config *model.OrchestrationConfig) (*de.PipelineStartPipelineRequest, error) {
+	if config.Targets == nil {
+		return nil, fmt.Errorf("at least one target must be specified")
+	}
 	environments := make([]de.PipelinePipelineEnvironment, 0, len(*config.Targets))
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
 	for key, element := range *config.Targets {
@@ -24,8 +27,8 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			Account:   &target.Account,
 		})
 
-		strategy := (*config.Strategies)[element.Strategy]
-		if &strategy.Canary == nil {
+		strategy := (*config.Strategies)[target.Strategy]
+		if strategy.Canary == nil {
 			return nil, fmt.Errorf("error converting steps for canary deployment strategy; canary strategy not provided and is required")
 		}
 
