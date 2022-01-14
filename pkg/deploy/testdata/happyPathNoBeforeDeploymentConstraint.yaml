@@ -3,9 +3,10 @@ kind: kubernetes
 application: app
 targets:
   test1:
-    account: account1
+    account:
     namespace: dev
     strategy: strategy1
+    constraints:
 
 manifests:
   - path: testdata/testManifest1.yaml

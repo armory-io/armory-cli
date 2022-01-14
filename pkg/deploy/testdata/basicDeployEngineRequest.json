@@ -1,0 +1,37 @@
+{
+  "application": "app",
+
+  "deployments": [
+    {
+      "environment": "test1",
+      "constraints": {},
+      "manifests": [
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        }
+      ],
+      "strategy": {
+        "canary": {
+          "steps": [
+            {
+              "pause": {
+                "duration": 600,
+                "unit": "SECONDS",
+                "untilApproved": false
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "environments": [
+    {
+      "account": "account1",
+      "name": "test1",
+      "namespace": "dev"
+    }
+  ]
+}

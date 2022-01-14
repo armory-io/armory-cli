@@ -30,6 +30,22 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 	os.Unsetenv("ARMORY_CLI_TEST")
 }
 
+func (suite *ServiceTestSuite) TestBasicCreateDeploymentRequestSuccess() {
+	received := createDeploymentForTests(suite, "testdata/basicDeployFile.yaml")
+
+	expectedJsonStr, err := ioutil.ReadFile("testdata/basicDeployEngineRequest.json")
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+	}
+
+	expectedReq := de.PipelineStartPipelineRequest{}
+	err = json.Unmarshal(expectedJsonStr, &expectedReq)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+	}
+	suite.EqualValues(expectedReq, *received)
+}
+
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 	received := createDeploymentForTests(suite, "testdata/happyPathDeploymentFile.yaml")
 
