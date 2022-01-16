@@ -200,8 +200,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: trigger a new aurora plugin build
-      run: |
-       curl -v -XPOST -u "${{ secrets.USERNAME }}:${{ secrets.TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/armory-io/spinnaker-deployments-plugin/dispatches --data "{\"event_type\": \"onCliRelease\", \"client_payload\": {\"org\": \"armory-io\", \"repo\": \"spinnaker-deployments-plugin\", \"releaseOrg\": \"armory-io\", \"releaseRepo\": \"spinnaker-deployments-plugin\", \"cli-release-version\": \"${{ needs.setup.outputs.version }}\"}}"
+        run: |
+          curl -v -XPOST -u "${{ secrets.USERNAME }}:${{ secrets.TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/armory-io/spinnaker-deployments-plugin/dispatches --data "{\"event_type\": \"onCliRelease\", \"client_payload\": {\"org\": \"armory-io\", \"repo\": \"spinnaker-deployments-plugin\", \"releaseOrg\": \"armory-io\", \"releaseRepo\": \"spinnaker-deployments-plugin\", \"cli-release-version\": \"${{ needs.setup.outputs.version }}\"}}"
 
   build-push:
     name: Build and Push Docker Image
