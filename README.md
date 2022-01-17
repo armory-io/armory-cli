@@ -28,7 +28,7 @@ avm install
 ```
 
 ### Working Locally With a Mock HTTP Server
-Features may not always be developed in the Deploy Engine API or we may want to test a particular response. This may not be easily 
+Features may not always be developed in the Deploy Engine API. We may also want to test a particular response. This may not be easily 
 achieved with unit tests or we may have a need to simulate a state of a deployment during runtime. 
 
 You may run any webserver you like locally which can return a JSON response, but spring-potato is a fine option. You can 
