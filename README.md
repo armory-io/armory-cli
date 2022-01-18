@@ -28,11 +28,11 @@ avm install
 ```
 
 ### Working Locally With a Mock HTTP Server
-Features may not always be developed in the Deploy Engine API or we may want to test a particular response. This may not be easily 
-achieved with unit tests or we may have a need to simulate a state of a deployment during runtime. 
+Features may not always be developed in the Deploy Engine API. We may also want to test a particular response. This may not be easily 
+achieved with unit tests and we may have a need to simulate a state of a deployment during runtime. 
 
 You may run any webserver you like locally which can return a JSON response, but spring-potato is a fine option. You can 
-start it with a bootRun. The connection to deploy engine requires HTTPS, which means your localhost has to have a valid trusted
+start it with bootRun. The connection to deploy engine requires HTTPS, which means your localhost has to have a valid trusted
 SSL Cert. The easiest way to do this is the following:
 
 ```
@@ -63,6 +63,6 @@ specificSubdomain.WHATEVER.anythingYouWant {
 }
 
 ```
-While in that directory, execute `caddy run` and it will automatically pick up your config, otherwise if you're not in
+While in that directory, execute `caddy run` and it will automatically pick up your configuration, otherwise if you're not in
 the directory use the `--config <locationOfYourConfig>`. You should not see any errors. Make sure your spring potato app
 is running at `localhost:8080`  

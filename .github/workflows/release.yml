@@ -191,6 +191,18 @@ jobs:
           asset_name: armory-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
           asset_content_type: binary/octet-stream
 
+  update-aurora-plugin:
+    name: Trigger Aurora Build
+    needs:
+      - setup
+      - create-release
+      - compile
+    runs-on: ubuntu-latest
+    steps:
+      - name: trigger a new aurora plugin build
+        run: |
+          curl -v -XPOST -u "${{ secrets.USERNAME }}:${{ secrets.TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/armory-io/spinnaker-deployments-plugin/dispatches --data "{\"event_type\": \"onCliRelease\", \"client_payload\": {\"org\": \"armory-io\", \"repo\": \"spinnaker-deployments-plugin\", \"releaseOrg\": \"armory-io\", \"releaseRepo\": \"spinnaker-deployments-plugin\", \"cli-release-version\": \"${{ needs.setup.outputs.version }}\"}}"
+
   build-push:
     name: Build and Push Docker Image
     needs:
@@ -253,3 +265,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_PATH=./build/dist/linux_amd64/armory
+
