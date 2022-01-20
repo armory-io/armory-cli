@@ -66,6 +66,16 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithoutDependsOnConstr
 	suite.Len(diffOfExpectedAndRecieved, 0)
 }
 
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestInvalidYaml() {
+	inputYamlStr, err := ioutil.ReadFile("testdata/sadPathDeploymentFile.yaml")
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+	}
+	orchestration := model.OrchestrationConfig{}
+	err = yaml.UnmarshalStrict(inputYamlStr, &orchestration)
+	suite.Error(err)
+}
+
 func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
 	manifests := []model.ManifestPath{
 		{
