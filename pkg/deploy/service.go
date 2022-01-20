@@ -278,6 +278,9 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 	for _, obj := range *beforeDeployment {
 		var unit *de.TimeTimeUnit
 		var err error
+		if obj.Pause == nil {
+			return nil, fmt.Errorf("an invalid before deployment onstraint was provided, allowed constraints are: pause")
+		}
 		if obj.Pause.Unit == "" {
 			unit, err = de.NewTimeTimeUnitFromValue("NONE")
 		} else {

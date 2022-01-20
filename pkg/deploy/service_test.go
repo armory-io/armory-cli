@@ -196,7 +196,7 @@ func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) *de.P
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
 	orchestration := model.OrchestrationConfig{}
-	err = yaml.Unmarshal(inputYamlStr, &orchestration)
+	err = yaml.UnmarshalStrict(inputYamlStr, &orchestration)
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling YAML string to Request obj %s", err)
 	}

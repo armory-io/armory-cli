@@ -93,7 +93,7 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	}
 	cmd.SilenceUsage = true
 	// unmarshall data into struct
-	err = yaml.Unmarshal(file, &payload)
+	err = yaml.UnmarshalStrict(file, &payload)
 	if err != nil {
 		return fmt.Errorf("error invalid deployment object: %s", err)
 	}

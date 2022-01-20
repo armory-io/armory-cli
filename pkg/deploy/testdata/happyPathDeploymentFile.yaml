@@ -75,7 +75,6 @@ strategies:
             queries:
               - Average http error rate is less than 10%
               - Average RPM is greater than 5
-            metricProviderName: newrelic-staging
         - pause:
             duration: 600
             unit: SECONDS

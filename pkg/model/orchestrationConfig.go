@@ -46,6 +46,7 @@ type AnalysisStep struct {
 	Queries               *[]string         `yaml:"queries,omitempty"`
 	LookbackMethod        string            `yaml:"lookbackMethod,omitempty"`
 	AbortOnFailedJudgment bool              `yaml:"abortOnFailedJudgment,omitempty"`
+	MetricProviderName    string            `yaml:"metricProviderName,omitempty"`
 }
 
 type DeploymentTarget struct {
