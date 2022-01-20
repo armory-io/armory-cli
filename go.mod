@@ -9,6 +9,7 @@ require (
 	github.com/lestrrat-go/jwx v1.2.6
 	github.com/manifoldco/promptui v0.8.0
 	github.com/pkg/browser v0.0.0-20210706143420-7d21f8c997e2
+	github.com/r3labs/diff v1.1.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/r3labs/diff"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -43,7 +44,9 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
 	}
-	suite.EqualValues(expectedReq, *received)
+	diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+	suite.NoError(err)
+	suite.Len(diffOfExpectedAndRecieved, 0)
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithoutDependsOnConstraintSuccess() {
@@ -58,7 +61,9 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithoutDependsOnConstr
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
 	}
-	suite.EqualValues(expectedReq, *received)
+	diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+	suite.NoError(err)
+	suite.Len(diffOfExpectedAndRecieved, 0)
 }
 
 func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
