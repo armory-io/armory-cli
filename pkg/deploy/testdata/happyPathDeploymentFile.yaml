@@ -71,7 +71,7 @@ strategies:
               fizz: baz
             interval: 5
             units: MINUTES
-            count: 5
+            numberOfJudgmentRuns: 5
             queries:
               - Average http error rate is less than 10%
               - Average RPM is greater than 5
@@ -95,7 +95,7 @@ strategies:
             rollBackMode: manual
             rollForwardMode: manual
             units: MINUTES
-            count: 10
+            numberOfJudgmentRuns: 10
             abortOnFailedJudgment: true
             lookbackMethod: GROWING
             queries:

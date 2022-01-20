@@ -184,7 +184,7 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep) (*de.Analy
 		RollForwardMode:       rollForwardMode,
 		Interval:              &analysis.Interval,
 		Units:                 units,
-		NumberOfJudgmentRuns:  &analysis.Count,
+		NumberOfJudgmentRuns:  &analysis.NumberOfJudgmentRuns,
 		AbortOnFailedJudgment: &analysis.AbortOnFailedJudgment,
 		LookbackMethod:        lookbackMethod,
 		Queries:               analysis.Queries,

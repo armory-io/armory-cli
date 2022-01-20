@@ -42,7 +42,7 @@ type AnalysisStep struct {
 	RollForwardMode       string            `yaml:"rollForwardMode,omitempty"`
 	Interval              int32             `yaml:"interval,omitempty"`
 	Units                 string            `yaml:"units,omitempty"`
-	Count                 int32             `yaml:"count,omitempty"`
+	NumberOfJudgmentRuns  int32             `yaml:"numberOfJudgmentRuns,omitempty"`
 	Queries               *[]string         `yaml:"queries,omitempty"`
 	LookbackMethod        string            `yaml:"lookbackMethod,omitempty"`
 	AbortOnFailedJudgment bool              `yaml:"abortOnFailedJudgment,omitempty"`
