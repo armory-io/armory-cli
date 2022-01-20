@@ -48,7 +48,7 @@ analysis:
 # The list of manifests sources
 manifests:
   # This specifies a specific manifest file
-  - path: testdata/testManifest1.yaml
+  - path: testdata/testManifest3.yaml
     targets: ["test1", "test2"]
   - path: testdata/testManifest2.yaml
     targets: ["test1"]
