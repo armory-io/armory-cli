@@ -32,7 +32,7 @@ func buildTemplateKubernetesCore() *yaml.Node {
 
 	// Target root
 	targetNode, targetValuesNode := util.BuildMapNode("targets", "Map of your deployment target, "+
-		"Borealis supports deploying to one target cluster.")
+		"Borealis supports deploying to multiple target environments.")
 	devNode, devValuesNode := util.BuildMapNode("<deploymentName>",
 		"Name for your deployment. Use a descriptive value such as the environment name.")
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("account",
@@ -43,8 +43,8 @@ func buildTemplateKubernetesCore() *yaml.Node {
 		"strategy1", "A named strategy from the strategies block. This example uses the name strategy1.")...)
 
 	constraintNode, constraintValuesNode := util.BuildMapNode("constraints", "")
-	dependsOnNode, dependsOnValuesNode := util.BuildSequenceNode("dependsOn", "Defines the deployments that must reach a successful state (defined as status == SUCCEEDED) before this deployment can start.Deployments with the same dependsOn criteria will execute in parallel.")
-	beforeNode, beforeValuesNode := util.BuildSequenceNode("beforeDeployment", "A set of steps that are executed in parallel")
+	dependsOnNode, dependsOnValuesNode := util.BuildSequenceNode("dependsOn", "Defines the deployments that must complete successfully before this deployment can start. Deployments with the same dependsOn criteria execute in parallel.")
+	beforeNode, beforeValuesNode := util.BuildSequenceNode("beforeDeployment", "Conditions that must be met before the deployment can start. They execute in parralel.")
 	pause := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	pauseNode, pauseValuesNode := util.BuildMapNode("pause", "The map key is the step type")
 	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildIntNode("duration", "1", "The duration of the pause before the deployment continues. If duration is not zero, set untilApproved to false.")...)
@@ -62,7 +62,7 @@ func buildTemplateKubernetesCore() *yaml.Node {
 	// Manifest sequence/array
 	manifestsNode, manifestValuesNode := util.BuildSequenceNode("manifests", "The list of manifest sources. Can be a directory or file.")
 
-	targetsOnNode, targetsValuesNode := util.BuildSequenceNode("targets", "")
+	targetsOnNode, targetsValuesNode := util.BuildSequenceNode("targets", "The deployment targets that should use the manifest. Used for all targets if omitted.")
 	targetsValuesNode.Content = append(targetsValuesNode.Content, &yaml.Node{
 		Kind:  yaml.ScalarNode,
 		Tag:   "!!str",
