@@ -44,7 +44,7 @@ func buildTemplateKubernetesCore() *yaml.Node {
 
 	constraintNode, constraintValuesNode := util.BuildMapNode("constraints", "")
 	dependsOnNode, dependsOnValuesNode := util.BuildSequenceNode("dependsOn", "Defines the deployments that must complete successfully before this deployment can start. Deployments with the same dependsOn criteria execute in parallel.")
-	beforeNode, beforeValuesNode := util.BuildSequenceNode("beforeDeployment", "Conditions that must be met before the deployment can start. They execute in parralel.")
+	beforeNode, beforeValuesNode := util.BuildSequenceNode("beforeDeployment", "Conditions that must be met before the deployment can start. They execute in parallel.")
 	pause := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	pauseNode, pauseValuesNode := util.BuildMapNode("pause", "The map key is the step type")
 	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildIntNode("duration", "1", "The duration of the pause before the deployment continues. If duration is not zero, set untilApproved to false.")...)
