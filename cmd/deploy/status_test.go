@@ -17,10 +17,10 @@ func getExpectedPipelineDeployment() (*de.PipelinePipelineStatusResponse, *de.De
 	expected := &de.PipelinePipelineStatusResponse{}
 	expected.SetId("12345")
 	expected.SetApplication("app")
-	expected.SetStatus(de.PIPELINEPIPELINESTATUS_RUNNING)
+	expected.SetStatus(de.WORKFLOWWORKFLOWSTATUS_RUNNING)
 	stage := &de.PipelinePipelineStage{}
 	stage.SetType("deployment")
-	stage.SetStatus(de.PIPELINEPIPELINESTATUS_RUNNING)
+	stage.SetStatus(de.WORKFLOWWORKFLOWSTATUS_RUNNING)
 	deploy := &de.PipelinePipelineDeploymentStage{}
 	deploy.SetId("5678")
 	stage.SetDeployment(*deploy)
@@ -28,7 +28,7 @@ func getExpectedPipelineDeployment() (*de.PipelinePipelineStatusResponse, *de.De
 
 	expectedDeploy := &de.DeploymentV2DeploymentStatusResponse{}
 	expectedDeploy.SetId("5678")
-	expectedDeploy.SetStatus(de.DEPLOYMENTV2DEPLOYMENTSTATUSRESPONSESTATUS_RUNNING)
+	expectedDeploy.SetStatus(de.WORKFLOWWORKFLOWSTATUS_RUNNING)
 
 	return expected, expectedDeploy
 }
