@@ -16,6 +16,17 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 	environments := make([]de.PipelinePipelineEnvironment, 0, len(*config.Targets))
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
 	var analysis de.AnalysisAnalysisConfig
+	if config.Analysis != nil {
+		if config.Analysis.DefaultAccount == "" {
+			return nil, fmt.Errorf("analysis configuration block is present but default account not set")
+		}
+		if config.Analysis.DefaultType == "" {
+			return nil, fmt.Errorf("analysis configuration block is present but default type not set")
+		}
+		analysis.DefaultAccount = &config.Analysis.DefaultAccount
+		analysis.DefaultType = &config.Analysis.DefaultType
+		analysis.Queries = CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultAccount)
+	}
 	for key, element := range *config.Targets {
 
 		envName := key
@@ -65,15 +76,6 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			Constraints: &pipelineConstraint,
 		}
 		if config.Analysis != nil {
-			if config.Analysis.DefaultAccount == "" {
-				return nil, fmt.Errorf("analysis configuration block is present but default account not set")
-			}
-			if config.Analysis.DefaultType == "" {
-				return nil, fmt.Errorf("analysis configuration block is present but default type not set")
-			}
-			analysis.DefaultAccount = &config.Analysis.DefaultAccount
-			analysis.DefaultType = &config.Analysis.DefaultType
-			analysis.Queries = CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultAccount)
 			deploymentToAdd.Analysis = &analysis
 		}
 		deployments = append(deployments, deploymentToAdd)
