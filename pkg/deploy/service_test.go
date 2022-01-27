@@ -61,6 +61,21 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithoutDependsOnConstr
 	suite.EqualValues(expectedReq, *received)
 }
 
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBlueGreenSuccess() {
+	received := createDeploymentForTests(suite, "testdata/happyPathDeploymentFileBlueGreen.yaml")
+
+	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequestBlueGreen.json")
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestWithBlueGreenSuccess failed with: Error loading tesdata file %s", err)
+	}
+	expectedReq := de.PipelineStartPipelineRequest{}
+	err = json.Unmarshal(expectedJsonStr, &expectedReq)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestWithBlueGreenSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+	}
+	suite.EqualValues(expectedReq, *received)
+}
+
 func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
 	manifests := []model.ManifestPath{
 		{

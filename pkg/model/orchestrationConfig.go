@@ -10,7 +10,8 @@ type OrchestrationConfig struct {
 }
 
 type Strategy struct {
-	Canary *CanaryStrategy `yaml:"canary,omitempty"`
+	Canary    *CanaryStrategy    `yaml:"canary,omitempty"`
+	BlueGreen *BlueGreenStrategy `yaml:"blue-green,omitempty"`
 }
 
 type CanaryStrategy struct {
@@ -20,6 +21,28 @@ type CanaryStrategy struct {
 type CanaryStep struct {
 	SetWeight *WeightStep `yaml:"setWeight,omitempty"`
 	Pause     *PauseStep  `yaml:"pause,omitempty"`
+}
+
+type BlueGreenStrategy struct {
+	RedirectTrafficAfter    *RedirectTrafficAfter    `yaml:"redirectTrafficAfter,omitempty"`
+	ShutdownOldVersionAfter *ShutdownOldVersionAfter `yaml:"shutdownOldVersionAfter,omitempty"`
+	ActiveService           string                   `yaml:"activeService,omitempty"`
+	PreviewService          string                   `yaml:"previewService,omitempty"`
+	ActiveRootUrl           string                   `yaml:"activeRootUrl,omitempty"`
+	PreviewRootUrl          string                   `yaml:"previewRootUrl,omitempty"`
+}
+
+type RedirectTrafficAfter struct {
+	Steps *[]BlueGreenStep `yaml:"steps,omitempty"`
+}
+
+type ShutdownOldVersionAfter struct {
+	Steps *[]BlueGreenStep `yaml:"steps,omitempty"`
+}
+
+// TODO(cat): analysis step
+type BlueGreenStep struct {
+	Pause *PauseStep `yaml:"pause,omitempty"`
 }
 
 type WeightStep struct {

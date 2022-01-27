@@ -24,12 +24,8 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			Account:   &target.Account,
 		})
 
-		strategy := (*config.Strategies)[element.Strategy]
-		if &strategy.Canary == nil {
-			return nil, fmt.Errorf("error converting steps for canary deployment strategy; canary strategy not provided and is required")
-		}
 
-		steps, err := CreateDeploymentCanaryStep(strategy)
+		strategy, err := buildStrategy(*config.Strategies, element.Strategy)
 		if err != nil {
 			return nil, err
 		}
@@ -56,11 +52,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		deployments = append(deployments, de.PipelinePipelineDeployment{
 			Environment: &envName,
 			Manifests:   CreateDeploymentManifests(files),
-			Strategy: &de.PipelinePipelineStrategy{
-				Canary: &de.KubernetesV2CanaryStrategy{
-					Steps: steps,
-				},
-			},
+			Strategy: strategy,
 			Constraints: &pipelineConstraint,
 		})
 	}
@@ -87,14 +79,7 @@ func CreateDeploymentCanaryStep(strategy model.Strategy) ([]de.KubernetesV2Canar
 		}
 
 		if step.Pause != nil {
-			var unit *de.KubernetesV2CanaryPauseStepTimeUnit
-			var err error
-			if step.Pause.Unit == "" {
-				unit, err = de.NewKubernetesV2CanaryPauseStepTimeUnitFromValue("NONE")
-			} else {
-				unit, err = de.NewKubernetesV2CanaryPauseStepTimeUnitFromValue(strings.ToUpper(step.Pause.Unit))
-			}
-
+			unit, err := createTimeUnit(step.Pause)
 			if err != nil {
 				return nil, err
 			}
@@ -180,13 +165,7 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 	}
 	pipelineConstraints := make([]de.PipelineConstraint, 0, len(*beforeDeployment))
 	for _, obj := range *beforeDeployment {
-		var unit *de.TimeTimeUnit
-		var err error
-		if obj.Pause.Unit == "" {
-			unit, err = de.NewTimeTimeUnitFromValue("NONE")
-		} else {
-			unit, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(obj.Pause.Unit))
-		}
+		unit, err := createTimeUnit(obj.Pause)
 		if err != nil {
 			return nil, err
 		}
@@ -205,4 +184,104 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 func contains(s []string, searchterm string) bool {
 	i := sort.SearchStrings(s, searchterm)
 	return i < len(s) && s[i] == searchterm
+}
+
+func buildStrategy(configStrategies map[string]model.Strategy, strategyName string) (*de.PipelinePipelineStrategy, error) {
+	strategy := configStrategies[strategyName]
+	if strategy.Canary != nil {
+		steps, err := CreateDeploymentCanaryStep(strategy)
+		if err != nil {
+			return nil, err
+		}
+		return &de.PipelinePipelineStrategy{
+			Canary: &de.KubernetesV2CanaryStrategy{
+				Steps: steps,
+			},
+		}, nil
+	} else if strategy.BlueGreen != nil {
+		redirectTrafficAfter, err := createRedirectTrafficAfter(strategy)
+		if err != nil {
+			return nil, err
+		}
+		shutdownOldVersionAfter, err := createShutdownOldVersionAfter(strategy)
+		if err != nil {
+			return nil, err
+		}
+		return &de.PipelinePipelineStrategy{
+			BlueGreen: &de.KubernetesV2BlueGreenStrategy{
+				RedirectTrafficAfter: redirectTrafficAfter,
+				ShutdownOldVersionAfter: shutdownOldVersionAfter,
+				ActiveService: strategy.BlueGreen.ActiveService,
+				PreviewService: strategy.BlueGreen.PreviewService,
+				ActiveUrl: &strategy.BlueGreen.ActiveRootUrl,
+				PreviewUrl: &strategy.BlueGreen.PreviewRootUrl,
+			},
+		}, nil
+	}
+
+	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blue-green strategy", strategyName)
+}
+
+func createRedirectTrafficAfter(strategy model.Strategy) (*de.KubernetesV2RedirectTrafficAfter, error) {
+	steps := make([]de.KubernetesV2BlueGreenStep, 0, len(*strategy.BlueGreen.RedirectTrafficAfter.Steps))
+	for _, step := range *strategy.BlueGreen.RedirectTrafficAfter.Steps {
+		unit, err := createTimeUnit(step.Pause)
+		if err != nil {
+			return nil, err
+		}
+		// TODO(cat): analysis steps
+		if step.Pause != nil {
+			steps = append(
+				steps,
+				de.KubernetesV2BlueGreenStep{
+					Pause: &de.KubernetesV2PauseStep{
+						Duration:      &step.Pause.Duration,
+						Unit:          unit,
+						UntilApproved: &step.Pause.UntilApproved,
+					},
+				})
+		}
+	}
+	return &de.KubernetesV2RedirectTrafficAfter{
+		Steps: &steps,
+	}, nil
+}
+
+func createShutdownOldVersionAfter(strategy model.Strategy) (*de.KubernetesV2ShutdownOldVersionAfter, error) {
+	steps := make([]de.KubernetesV2BlueGreenStep, 0, len(*strategy.BlueGreen.ShutdownOldVersionAfter.Steps))
+	for _, step := range *strategy.BlueGreen.ShutdownOldVersionAfter.Steps {
+		unit, err := createTimeUnit(step.Pause)
+		if err != nil {
+			return nil, err
+		}
+		// TODO(cat): analysis steps
+		if step.Pause != nil {
+			steps = append(
+				steps,
+				de.KubernetesV2BlueGreenStep{
+					Pause: &de.KubernetesV2PauseStep{
+						Duration:      &step.Pause.Duration,
+						Unit:          unit,
+						UntilApproved: &step.Pause.UntilApproved,
+					},
+				})
+		}
+	}
+	return &de.KubernetesV2ShutdownOldVersionAfter{
+		Steps: &steps,
+	}, nil
+}
+
+func createTimeUnit(pause *model.PauseStep) (*de.TimeTimeUnit, error){
+	var unit *de.TimeTimeUnit
+	var err error
+	if pause.Unit == "" {
+		unit, err = de.NewTimeTimeUnitFromValue("NONE")
+	} else {
+		unit, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(pause.Unit))
+	}
+	if err != nil {
+		return nil, err
+	}
+	return unit, nil
 }

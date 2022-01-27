@@ -1,0 +1,34 @@
+version: v1
+kind: kubernetes
+application: app
+# Map of Deployment Targets
+targets:
+  # This in the name of a deployment, underneath it are its configuration
+  test1:
+    account: account1
+    namespace: dev
+    strategy: batman
+    # This is a list of manifest names that should be included in this deployment
+# The list of manifests sources
+manifests:
+  # This specifies a specific manifest file
+  - path: testdata/testManifest1.yaml
+    targets: ["test1"]
+# The map of strategies, a deployment target will reference one of these
+strategies:
+  # this is the name for the strategy
+  batman:
+    # This map key, is the deployment strategy type
+    blue-green:
+      shutdownOldVersionAfter:
+        steps:
+          - pause:
+              untilApproved: true
+      redirectTrafficAfter:
+        steps:
+          - pause:
+              untilApproved: true
+      activeService: my-app-active
+      previewService: my-app-preview
+      activeRootUrl: https://armory.com/
+      previewRootUrl: https://staging.armory.com/
