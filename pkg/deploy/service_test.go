@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/r3labs/diff"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -43,7 +44,9 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
 	}
-	suite.EqualValues(expectedReq, *received)
+	diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+	suite.NoError(err)
+	suite.Len(diffOfExpectedAndRecieved, 0)
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithoutDependsOnConstraintSuccess() {
@@ -58,7 +61,19 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithoutDependsOnConstr
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
 	}
-	suite.EqualValues(expectedReq, *received)
+	diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+	suite.NoError(err)
+	suite.Len(diffOfExpectedAndRecieved, 0)
+}
+
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestInvalidYaml() {
+	inputYamlStr, err := ioutil.ReadFile("testdata/sadPathDeploymentFile.yaml")
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+	}
+	orchestration := model.OrchestrationConfig{}
+	err = yaml.UnmarshalStrict(inputYamlStr, &orchestration)
+	suite.Error(err)
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBlueGreenSuccess() {
@@ -151,17 +166,17 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess() {
 	strategy := model.Strategy{
 		Canary: &model.CanaryStrategy{
 			Steps: &[]model.CanaryStep{
-				model.CanaryStep{
+				{
 					SetWeight: &model.WeightStep{
 						Weight: weight,
 					},
 				},
-				model.CanaryStep{
+				{
 					Pause: &model.PauseStep{
 						UntilApproved: untilApproved,
 					},
 				},
-				model.CanaryStep{
+				{
 					Pause: &model.PauseStep{
 						Duration: duration,
 						Unit:     "SECONDS",
@@ -206,7 +221,7 @@ func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) *de.P
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
 	orchestration := model.OrchestrationConfig{}
-	err = yaml.Unmarshal(inputYamlStr, &orchestration)
+	err = yaml.UnmarshalStrict(inputYamlStr, &orchestration)
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling YAML string to Request obj %s", err)
 	}
@@ -217,7 +232,6 @@ func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) *de.P
 	}
 
 	return received
-
 }
 
 const testAppYamlStr = `

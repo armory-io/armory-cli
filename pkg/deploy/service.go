@@ -15,7 +15,20 @@ import (
 func CreateDeploymentRequest(application string, config *model.OrchestrationConfig) (*de.PipelineStartPipelineRequest, error) {
 	environments := make([]de.PipelinePipelineEnvironment, 0, len(*config.Targets))
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
+	var analysis de.AnalysisAnalysisConfig
+	if config.Analysis != nil {
+		if config.Analysis.DefaultAccount == "" {
+			return nil, fmt.Errorf("analysis configuration block is present but default account not set")
+		}
+		if config.Analysis.DefaultType == "" {
+			return nil, fmt.Errorf("analysis configuration block is present but default type not set")
+		}
+		analysis.DefaultAccount = &config.Analysis.DefaultAccount
+		analysis.DefaultType = &config.Analysis.DefaultType
+		analysis.Queries = CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultAccount)
+	}
 	for key, element := range *config.Targets {
+
 		envName := key
 		target := element
 		environments = append(environments, de.PipelinePipelineEnvironment{
@@ -48,13 +61,16 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			}
 			pipelineConstraint.SetBeforeDeployment(beforeDeployment)
 		}
-
-		deployments = append(deployments, de.PipelinePipelineDeployment{
+		deploymentToAdd := de.PipelinePipelineDeployment{
 			Environment: &envName,
 			Manifests:   CreateDeploymentManifests(files),
 			Strategy: strategy,
 			Constraints: &pipelineConstraint,
-		})
+		}
+		if config.Analysis != nil {
+			deploymentToAdd.Analysis = &analysis
+		}
+		deployments = append(deployments, deploymentToAdd)
 	}
 	req := de.PipelineStartPipelineRequest{
 		Application:  &application,
@@ -94,8 +110,90 @@ func CreateDeploymentCanaryStep(strategy model.Strategy) ([]de.KubernetesV2Canar
 					},
 				})
 		}
+
+		if step.Analysis != nil {
+			analysis, err := createDeploymentCanaryAnalysisStep(step.Analysis)
+			if err != nil {
+				return nil, err
+			}
+
+			steps = append(
+				steps,
+				de.KubernetesV2CanaryStep{
+					Analysis: analysis,
+				})
+		}
 	}
 	return steps, nil
+}
+
+func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep) (*de.AnalysisAnalysisStepInput, error) {
+	var rollBackMode *de.AnalysisRollMode
+	var rollForwardMode *de.AnalysisRollMode
+	var units *de.TimeTimeUnit
+	var lookbackMethod *de.AnalysisLookbackMethod
+	var err error
+
+	if analysis.RollBackMode != "" {
+		rollBackMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(analysis.RollBackMode))
+	} else {
+		rollBackMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if analysis.RollForwardMode != "" {
+		rollForwardMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(analysis.RollForwardMode))
+	} else {
+		rollForwardMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
+	}
+	if err != nil {
+		return nil, err
+	}
+	if analysis.Units != "" {
+		units, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(analysis.Units))
+	} else {
+		units, err = de.NewTimeTimeUnitFromValue("NONE")
+	}
+	if err != nil {
+		return nil, err
+	}
+	if analysis.LookbackMethod != "" {
+		lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue(strings.ToUpper(analysis.LookbackMethod))
+	} else {
+		lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue("UNSET")
+	}
+
+	return &de.AnalysisAnalysisStepInput{
+		Context:               &analysis.Context,
+		RollBackMode:          rollBackMode,
+		RollForwardMode:       rollForwardMode,
+		Interval:              &analysis.Interval,
+		Units:                 units,
+		NumberOfJudgmentRuns:  &analysis.NumberOfJudgmentRuns,
+		AbortOnFailedJudgment: &analysis.AbortOnFailedJudgment,
+		LookbackMethod:        lookbackMethod,
+		Queries:               analysis.Queries,
+	}, nil
+}
+
+func CreateAnalysisQueries(queries []model.Query, defaultAccount string) *[]de.AnalysisAnalysisQueries {
+	analysisQueries := make([]de.AnalysisAnalysisQueries, 0, len(queries))
+	for _, query := range queries {
+
+		if query.MetricProviderName == nil {
+			query.MetricProviderName = &defaultAccount
+		}
+		analysisQueries = append(analysisQueries, de.AnalysisAnalysisQueries{
+			Name:               query.Name,
+			QueryTemplate:      query.QueryTemplate,
+			UpperLimit:         query.UpperLimit,
+			LowerLimit:         query.LowerLimit,
+			MetricProviderName: query.MetricProviderName,
+		})
+	}
+	return &analysisQueries
 }
 
 func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]string, error) {
