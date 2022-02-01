@@ -42,9 +42,8 @@ type ShutdownOldVersionAfter struct {
 	Steps *[]BlueGreenStep `yaml:"steps,omitempty"`
 }
 
-// TODO(cat): analysis step
 type BlueGreenStep struct {
-	Pause *PauseStep `yaml:"pause,omitempty"`
+	Pause    *PauseStep    `yaml:"pause,omitempty"`
 }
 
 type WeightStep struct {
