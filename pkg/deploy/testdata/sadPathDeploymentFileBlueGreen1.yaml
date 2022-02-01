@@ -20,7 +20,7 @@ strategies:
   batman:
     # This map key, is the deployment strategy type
     blue-green:
-      activeService: my-app-active
+      # missing activeService
       previewService: my-app-preview
       activeRootUrl: https://armory.com/
       previewRootUrl: https://staging.armory.com/

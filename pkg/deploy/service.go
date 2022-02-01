@@ -234,6 +234,12 @@ func buildStrategy(configStrategies map[string]model.Strategy, strategyName stri
 			},
 		}, nil
 	} else if strategy.BlueGreen != nil {
+		if strategy.BlueGreen.ActiveService == "" {
+			return nil, errors.New("invalid blue-green config: activeService is required")
+		}
+		if strategy.BlueGreen.PreviewService == "" {
+			return nil, errors.New("invalid blue-green config: previewService is required")
+		}
 		ps := &de.PipelinePipelineStrategy{
 			BlueGreen: &de.KubernetesV2BlueGreenStrategy{
 				ActiveService: strategy.BlueGreen.ActiveService,
