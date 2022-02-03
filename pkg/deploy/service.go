@@ -17,15 +17,12 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
 	var analysis de.AnalysisAnalysisConfig
 	if config.Analysis != nil {
-		if config.Analysis.DefaultAccount == "" {
-			return nil, fmt.Errorf("analysis configuration block is present but default account not set")
+		analysis.DefaultAccount = &config.Analysis.DefaultMetricProvider
+		queries, err := CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultMetricProvider)
+		if err != nil {
+			return nil, err
 		}
-		if config.Analysis.DefaultType == "" {
-			return nil, fmt.Errorf("analysis configuration block is present but default type not set")
-		}
-		analysis.DefaultAccount = &config.Analysis.DefaultAccount
-		analysis.DefaultType = &config.Analysis.DefaultType
-		analysis.Queries = CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultAccount)
+		analysis.Queries = queries
 	}
 	for key, element := range *config.Targets {
 
@@ -193,11 +190,14 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep) (*de.Analy
 	}, nil
 }
 
-func CreateAnalysisQueries(queries []model.Query, defaultAccount string) *[]de.AnalysisAnalysisQueries {
+func CreateAnalysisQueries(queries []model.Query, defaultAccount string) (*[]de.AnalysisAnalysisQueries, error) {
 	analysisQueries := make([]de.AnalysisAnalysisQueries, 0, len(queries))
 	for _, query := range queries {
 
 		if query.MetricProviderName == nil {
+			if defaultAccount == "" {
+				return nil, fmt.Errorf("analysis configuration block is present but default account not set")
+			}
 			query.MetricProviderName = &defaultAccount
 		}
 		analysisQueries = append(analysisQueries, de.AnalysisAnalysisQueries{
@@ -208,7 +208,7 @@ func CreateAnalysisQueries(queries []model.Query, defaultAccount string) *[]de.A
 			MetricProviderName: query.MetricProviderName,
 		})
 	}
-	return &analysisQueries
+	return &analysisQueries, nil
 }
 
 func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]string, error) {

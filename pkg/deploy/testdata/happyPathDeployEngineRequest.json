@@ -29,7 +29,6 @@
         }
       ],
       "analysis":{
-        "defaultType" : "newrelic",
         "defaultAccount": "newrelic-prod",
         "queries": [
           {
@@ -108,7 +107,6 @@
         ]
       },
       "analysis":{
-        "defaultType" : "newrelic",
         "defaultAccount": "newrelic-prod",
         "AbortOnFailedJudgment": true,
         "LookbackMethod": "GROWING",
