@@ -21,13 +21,17 @@ strategies:
     # This map key, is the deployment strategy type
     blue-green:
       shutdownOldVersionAfter:
-        steps:
-          - pause:
-              untilApproved: true
+      - pause:
+          untilApproved: true
+      - pause:
+          duration: 600
+          unit: SECONDS
       redirectTrafficAfter:
-        steps:
-          - pause:
-              untilApproved: true
+      - pause:
+          untilApproved: true
+      - pause:
+          duration: 600
+          unit: SECONDS
       activeService: my-app-active
       previewService: my-app-preview
       activeRootUrl: https://armory.com/

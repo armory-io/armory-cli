@@ -25,8 +25,7 @@ strategies:
       activeRootUrl: https://armory.com/
       previewRootUrl: https://staging.armory.com/
       shutdownOldVersionAfter:
-        steps:
-          - pause:
-              untilApproved: true # invalid with unit & duration
-              unit: minutes # invalid with untilApproved set
-              duration: 5 # invalid with untilApproved set
+      - pause:
+          untilApproved: true # invalid with unit & duration
+          unit: minutes # invalid with untilApproved set
+          duration: 5 # invalid with untilApproved set

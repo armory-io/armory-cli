@@ -5,11 +5,11 @@ import (
 	"fmt"
 	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/armory/armory-cli/pkg/util"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"github.com/armory/armory-cli/pkg/util"
 	"strings"
 )
 
@@ -65,7 +65,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		deploymentToAdd := de.PipelinePipelineDeployment{
 			Environment: &envName,
 			Manifests:   CreateDeploymentManifests(files),
-			Strategy: strategy,
+			Strategy:    strategy,
 			Constraints: &pipelineConstraint,
 		}
 		if config.Analysis != nil {
@@ -104,7 +104,7 @@ func createDeploymentCanarySteps(strategy model.Strategy) ([]de.KubernetesV2Cana
 				steps,
 				de.KubernetesV2CanaryStep{
 					SetWeight: nil,
-					Pause: pause,
+					Pause:     pause,
 				})
 		}
 
@@ -242,29 +242,25 @@ func buildStrategy(configStrategies map[string]model.Strategy, strategyName stri
 		}
 		ps := &de.PipelinePipelineStrategy{
 			BlueGreen: &de.KubernetesV2BlueGreenStrategy{
-				ActiveService: strategy.BlueGreen.ActiveService,
+				ActiveService:  strategy.BlueGreen.ActiveService,
 				PreviewService: strategy.BlueGreen.PreviewService,
-				ActiveUrl: &strategy.BlueGreen.ActiveRootUrl,
-				PreviewUrl: &strategy.BlueGreen.PreviewRootUrl,
+				ActiveUrl:      &strategy.BlueGreen.ActiveRootUrl,
+				PreviewUrl:     &strategy.BlueGreen.PreviewRootUrl,
 			},
 		}
 		if strategy.BlueGreen.RedirectTrafficAfter != nil {
-			redirectTrafficAfter, err := createBlueGreenSteps(*strategy.BlueGreen.RedirectTrafficAfter.Steps)
+			redirectTrafficAfter, err := createBlueGreenRedirectConditions(strategy.BlueGreen.RedirectTrafficAfter)
 			if err != nil {
 				return nil, err
 			}
-			ps.BlueGreen.RedirectTrafficAfter = &de.KubernetesV2RedirectTrafficAfter{
-				Steps: &redirectTrafficAfter,
-			}
+			ps.BlueGreen.RedirectTrafficAfter = &redirectTrafficAfter
 		}
 		if strategy.BlueGreen.ShutdownOldVersionAfter != nil {
-			shutdownOldVersionAfter, err := createBlueGreenSteps(*strategy.BlueGreen.ShutdownOldVersionAfter.Steps)
+			shutdownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutdownOldVersionAfter)
 			if err != nil {
 				return nil, err
 			}
-			ps.BlueGreen.ShutdownOldVersionAfter = &de.KubernetesV2ShutdownOldVersionAfter{
-				Steps: &shutdownOldVersionAfter,
-			}
+			ps.BlueGreen.ShutdownOldVersionAfter = &shutdownOldVersionAfter
 		}
 		return ps, nil
 	}
@@ -323,22 +319,42 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep) (*de.Analy
 	}, nil
 }
 
-func createBlueGreenSteps(strategySteps []model.BlueGreenStep) ([]de.KubernetesV2BlueGreenStep, error) {
-	steps := make([]de.KubernetesV2BlueGreenStep, 0, len(strategySteps))
-	for _, step := range strategySteps {
-		if step.Pause != nil {
-			pause, err := createPauseStep(step.Pause)
+func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition) ([]de.KubernetesV2RedirectTrafficAfter, error) {
+	var redirectConditions []de.KubernetesV2RedirectTrafficAfter
+	for _, condition := range conditions {
+		if condition.Pause != nil {
+			pause, err := createPauseStep(condition.Pause)
 			if err != nil {
 				return nil, err
 			}
-			steps = append(
-				steps,
-				de.KubernetesV2BlueGreenStep{
+			redirectConditions = append(
+				redirectConditions,
+				de.KubernetesV2RedirectTrafficAfter{
 					Pause: pause,
 				})
 		}
+		// TODO(cat): analysis condition
 	}
-	return steps, nil
+	return redirectConditions, nil
+}
+
+func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition) ([]de.KubernetesV2ShutdownOldVersionAfter, error) {
+	var shutdownConditions []de.KubernetesV2ShutdownOldVersionAfter
+	for _, condition := range conditions {
+		if condition.Pause != nil {
+			pause, err := createPauseStep(condition.Pause)
+			if err != nil {
+				return nil, err
+			}
+			shutdownConditions = append(
+				shutdownConditions,
+				de.KubernetesV2ShutdownOldVersionAfter{
+					Pause: pause,
+				})
+		}
+		// TODO(cat): analysis condition
+	}
+	return shutdownConditions, nil
 }
 
 func createPauseStep(pause *model.PauseStep) (*de.KubernetesV2PauseStep, error) {
