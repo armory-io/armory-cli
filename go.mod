@@ -4,12 +4,12 @@ go 1.16
 
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
-	github.com/armory-io/deploy-engine v0.3.1-0.20220119202109-c62697124303
+	github.com/armory-io/deploy-engine v0.9.1
 	github.com/jarcoal/httpmock v1.0.8
 	github.com/lestrrat-go/jwx v1.2.6
 	github.com/manifoldco/promptui v0.8.0
 	github.com/pkg/browser v0.0.0-20210706143420-7d21f8c997e2
-	github.com/r3labs/diff v1.1.0 // indirect
+	github.com/r3labs/diff v1.1.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
