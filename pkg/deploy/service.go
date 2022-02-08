@@ -305,6 +305,9 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep) (*de.Analy
 	} else {
 		lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue("UNSET")
 	}
+	if err != nil {
+		return nil, err
+	}
 
 	return &de.AnalysisAnalysisStepInput{
 		Context:               &analysis.Context,
