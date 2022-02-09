@@ -190,14 +190,14 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep) (*de.Analy
 	}, nil
 }
 
-func CreateAnalysisQueries(queries []model.Query, defaultAccount string) (*[]de.AnalysisAnalysisQueries, error) {
+func CreateAnalysisQueries(queries []model.Query, defaultMetricProvider string) (*[]de.AnalysisAnalysisQueries, error) {
 	analysisQueries := make([]de.AnalysisAnalysisQueries, 0, len(queries))
 	for _, query := range queries {
 		if query.MetricProviderName == nil {
-			if defaultAccount == "" {
-				return nil, fmt.Errorf("analysis configuration block is present but default account not set")
+			if defaultMetricProvider == "" {
+				return nil, fmt.Errorf("metric provider must be provided either in the analysis config, as defaultMetricProvider, or in the query as metricProviderName")
 			}
-			query.MetricProviderName = &defaultAccount
+			query.MetricProviderName = &defaultMetricProvider
 		}
 		analysisQueries = append(analysisQueries, de.AnalysisAnalysisQueries{
 			Name:               query.Name,
