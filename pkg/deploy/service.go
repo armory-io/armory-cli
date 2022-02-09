@@ -121,58 +121,6 @@ func createDeploymentCanarySteps(strategy model.Strategy) ([]de.KubernetesV2Cana
 	return steps, nil
 }
 
-
-func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep) (*de.AnalysisAnalysisStepInput, error) {
-	var rollBackMode *de.AnalysisRollMode
-	var rollForwardMode *de.AnalysisRollMode
-	var units *de.TimeTimeUnit
-	var lookbackMethod *de.AnalysisLookbackMethod
-	var err error
-
-	if analysis.RollBackMode != "" {
-		rollBackMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(analysis.RollBackMode))
-	} else {
-		rollBackMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if analysis.RollForwardMode != "" {
-		rollForwardMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(analysis.RollForwardMode))
-	} else {
-		rollForwardMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
-	}
-	if err != nil {
-		return nil, err
-	}
-	if analysis.Units != "" {
-		units, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(analysis.Units))
-	} else {
-		units, err = de.NewTimeTimeUnitFromValue("NONE")
-	}
-	if err != nil {
-		return nil, err
-	}
-	if analysis.LookbackMethod != "" {
-		lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue(strings.ToUpper(analysis.LookbackMethod))
-	} else {
-		lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue("UNSET")
-	}
-
-	return &de.AnalysisAnalysisStepInput{
-		Context:               &analysis.Context,
-		RollBackMode:          rollBackMode,
-		RollForwardMode:       rollForwardMode,
-		Interval:              &analysis.Interval,
-		Units:                 units,
-		NumberOfJudgmentRuns:  &analysis.NumberOfJudgmentRuns,
-		AbortOnFailedJudgment: &analysis.AbortOnFailedJudgment,
-		LookbackMethod:        lookbackMethod,
-		Queries:               analysis.Queries,
-	}, nil
-}
-
 func CreateAnalysisQueries(queries []model.Query, defaultMetricProvider string) (*[]de.AnalysisAnalysisQueries, error) {
 	analysisQueries := make([]de.AnalysisAnalysisQueries, 0, len(queries))
 	for _, query := range queries {
