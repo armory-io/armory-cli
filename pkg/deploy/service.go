@@ -18,8 +18,8 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
 	var analysis de.AnalysisAnalysisConfig
 	if config.Analysis != nil {
-		analysis.DefaultAccount = &config.Analysis.DefaultMetricProvider
-		queries, err := CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultMetricProvider)
+		analysis.DefaultAccount = &config.Analysis.DefaultMetricProviderName
+		queries, err := CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultMetricProviderName)
 		if err != nil {
 			return nil, err
 		}
@@ -121,14 +121,14 @@ func createDeploymentCanarySteps(strategy model.Strategy) ([]de.KubernetesV2Cana
 	return steps, nil
 }
 
-func CreateAnalysisQueries(queries []model.Query, defaultMetricProvider string) (*[]de.AnalysisAnalysisQueries, error) {
+func CreateAnalysisQueries(queries []model.Query, defaultMetricProviderName string) (*[]de.AnalysisAnalysisQueries, error) {
 	analysisQueries := make([]de.AnalysisAnalysisQueries, 0, len(queries))
 	for _, query := range queries {
 		if query.MetricProviderName == nil {
-			if defaultMetricProvider == "" {
-				return nil, fmt.Errorf("metric provider must be provided either in the analysis config, as defaultMetricProvider, or in the query as metricProviderName")
+			if defaultMetricProviderName == "" {
+				return nil, fmt.Errorf("metric provider must be provided either in the analysis config, as defaultMetricProviderName, or in the query as metricProviderName")
 			}
-			query.MetricProviderName = &defaultMetricProvider
+			query.MetricProviderName = &defaultMetricProviderName
 		}
 		analysisQueries = append(analysisQueries, de.AnalysisAnalysisQueries{
 			Name:               query.Name,
