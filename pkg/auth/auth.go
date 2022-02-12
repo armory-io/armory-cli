@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	expLeewaySec int64 = 300
+	expLeewaySec    int64  = 300
+	credentialsPath string = "/.armory/credentials"
 )
 
 type Auth struct {
@@ -67,7 +68,7 @@ func (a *Auth) GetToken() (string, error) {
 	}
 
 	credentials := NewCredentials(a.audience, a.source, a.clientId, expires.Format(time.RFC3339), token, "")
-	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
+	err = credentials.WriteCredentials(dirname + credentialsPath)
 	if err != nil {
 		return "", err
 	}
@@ -82,12 +83,12 @@ func loadTokenFromFile(dirname string, a *Auth) (string, error) {
 			return "", err
 		}
 	}
-	exists, err := util.FileExists(dirname + "/.armory/credentials")
+	exists, err := util.FileExists(dirname + credentialsPath)
 	if err != nil {
 		return "", err
 	}
 	if exists {
-		currentCreds, err := LoadCredentials(dirname + "/.armory/credentials")
+		currentCreds, err := LoadCredentials(dirname + credentialsPath)
 		if err != nil {
 			return "", err
 		}
@@ -114,7 +115,7 @@ func (a *Auth) GetEnvironment() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	currentCreds, err := LoadCredentials(dirname + "/.armory/credentials")
+	currentCreds, err := LoadCredentials(dirname + credentialsPath)
 
 	if err != nil {
 		return "", err
