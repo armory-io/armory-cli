@@ -18,15 +18,12 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
 	var analysis de.AnalysisAnalysisConfig
 	if config.Analysis != nil {
-		if config.Analysis.DefaultAccount == "" {
-			return nil, fmt.Errorf("analysis configuration block is present but default account not set")
+		analysis.DefaultAccount = &config.Analysis.DefaultMetricProviderName
+		queries, err := CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultMetricProviderName)
+		if err != nil {
+			return nil, err
 		}
-		if config.Analysis.DefaultType == "" {
-			return nil, fmt.Errorf("analysis configuration block is present but default type not set")
-		}
-		analysis.DefaultAccount = &config.Analysis.DefaultAccount
-		analysis.DefaultType = &config.Analysis.DefaultType
-		analysis.Queries = CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultAccount)
+		analysis.Queries = queries
 	}
 	for key, element := range *config.Targets {
 
@@ -124,12 +121,14 @@ func createDeploymentCanarySteps(strategy model.Strategy) ([]de.KubernetesV2Cana
 	return steps, nil
 }
 
-func CreateAnalysisQueries(queries []model.Query, defaultAccount string) *[]de.AnalysisAnalysisQueries {
+func CreateAnalysisQueries(queries []model.Query, defaultMetricProviderName string) (*[]de.AnalysisAnalysisQueries, error) {
 	analysisQueries := make([]de.AnalysisAnalysisQueries, 0, len(queries))
 	for _, query := range queries {
-
 		if query.MetricProviderName == nil {
-			query.MetricProviderName = &defaultAccount
+			if defaultMetricProviderName == "" {
+				return nil, fmt.Errorf("metric provider must be provided either in the analysis config, as defaultMetricProviderName, or in the query as metricProviderName")
+			}
+			query.MetricProviderName = &defaultMetricProviderName
 		}
 		analysisQueries = append(analysisQueries, de.AnalysisAnalysisQueries{
 			Name:               query.Name,
@@ -139,7 +138,7 @@ func CreateAnalysisQueries(queries []model.Query, defaultAccount string) *[]de.A
 			MetricProviderName: query.MetricProviderName,
 		})
 	}
-	return &analysisQueries
+	return &analysisQueries, nil
 }
 
 func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]string, error) {

@@ -19,7 +19,6 @@ targets:
         - pause:
             untilApproved: true
 analysis:
-  defaultMetricProviderName: newrelic-prod
   queries:
     - name: Average http error rate is less than 10%
       queryTemplate: >-
