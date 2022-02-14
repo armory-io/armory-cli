@@ -7,7 +7,7 @@
       "manifests": [
         {
           "inline": {
-            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+            "value": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: test\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: test\n      cluster: test\n  template:\n    metadata:\n      labels:\n        app: test\n        cluster: test\n        log-monitor: 'false'"
           }
         },
         {
@@ -59,7 +59,7 @@
       "manifests": [
         {
           "inline": {
-            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+            "value": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: test\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: test\n      cluster: test\n  template:\n    metadata:\n      labels:\n        app: test\n        cluster: test\n        log-monitor: 'false'"
           }
         }
       ],

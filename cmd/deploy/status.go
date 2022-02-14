@@ -53,13 +53,13 @@ func (u FormattableDeployStatus) String() string {
 	ret += fmt.Sprintf("[%v] application: %s, started: %s\n", now, *u.DeployResp.Application, *u.DeployResp.StartedAtIso8601)
 	ret += fmt.Sprintf("[%v] status: ", now)
 	switch status := *u.DeployResp.Status; status {
-	case deploy.PIPELINEPIPELINESTATUS_PAUSED:
+	case deploy.WORKFLOWWORKFLOWSTATUS_PAUSED:
 		for _, stages := range *u.DeployResp.Steps {
-			if *stages.Type == "pause" && *stages.Status == deploy.PIPELINEPIPELINESTATUS_PAUSED {
+			if *stages.Type == "pause" && *stages.Status == deploy.WORKFLOWWORKFLOWSTATUS_PAUSED {
 				ret += fmt.Sprintf("[%s] msg: Paused for %d %s. You can skip the pause in the cloud console or CLI\n", status, stages.Pause.GetDuration(), stages.Pause.GetUnit())
 			}
 		}
-	case deploy.PIPELINEPIPELINESTATUS_AWAITING_APPROVAL:
+	case deploy.WORKFLOWWORKFLOWSTATUS_AWAITING_APPROVAL:
 		ret += fmt.Sprintf("[%s] msg: Paused for Manual Judgment. You can approve the rollout and continue the deployment in the cloud console or CLI.\n", status)
 	default:
 		ret += string(status) + "\n"
@@ -95,7 +95,7 @@ func status(cmd *cobra.Command, options *deployStatusOptions) error {
 	if response != nil && response.StatusCode == 200 && options.O != "" {
 		for _, stages := range pipelineResp.GetSteps() {
 			var step = model.Step{}
-			if stages.GetType() == "deployment" && stages.GetStatus() != deploy.PIPELINEPIPELINESTATUS_NOT_STARTED {
+			if stages.GetType() == "deployment" && stages.GetStatus() != deploy.WORKFLOWWORKFLOWSTATUS_NOT_STARTED {
 				deployment := stages.GetDeployment()
 				request := options.DeployClient.DeploymentServiceApi.DeploymentServiceStatus(ctx, deployment.GetId())
 				deploy, response, err := request.Execute()

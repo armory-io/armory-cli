@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/r3labs/diff"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -31,8 +32,10 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
-	received := createDeploymentForTests(suite, "testdata/happyPathDeploymentFile.yaml")
-
+	received, err := createDeploymentForTests(suite, "testdata/happyPathDeploymentFile.yaml")
+	if err != nil {
+		suite.T().Fatal(err)
+	}
 	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequest.json")
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
@@ -43,12 +46,16 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
 	}
-	suite.EqualValues(expectedReq, *received)
+	diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+	suite.NoError(err)
+	suite.Len(diffOfExpectedAndRecieved, 0)
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithoutDependsOnConstraintSuccess() {
-	received := createDeploymentForTests(suite, "testdata/happyPathDeploymentFileNoDependsOn.yaml")
-
+	received, err := createDeploymentForTests(suite, "testdata/happyPathDeploymentFileNoDependsOn.yaml")
+	if err != nil {
+		suite.T().Fatal(err)
+	}
 	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequestNoDependsOn.json")
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
@@ -58,7 +65,70 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithoutDependsOnConstr
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
 	}
+	diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+	suite.NoError(err)
+	suite.Len(diffOfExpectedAndRecieved, 0)
+}
+
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestInvalidYaml() {
+	inputYamlStr, err := ioutil.ReadFile("testdata/sadPathDeploymentFile.yaml")
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+	}
+	orchestration := model.OrchestrationConfig{}
+	err = yaml.UnmarshalStrict(inputYamlStr, &orchestration)
+	suite.Error(err)
+}
+
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBlueGreenSuccess() {
+	received, err := createDeploymentForTests(suite, "testdata/happyPathDeploymentFileBlueGreen.yaml")
+	if err != nil {
+		suite.T().Fatal(err)
+	}
+	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequestBlueGreen.json")
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestWithBlueGreenSuccess failed with: Error loading tesdata file %s", err)
+	}
+	expectedReq := de.PipelineStartPipelineRequest{}
+	err = json.Unmarshal(expectedJsonStr, &expectedReq)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestWithBlueGreenSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+	}
 	suite.EqualValues(expectedReq, *received)
+}
+
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() {
+	cases := []struct{
+		file string
+		expectErr string
+	} {
+		{
+			"testdata/sadPathDeploymentFileBlueGreen1.yaml",
+			"invalid blue-green config: activeService is required",
+		},
+		{
+			"testdata/sadPathDeploymentFileBlueGreen2.yaml",
+			"invalid blue-green config: previewService is required",
+		},
+		{
+			"testdata/sadPathDeploymentFileBadPause1.yaml",
+			"pause is not valid: untilApproved cannot be set with both a unit and duration",
+		},
+		{
+			"testdata/sadPathDeploymentFileBadPause2.yaml",
+			"pause is not valid: unit must be set with a duration",
+		},
+		{
+			"testdata/sadPathDeploymentFileBadPause3.yaml",
+			"pause is not valid: duration must be set with a unit",
+		},
+	}
+
+	for _, c := range cases {
+		received, err := createDeploymentForTests(suite, c.file)
+		suite.Nilf(received, "Expected deployment to not be created for an invalid pause step")
+		suite.EqualErrorf(err, c.expectErr, "Error messages do not match. Want: '%s', got: '%s'", c.expectErr, err)
+	}
 }
 
 func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
@@ -136,17 +206,17 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess() {
 	strategy := model.Strategy{
 		Canary: &model.CanaryStrategy{
 			Steps: &[]model.CanaryStep{
-				model.CanaryStep{
+				{
 					SetWeight: &model.WeightStep{
 						Weight: weight,
 					},
 				},
-				model.CanaryStep{
+				{
 					Pause: &model.PauseStep{
 						UntilApproved: untilApproved,
 					},
 				},
-				model.CanaryStep{
+				{
 					Pause: &model.PauseStep{
 						Duration: duration,
 						Unit:     "SECONDS",
@@ -155,7 +225,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess() {
 			},
 		},
 	}
-	received, err := CreateDeploymentCanaryStep(strategy)
+	received, err := createDeploymentCanarySteps(strategy)
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentCanaryStepSuccess failed with: %s", err)
 	}
@@ -185,24 +255,40 @@ func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess() {
 	suite.Equal(len(received), len(beforeDeployment))
 }
 
-func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) *de.PipelineStartPipelineRequest {
+func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) (*de.PipelineStartPipelineRequest, error) {
 	inputYamlStr, err := ioutil.ReadFile(pathToInput)
 	if err != nil {
-		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+		suite.T().Logf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+		return nil, err
 	}
 	orchestration := model.OrchestrationConfig{}
-	err = yaml.Unmarshal(inputYamlStr, &orchestration)
+	err = yaml.UnmarshalStrict(inputYamlStr, &orchestration)
 	if err != nil {
-		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling YAML string to Request obj %s", err)
+		suite.T().Logf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling YAML string to Request obj %s", err)
+		return nil, err
 	}
 
 	received, err := CreateDeploymentRequest(orchestration.Application, &orchestration)
 	if err != nil {
-		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: %s", err)
+		suite.T().Logf("TestCreateDeploymentRequestSuccess failed with: %s", err)
+		return nil, err
 	}
 
-	return received
+	return received, nil
+}
 
+func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisNoDefault() {
+	inputYamlStr, err := ioutil.ReadFile("testdata/sadPathAnalysisDeploymentFile.yaml")
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentAnalysisNoDefault failed with: Error loading tesdata file %s", err)
+	}
+	orchestration := model.OrchestrationConfig{}
+	err = yaml.UnmarshalStrict(inputYamlStr, &orchestration)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentAnalysisNoDefault failed with: Error Unmarshalling YAML string to Request obj %s", err)
+	}
+	_, err = CreateDeploymentRequest(orchestration.Application, &orchestration)
+	suite.Errorf(err, "analysis configuration block is present but default or explicit account is not set")
 }
 
 const testAppYamlStr = `

@@ -1,0 +1,63 @@
+{
+  "application": "app",
+  "deployments": [
+    {
+      "constraints": {},
+      "environment": "test1",
+      "manifests": [
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        }
+      ],
+      "strategy": {
+        "blueGreen": {
+          "shutdownOldVersionAfter": [
+            {
+              "pause": {
+                "duration": 0,
+                "unit": "NONE",
+                "untilApproved": true
+              }
+            },
+            {
+              "pause": {
+                "duration": 600,
+                "unit": "SECONDS",
+                "untilApproved": false
+              }
+            }
+          ],
+          "redirectTrafficAfter": [
+            {
+              "pause": {
+                "duration": 0,
+                "unit": "NONE",
+                "untilApproved": true
+              }
+            },
+            {
+              "pause": {
+                "duration": 600,
+                "unit": "SECONDS",
+                "untilApproved": false
+              }
+            }
+          ],
+          "activeService": "my-app-active",
+          "previewService": "my-app-preview",
+          "activeUrl": "https://armory.com/",
+          "previewUrl": "https://staging.armory.com/"
+        }
+      }
+    }
+  ],
+  "environments": [
+    {
+      "account": "account1",
+      "name": "test1",
+      "namespace": "dev"
+    }
+  ]
+}

@@ -17,6 +17,14 @@ targets:
       beforeDeployment:
         - pause:
             untilApproved: true
+        - analysis:
+            rollForwardMode: MANUAL
+            rollBackMode: MANUAL
+            interval: 90
+            units: seconds
+            numberOfJudgmentRuns: 2
+            queries:
+              - JVM Heap Usage Is Less Than 10%
     # This is a list of manifest names that should be included in this deployment
 # The list of manifests sources
 manifests:
