@@ -20,6 +20,7 @@ func NewTemplateKubernetesCmd(rootOptions *templateOptions) *cobra.Command {
 	}
 	// create subcommands
 	command.AddCommand(NewTemplateCanaryCmd(rootOptions))
+	command.AddCommand(NewTemplateBlueGreenCmd(rootOptions))
 	return command
 }
 
