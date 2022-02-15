@@ -92,11 +92,11 @@ func blueGreen(cmd *cobra.Command, options *templateBlueGreenOptions, args []str
 
 	bytes, err := yaml.Marshal(root)
 	if err != nil {
-		return fmt.Errorf("error trying to build blueGreen template: %s", err)
+		return fmt.Errorf("error trying to build blue-green template: %s", err)
 	}
 	_, err = cmd.OutOrStdout().Write(bytes)
 	if err != nil {
-		return fmt.Errorf("error trying to parse blueGreen template: %s", err)
+		return fmt.Errorf("error trying to parse blue-green template: %s", err)
 	}
 	return nil
 }
