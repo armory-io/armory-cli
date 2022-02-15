@@ -67,10 +67,7 @@ func blueGreen(cmd *cobra.Command, options *templateBlueGreenOptions, args []str
 	pauseUA.Content = append(pauseUA.Content, pauseUANode, pauseUAValuesNode)
 
 	redirectTrafficAfterValuesNode.Content = append(redirectTrafficAfterValuesNode.Content, pause, pauseUA)
-	shutdownOldVersionAfterNode.Content = append(redirectTrafficAfterValuesNode.Content, pause, pauseUA)
-
-	redirectTrafficAfterNode.Content = append(redirectTrafficAfterNode.Content, pause, pauseUA)
-	shutdownOldVersionAfterNode.Content = append(shutdownOldVersionAfterNode.Content, pause, pauseUA)
+	shutdownOldVersionAfterValuesNode.Content = append(shutdownOldVersionAfterValuesNode.Content, pause, pauseUA)
 
 	blueGreenValuesNode.Content = append(blueGreenValuesNode.Content, redirectTrafficAfterNode, redirectTrafficAfterValuesNode)
 	blueGreenValuesNode.Content = append(blueGreenValuesNode.Content, shutdownOldVersionAfterNode, shutdownOldVersionAfterValuesNode)
