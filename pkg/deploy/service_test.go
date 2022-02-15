@@ -107,10 +107,6 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() 
 			"invalid blue-green config: activeService is required",
 		},
 		{
-			"testdata/sadPathDeploymentFileBlueGreen2.yaml",
-			"invalid blue-green config: previewService is required",
-		},
-		{
 			"testdata/sadPathDeploymentFileBadPause1.yaml",
 			"pause is not valid: untilApproved cannot be set with both a unit and duration",
 		},
@@ -275,6 +271,20 @@ func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) (*de.
 	}
 
 	return received, nil
+}
+
+func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisNoDefault() {
+	inputYamlStr, err := ioutil.ReadFile("testdata/sadPathAnalysisDeploymentFile.yaml")
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentAnalysisNoDefault failed with: Error loading tesdata file %s", err)
+	}
+	orchestration := model.OrchestrationConfig{}
+	err = yaml.UnmarshalStrict(inputYamlStr, &orchestration)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentAnalysisNoDefault failed with: Error Unmarshalling YAML string to Request obj %s", err)
+	}
+	_, err = CreateDeploymentRequest(orchestration.Application, &orchestration)
+	suite.Errorf(err, "analysis configuration block is present but default or explicit account is not set")
 }
 
 const testAppYamlStr = `

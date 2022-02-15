@@ -74,9 +74,8 @@ type DeploymentTarget struct {
 }
 
 type AnalysisConfig struct {
-	DefaultType    string   `yaml:"defaultType,omitempty"`
-	DefaultAccount string   `yaml:"defaultAccount,omitempty"`
-	Queries        *[]Query `yaml:"queries,omitempty"`
+	DefaultMetricProviderName string `yaml:"defaultMetricProviderName,omitempty"`
+	Queries        *[]Query      `yaml:"queries,omitempty"`
 }
 
 type Query struct {
