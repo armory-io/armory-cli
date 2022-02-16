@@ -87,9 +87,7 @@
             }
           ],
           "activeService": "my-app-active",
-          "previewService": "my-app-preview",
-          "activeUrl": "https://armory.com/",
-          "previewUrl": "https://staging.armory.com/"
+          "previewService": "my-app-preview"
         }
       }
     }

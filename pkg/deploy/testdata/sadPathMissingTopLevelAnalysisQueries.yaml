@@ -52,5 +52,3 @@ strategies:
             - Average RPM is greater than 5
       activeService: my-app-active
       previewService: my-app-preview
-      activeRootUrl: https://armory.com/
-      previewRootUrl: https://staging.armory.com/

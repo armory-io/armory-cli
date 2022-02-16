@@ -62,5 +62,3 @@ strategies:
             - Average http error rate is less than 10%
       activeService: my-app-active
       previewService: my-app-preview
-      activeRootUrl: https://armory.com/
-      previewRootUrl: https://staging.armory.com/

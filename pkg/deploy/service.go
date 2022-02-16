@@ -247,8 +247,6 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string)
 			BlueGreen: &de.KubernetesV2BlueGreenStrategy{
 				ActiveService:  strategy.BlueGreen.ActiveService,
 				PreviewService: strategy.BlueGreen.PreviewService,
-				ActiveUrl:      &strategy.BlueGreen.ActiveRootUrl,
-				PreviewUrl:     &strategy.BlueGreen.PreviewRootUrl,
 			},
 		}
 		if strategy.BlueGreen.RedirectTrafficAfter != nil {

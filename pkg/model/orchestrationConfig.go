@@ -30,8 +30,6 @@ type BlueGreenStrategy struct {
 	ShutdownOldVersionAfter []*BlueGreenCondition `yaml:"shutdownOldVersionAfter,omitempty"`
 	ActiveService           string                `yaml:"activeService,omitempty"`
 	PreviewService          string                `yaml:"previewService,omitempty"`
-	ActiveRootUrl           string                `yaml:"activeRootUrl,omitempty"`
-	PreviewRootUrl          string                `yaml:"previewRootUrl,omitempty"`
 }
 
 type BlueGreenCondition struct {

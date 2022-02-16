@@ -22,8 +22,6 @@ strategies:
     blue-green:
       # missing activeService
       previewService: my-app-preview
-      activeRootUrl: https://armory.com/
-      previewRootUrl: https://staging.armory.com/
       shutdownOldVersionAfter:
       - pause:
           untilApproved: true # invalid with unit & duration
