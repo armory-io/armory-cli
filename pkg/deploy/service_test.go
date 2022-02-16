@@ -221,7 +221,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess() {
 			},
 		},
 	}
-	received, err := createDeploymentCanarySteps(strategy)
+	received, err := createDeploymentCanarySteps(strategy, &model.AnalysisConfig{})
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentCanaryStepSuccess failed with: %s", err)
 	}
@@ -273,18 +273,42 @@ func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) (*de.
 	return received, nil
 }
 
-func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisNoDefault() {
-	inputYamlStr, err := ioutil.ReadFile("testdata/sadPathAnalysisDeploymentFile.yaml")
-	if err != nil {
-		suite.T().Fatalf("TestCreateDeploymentAnalysisNoDefault failed with: Error loading tesdata file %s", err)
+func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisErrors() {
+	cases := []struct{
+		file string
+		expectErr string
+	} {
+		{
+			"testdata/sadPathAnalysisDeploymentFile.yaml",
+			"analysis configuration block is present but default or explicit account is not set",
+		},
+		{
+			"testdata/sadPathMissingTopLevelAnalysis.yaml",
+			"analysis step is present but a top-level analysis config is not defined",
+		},
+		{
+			"testdata/sadPathMissingTopLevelAnalysisQueries.yaml",
+			"analysis step is present but a top-level analysis config is not defined",
+		},
+		{
+			"testdata/sadPathAnalysisStepQueriesInvalid.yaml",
+			"query in step does not exist in top-level analysis config: Who lives in a pineapple under the sea",
+		},
 	}
-	orchestration := model.OrchestrationConfig{}
-	err = yaml.UnmarshalStrict(inputYamlStr, &orchestration)
-	if err != nil {
-		suite.T().Fatalf("TestCreateDeploymentAnalysisNoDefault failed with: Error Unmarshalling YAML string to Request obj %s", err)
+
+	for _, c := range cases {
+		inputYamlStr, err := ioutil.ReadFile(c.file)
+		if err != nil {
+			suite.T().Fatalf("TestCreateDeploymentAnalysisErrors failed with: Error loading tesdata file %s", err)
+		}
+		orchestration := model.OrchestrationConfig{}
+		err = yaml.UnmarshalStrict(inputYamlStr, &orchestration)
+		if err != nil {
+			suite.T().Fatalf("TestCreateDeploymentAnalysisErrors failed with: Error Unmarshalling YAML string to Request obj %s", err)
+		}
+		_, err = CreateDeploymentRequest(orchestration.Application, &orchestration)
+		suite.Errorf(err, c.expectErr)
 	}
-	_, err = CreateDeploymentRequest(orchestration.Application, &orchestration)
-	suite.Errorf(err, "analysis configuration block is present but default or explicit account is not set")
 }
 
 const testAppYamlStr = `

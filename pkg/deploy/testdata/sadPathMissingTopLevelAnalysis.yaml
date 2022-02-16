@@ -14,31 +14,6 @@ manifests:
   # This specifies a specific manifest file
   - path: testdata/testManifest1.yaml
     targets: ["test1"]
-analysis:
-  defaultMetricProviderName: newrelic-prod
-  queries:
-    - name: Average http error rate is less than 10%
-      queryTemplate: >-
-        SELECT filter(count(http.server.requests), WHERE outcome != 'SUCCESS' and percentile is null) /
-        filter(count(http.server.requests), WHERE percentile is null) * 100
-        FROM Metric
-        WHERE application_name = '${application-name}'
-        AND environment = '${environment}'
-        AND replica_set = '${replica-set}'
-        TIMESERIES AUTO;
-      aggregationMethod: avg
-      upperLimit: 10
-      # Ensures that canary is receiving traffic
-    - name: Average RPM is greater than 5
-      queryTemplate: >-
-        SELECT rate(count(http.server.requests), 1 minute) / 60
-        FROM Metric
-        WHERE application_name = '${application-name}'
-        AND environment = '${environment}'
-        AND replica_set = '${replica-set}'
-        TIMESERIES AUTO;
-      aggregationMethod: avg
-      lowerLimit: 5
 # The map of strategies, a deployment target will reference one of these
 strategies:
   # this is the name for the strategy
