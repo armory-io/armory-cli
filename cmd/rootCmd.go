@@ -13,6 +13,7 @@ import (
 )
 
 type RootOptions struct {
+	dev            bool
 	v              bool
 	O              string
 	clientId       string
@@ -54,6 +55,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 		deployClient, err := deploy.NewDeployClient(
 			options.deployHostUrl,
 			token,
+			options.dev,
 		)
 		if err != nil {
 			return fmt.Errorf("error at creating the http client: %s", err)
@@ -65,6 +67,8 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, *RootOptions) {
 	rootCmd.SetErr(errWriter)
 	rootCmd.PersistentFlags().BoolVarP(&options.v, "verbose", "v", false, "show more details")
 	rootCmd.PersistentFlags().StringVarP(&options.O, "output", "o", "", "Set the output type. Available options: [json, yaml]. Default plain text.")
+	rootCmd.PersistentFlags().BoolVarP(&options.dev, "dev", "d", false, "local deploy engine development")
+	rootCmd.PersistentFlags().MarkHidden("dev")
 	return rootCmd, options
 }
 

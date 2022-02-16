@@ -27,6 +27,14 @@ mv avm-darwin-arm64 /usr/local/bin/avm
 avm install
 ```
 
+### Working Locally With Deploy Engine
+
+To deploy with a local deploy-engine, you will need to use the `--dev` flag to skip TLS verification:
+
+```
+armory --tokenIssuerUrl https://auth.staging.cloud.armory.io/oauth --audience https://api.staging.cloud.armory.io --deployHostUrl localhost:9099 deploy start -f deploy.yml --dev
+```
+
 ### Working Locally With a Mock HTTP Server
 Features may not always be developed in the Deploy Engine API. We may also want to test a particular response. This may not be easily 
 achieved with unit tests and we may have a need to simulate a state of a deployment during runtime. 
