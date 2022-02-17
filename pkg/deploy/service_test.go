@@ -107,10 +107,6 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() 
 			"invalid blue-green config: activeService is required",
 		},
 		{
-			"testdata/sadPathDeploymentFileBlueGreen2.yaml",
-			"invalid blue-green config: previewService is required",
-		},
-		{
 			"testdata/sadPathDeploymentFileBadPause1.yaml",
 			"pause is not valid: untilApproved cannot be set with both a unit and duration",
 		},
