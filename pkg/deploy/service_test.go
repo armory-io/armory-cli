@@ -104,7 +104,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() 
 	} {
 		{
 			"testdata/sadPathDeploymentFileBlueGreen1.yaml",
-			"invalid blue-green config: activeService is required",
+			"invalid blueGreen config: activeService is required",
 		},
 		{
 			"testdata/sadPathDeploymentFileBadPause1.yaml",

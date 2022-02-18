@@ -12,60 +12,116 @@ func TestNewTemplateBlueGreenCmd(t *testing.T) {
 	b := bytes.NewBufferString("")
 	cmd.SetOut(b)
 	cmd.Execute()
-	expectTemplate :=
-		`version: v1
+	expectTemplate := `version: v1
 kind: kubernetes
-application: <AppName> # The name of the application to deploy.
-targets: # Map of your deployment target, Borealis supports deploying to one target cluster.
-    <deploymentName>: # Name for your deployment. Use a descriptive value such as the environment name.
-        account: <accountName> # The account name that was assigned to the deployment target when you installed the RNA.
-        namespace: <namespace> # (Recommended) Set the namespace that the app gets deployed to. Overrides the namespaces that are in your manifests
-        strategy: strategy1 # A named strategy from the strategies block. This example uses the name strategy1.
-        constraints:
-            # A set of steps that are executed in parallel
-            beforeDeployment:
-                - pause: # The map key is the step type
-                    # The duration of the pause before the deployment continues. If duration is not zero, set untilApproved to false.
-                    duration: 1
-                    unit: SECONDS
-                    # If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.
-                    untilApproved: false
-            # Defines the deployments that must reach a successful state (defined as status == SUCCEEDED) before this deployment can start.Deployments with the same dependsOn criteria will execute in parallel.
-            dependsOn: []
-# The list of manifest sources. Can be a directory or file.
+
+# The name of the application to deploy.
+application: <application>
+
+# Targets is a map of deployment environments, keyed by name.
+# A named target is an (account, namespace) tuple; the tuple must be unique
+# within a deployment. You can deploy to one or more targets within
+# a deployment pipeline.
+targets:
+
+  # Target name. Use a descriptive value (e.g., prod or staging).
+  <target>:
+
+      # An account corresponds to a Kubernetes cluster.
+      # You can create and configure accounts inside Cloud Console
+      # or by installing Armory RNA inside a cluster.
+      account: <accountName>
+
+      # If provided, namespace overrides the "namespace" value
+      # in all manifests deployed to this target. Recommended.
+      namespace: <namespace>
+
+      # A named strategy from the "strategies" block, configured below.
+      # This strategy is used when deploying manifests to this target.
+      strategy: <strategy>
+
+# The list of manifest sources. Each entry can be a directory or file.
 manifests:
-    - path: path/to/manifests # Read all yaml|yml files in the directory and deploy all the manifests found.
-      targets:
-        - dev-west
-    - path: path/to/manifest.yaml # Deploy this specific manifest.
-      targets:
-        - dev-west
-strategies: # A map of named strategies that can be assigned to deployment targets in the targets block.
-    strategy1: # Name for a strategy that you use to refer to it. Used in the target block. This example uses strategy1 as the name.
-        blue-green: # The deployment strategy type. Use blueGreen.
-            # The steps that must be completed before traffic is redirected to the new version.
-            redirectTrafficAfter:
-                - pause: # A pause step type. The pipeline stops until the pause behavior is completed.
-                    # The pause behavior is time (integer) before the deployment continues. If duration is set for this step, omit untilApproved.
-                    duration: 1
-                    unit: seconds # The unit of time to use for the pause. Can be seconds, minutes, or hours. Required if duration is set.
-                - pause: # A pause step type. The pipeline stops until the pause behavior is completed.
-                    # The pause behavior is the deployment waits until a manual approval is given to continue. Only set this to true if there is no duration pause behavior for this step.
-                    untilApproved: true
-            # The steps that must be completed before the old version is scaled down.
-            shutdownOldVersionAfter:
-                - pause: # A pause step type. The pipeline stops until the pause behavior is completed.
-                    # The pause behavior is time (integer) before the deployment continues. If duration is set for this step, omit untilApproved.
-                    duration: 1
-                    unit: seconds # The unit of time to use for the pause. Can be seconds, minutes, or hours. Required if duration is set.
-                - pause: # A pause step type. The pipeline stops until the pause behavior is completed.
-                    # The pause behavior is the deployment waits until a manual approval is given to continue. Only set this to true if there is no duration pause behavior for this step.
-                    untilApproved: true
-            activeService: <ActiveService> # The active service that will receive traffic (required)
-            previewService: <PreviewService> # The preview service that will not receive traffic until the new version is deployed (optional)
-            activeRootUrl: <ActiveRootUrl> # The old version is available on the activeRootUrl before the traffic is swapped. After the redirectTrafficAfter steps activeRootUrl will point to the new version. (optional)
-            previewRootUrl: <PreviewRootUrl> # The new version is available on the previewRootUrl before traffic is redirected to it. (optional)
+
+  # Read all yaml|yml files in the directory and deploy all the manifests found.
+  - path: path/to/manifests
+
+    # The deployment targets that should use the manifest. Used for all targets if omitted.
+    targets: ["<target>"]
+
+  # Deploy this specific manifest.
+  - path: path/to/manifest.yaml
+
+# A map of deployment strategies, keyed by name.
+strategies:
+
+  # Strategy name. Use a descriptive name (e.g., "prod-strategy").
+  # Use a strategy by assigning it to a deployment target above.
+  <strategy>:
+
+    # Define a blue/green deployment strategy.
+    #
+    # When using a blue/green strategy, only one version of your software
+    # gets exposed to users at a time.
+    #
+    # First, Borealis deploys the new version without
+    # exposing it to the activeService defined below. The new version is
+    # then accessible using the previewService (if defined).
+    #
+    # Second, Borealis executes the "redirectTrafficAfter" steps in parallel.
+    # After each step completes, Borealis exposes the new version
+    # to the activeService.
+    #
+    # Finally, Borealis executes the "shutDownOldVersion" steps in parallel.
+    # After each step completes, Borealis deletes the old version.
+    blueGreen:
+
+      # The name of a Kubernetes Service resource.
+      # The activeService must be deployed out-of-band and should be configured
+      # to direct traffic to your application.
+      activeService: active-service
+
+      # The name of a Kubernetes Service resource. Optional.
+      # The previewService must be deployed out-of-band and should be configured
+      # to direct traffic to your application. You can use this service to
+      # preview the new version of your application before it is exposed to users.
+      previewService: preview-service
+
+      # The redirectTrafficAfter steps are pre-conditions for exposing the new
+      # version to the activeService. The steps are executed
+      # in parallel.
+      redirectTrafficAfter:
+
+        # A pause step type.
+        # The deployment stops until the pause behavior is complete.
+        # The pause type defined below is a duration-based pause.
+        - pause:
+
+            # Pause the deployment for <duration> <unit> (e.g., pause for 5 minutes).
+            # A duration-based pause should omit the "untilApproved" flag.
+            duration: 1
+
+            # The pause's time unit. One of seconds, minutes, or hours.
+            # Required if duration is set.
+            unit: seconds
+
+        # A pause step type.
+        # The pause type defined below is a judgment-based pause.
+        - pause:
+
+            # Pause the deployment until manual approval.
+            # You can approve or rollback a deployment in the Cloud Console.
+            # Do not provide a "duration" or "unit" value when defining
+            # a judgment-based pause.
+            untilApproved: true
+
+      # The shutDownOldVersionAfter steps are pre-conditions for deleting the old
+      # version of your software. The steps are executed in parallel.
+      shutdownOldVersionAfter:
+        - pause:
+            untilApproved: true
 `
+
 	actualTemplate, err := ioutil.ReadAll(b)
 	if err != nil {
 		t.Fatal(err)
