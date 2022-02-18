@@ -13,6 +13,7 @@ const (
 )
 
 const canaryTemplate = `
+# A map of deployment strategies, keyed by name.
 strategies:
 
   # Strategy name. Use a descriptive name (e.g., "prod-strategy").
