@@ -262,7 +262,7 @@ func buildStrategy(configStrategies map[string]model.Strategy, strategyName stri
 		return ps, nil
 	}
 
-	return nil, fmt.Errorf("%s is not a valid strategy; define canary or bluegreen strategy", strategyName)
+	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
 }
 
 func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep) (*de.AnalysisAnalysisStepInput, error) {
