@@ -60,7 +60,7 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 	// Weight nodes
 	weight := buildWeightStepNode("33", "The percentage of pods that should be running the canary version for this step. Set it to an integer between 0 and 100, inclusive.")
-	weight100 := buildWeightStepNode("100", "Setting weight to 100 is optional. Traffic will go to 100 after passing the final step.")
+	weight100 := buildWeightStepNode("100", "Setting weight to 100 is optional. Traffic automatically goes to 100 after passing the final step.")
 
 	// Pause UntilApproved root
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
@@ -78,8 +78,8 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 			stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, pauseUA)
 		case feature == "automated":
 			// automated adds an analysis definition at the root level
-			analysisNode, analysisValuesNode := util.BuildMapNode("analysis", "Define queries and thresholds used for automated analysis")
-			defaultMetricProviderNameNode := util.BuildStringNode("defaultMetricProviderName", "prometheus-prod", "Optional. Name of the default provider to use for the queries. Configure in the Armory Cloud Console.")
+			analysisNode, analysisValuesNode := util.BuildMapNode("analysis", "Define queries and thresholds used for automated analysis.")
+			defaultMetricProviderNameNode := util.BuildStringNode("defaultMetricProviderName", "prometheus-prod", "Optional. Name of the default provider to use for the queries. Add providers in the Configuration UI.")
 			queriesNode, queriesValuesNode := buildAnalysisQueries()
 			analysisValuesNode.Content = append(analysisValuesNode.Content, defaultMetricProviderNameNode...)
 			analysisValuesNode.Content = append(analysisValuesNode.Content, queriesNode, queriesValuesNode)
@@ -133,24 +133,24 @@ func buildAnalysisQueryDefinitionNode(name string, metricProviderName string, up
 			"Optional. Override the defaultMetricProviderName specified in analysis.queries."	)...)
 	}
 	query.Content = append(query.Content, util.BuildIntNode("upperLimit", upperLimit,
-		"Optional when 'lowerLimit' is specified. If the metric exceeds this value, the automated analysis fails."	)...)
+		"Optional when 'lowerLimit' is specified. If the metric exceeds this value, the automated analysis fails, causing the step to fail."	)...)
 	query.Content = append(query.Content, util.BuildIntNode("lowerLimit", lowerLimit,
-		"Optional when 'upperLimit' is specified. If the metric goes below this value, the automated analysis fails."	)...)
+		"Optional when 'upperLimit' is specified. If the metric goes below this value, the automated analysis fails, causing the step to fail."	)...)
 	query.Content = append(query.Content, util.BuildStringNode("queryTemplate", queryTemplate,"")...)
 	return query
 }
 
 func buildAutomatedPauseStep() []*yaml.Node {
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	pauseUANode, pauseUAValuesNode := util.BuildMapNode("analysis", "An analysis step pauses the deployment until analysis judgement runs are completed.")
+	pauseUANode, pauseUAValuesNode := util.BuildMapNode("analysis", "An analysis step pauses the deployment until analysis judgement runs complete.")
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildIntNode("interval", "7",
 	"How long each sample of the query gets summarized over"	)...)
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildStringNode("units", "seconds",
 		"The unit for the interval: 'seconds', 'minutes' or 'hours'"	)...)
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildIntNode("numberOfJudgmentRuns", "1",
-	"How many times the queries are run.")...)
+	"How many times the queries run.")...)
 	queriesNode, queriesValuesNode := util.BuildSequenceNode("queries", "rollBackMode: manual # Optional. Defaults to 'automatic' if omitted. Uncomment to require a manual review before rolling back if automated analysis detects an issue.\n" +
-		"rollForwardMode: manual # Optional. Defaults to 'automatic' if omitted. Uncomment to require a manual review before continuing deployment if automated analysis determines the application is healthy.")
+		"rollForwardMode: manual # Optional. Defaults to 'automatic' if omitted. Uncomment to require a manual review before continuing deployment if automated analysis determines the app is healthy.")
 	queriesValuesNode.Content = append(queriesValuesNode.Content,
 		&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "containerCPUSeconds",
 			HeadComment: "Specify a list of queries to run. Reference them by the name you assign in analysis.queries."},
