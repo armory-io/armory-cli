@@ -120,7 +120,7 @@ func buildAnalysisQueries() (*yaml.Node, *yaml.Node) {
 	queriesValuesNode.Content =  append(queriesValuesNode.Content,
 		buildAnalysisQueryDefinitionNode("containerCPUSeconds", "my-prometheus-provider", "100", "0", queryTemplate1),
 		buildAnalysisQueryDefinitionNode("avgMemoryUsage", "", "10", "0", queryTemplate2),
-		)
+	)
 	return queriesNode, queriesValuesNode
 }
 
@@ -144,11 +144,11 @@ func buildAutomatedPauseStep() []*yaml.Node {
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	pauseUANode, pauseUAValuesNode := util.BuildMapNode("analysis", "An analysis step pauses the deployment until analysis judgement runs complete.")
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildIntNode("interval", "7",
-	"How long each sample of the query gets summarized over"	)...)
+		"How long each sample of the query gets summarized over"	)...)
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildStringNode("units", "seconds",
 		"The unit for the interval: 'seconds', 'minutes' or 'hours'"	)...)
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildIntNode("numberOfJudgmentRuns", "1",
-	"How many times the queries run.")...)
+		"How many times the queries run.")...)
 	queriesNode, queriesValuesNode := util.BuildSequenceNode("queries", "rollBackMode: manual # Optional. Defaults to 'automatic' if omitted. Uncomment to require a manual review before rolling back if automated analysis detects an issue.\n" +
 		"rollForwardMode: manual # Optional. Defaults to 'automatic' if omitted. Uncomment to require a manual review before continuing deployment if automated analysis determines the app is healthy.")
 	queriesValuesNode.Content = append(queriesValuesNode.Content,

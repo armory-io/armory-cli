@@ -5,6 +5,7 @@ import (
 	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/r3labs/diff"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -104,7 +105,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() 
 	} {
 		{
 			"testdata/sadPathDeploymentFileBlueGreen1.yaml",
-			"invalid blue-green config: activeService is required",
+			"invalid blueGreen config: activeService is required",
 		},
 		{
 			"testdata/sadPathDeploymentFileBadPause1.yaml",
@@ -285,6 +286,11 @@ func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisNoDefault() {
 	}
 	_, err = CreateDeploymentRequest(orchestration.Application, &orchestration)
 	suite.Errorf(err, "analysis configuration block is present but default or explicit account is not set")
+}
+
+func TestBuildStrategy(t *testing.T) {
+	_, err := buildStrategy(map[string]model.Strategy{}, "fakeStrategy")
+	assert.Errorf(t, err, "fakeStrategy is not a valid strategy; define canary or blueGreen strategy")
 }
 
 const testAppYamlStr = `

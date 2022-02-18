@@ -12,7 +12,7 @@ type OrchestrationConfig struct {
 
 type Strategy struct {
 	Canary    *CanaryStrategy    `yaml:"canary,omitempty"`
-	BlueGreen *BlueGreenStrategy `yaml:"blue-green,omitempty"`
+	BlueGreen *BlueGreenStrategy `yaml:"blueGreen,omitempty"`
 }
 
 type CanaryStrategy struct {
