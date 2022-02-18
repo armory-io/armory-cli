@@ -1,52 +1,16 @@
 package template
 
 import (
+	"github.com/armory/armory-cli/pkg/util"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 const (
 	kubernetesShort = "Generate a Kubernetes deployment template."
 )
 
-const KubernetesCoreTemplate = `version: v1
-kind: kubernetes
-
-# The name of the application to deploy.
-application: <application>
-
-# Targets is a map of deployment environments, keyed by name.
-# A named target is an (account, namespace) tuple; the tuple must be unique
-# within a deployment. You can deploy to one or more targets within
-# a deployment pipeline.
-targets:
-
-  # Target name. Use a descriptive value (e.g., prod or staging).
-  <target>:
-
-      # An account corresponds to a Kubernetes cluster.
-      # You can create and configure accounts inside Cloud Console
-      # or by installing Armory RNA inside a cluster.
-      account: <accountName>
-
-      # If provided, namespace overrides the "namespace" value
-      # in all manifests deployed to this target. Recommended.
-      namespace: <namespace>
-
-      # A named strategy from the "strategies" block, configured below.
-      # This strategy is used when deploying manifests to this target.
-      strategy: <strategy>
-
-# The list of manifest sources. Each entry can be a directory or file.
-manifests:
-
-  # Read all yaml|yml files in the directory and deploy all the manifests found.
-  - path: path/to/manifests
-
-    # The deployment targets that should use the manifest. Used for all targets if omitted.
-    targets: ["<target>"]
-
-  # Deploy this specific manifest.
-  - path: path/to/manifest.yaml`
+// TODO(cat): update template language using slab doc
 
 func NewTemplateKubernetesCmd(rootOptions *templateOptions) *cobra.Command {
 	command := &cobra.Command{
@@ -60,4 +24,64 @@ func NewTemplateKubernetesCmd(rootOptions *templateOptions) *cobra.Command {
 	command.AddCommand(NewTemplateCanaryCmd(rootOptions))
 	command.AddCommand(NewTemplateBlueGreenCmd(rootOptions))
 	return command
+}
+
+func buildTemplateKubernetesCore() *yaml.Node {
+	root := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	//Core
+	root.Content = append(root.Content, util.BuildStringNode("version", "v1", "")...)
+	root.Content = append(root.Content, util.BuildStringNode("kind", "kubernetes", "")...)
+	root.Content = append(root.Content, util.BuildStringNode("application", "<AppName>", "The name of the application to deploy.")...)
+
+	// Target root
+	targetNode, targetValuesNode := util.BuildMapNode("targets", "Map of your deployment target, "+
+		"Borealis supports deploying to one target cluster.")
+	devNode, devValuesNode := util.BuildMapNode("<deploymentName>",
+		"Name for your deployment. Use a descriptive value such as the environment name.")
+	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("account",
+		"<accountName>", "The account name that was assigned to the deployment target when you installed the RNA.")...)
+	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("namespace",
+		"<namespace>", "(Recommended) Set the namespace that the app gets deployed to. Overrides the namespaces that are in your manifests")...)
+	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("strategy",
+		"strategy1", "A named strategy from the strategies block. This example uses the name strategy1.")...)
+
+	constraintNode, constraintValuesNode := util.BuildMapNode("constraints", "")
+	dependsOnNode, dependsOnValuesNode := util.BuildSequenceNode("dependsOn", "Defines the deployments that must reach a successful state (defined as status == SUCCEEDED) before this deployment can start.Deployments with the same dependsOn criteria will execute in parallel.")
+	beforeNode, beforeValuesNode := util.BuildSequenceNode("beforeDeployment", "A set of steps that are executed in parallel")
+	pause := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	pauseNode, pauseValuesNode := util.BuildMapNode("pause", "The map key is the step type")
+	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildIntNode("duration", "1", "The duration of the pause before the deployment continues. If duration is not zero, set untilApproved to false.")...)
+	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildStringNode("unit", "SECONDS", "")...)
+	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildBoolNode("untilApproved", "false",
+		"If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.")...)
+	pause.Content = append(pause.Content, pauseNode, pauseValuesNode)
+	beforeValuesNode.Content = append(beforeValuesNode.Content, pause)
+	constraintValuesNode.Content = append(constraintValuesNode.Content, beforeNode, beforeValuesNode, dependsOnNode, dependsOnValuesNode)
+	devValuesNode.Content = append(devValuesNode.Content, constraintNode, constraintValuesNode)
+
+	targetValuesNode.Content = append(targetValuesNode.Content, devNode, devValuesNode)
+	root.Content = append(root.Content, targetNode, targetValuesNode)
+
+	// Manifest sequence/array
+	manifestsNode, manifestValuesNode := util.BuildSequenceNode("manifests", "The list of manifest sources. Can be a directory or file.")
+
+	targetsOnNode, targetsValuesNode := util.BuildSequenceNode("targets", "")
+	targetsValuesNode.Content = append(targetsValuesNode.Content, &yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Tag:   "!!str",
+		Value: "dev-west",
+	})
+
+	path := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	path2 := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	path.Content = append(path.Content, util.BuildStringNode("path", "path/to/manifests", "Read all yaml|yml files in the directory and deploy all the manifests found.")...)
+	path.Content = append(path.Content, targetsOnNode, targetsValuesNode)
+	path2.Content = append(path2.Content, util.BuildStringNode("path", "path/to/manifest.yaml",
+		"Deploy this specific manifest.")...)
+	path2.Content = append(path2.Content, targetsOnNode, targetsValuesNode)
+	manifestValuesNode.Content = append(manifestValuesNode.Content, path, path2)
+
+	root.Content = append(root.Content, manifestsNode, manifestValuesNode)
+
+	return root
 }
