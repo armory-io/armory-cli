@@ -19,7 +19,7 @@ strategies:
   # this is the name for the strategy
   batman:
     # This map key, is the deployment strategy type
-    blue-green:
+    blueGreen:
       activeService: my-app-active
       previewService: my-app-preview
       shutdownOldVersionAfter:

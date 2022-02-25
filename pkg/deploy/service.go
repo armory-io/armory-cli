@@ -240,7 +240,7 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string)
 		}, nil
 	} else if strategy.BlueGreen != nil {
 		if strategy.BlueGreen.ActiveService == "" {
-			return nil, errors.New("invalid blue-green config: activeService is required")
+			return nil, errors.New("invalid blueGreen config: activeService is required")
 		}
 
 		ps := &de.PipelinePipelineStrategy{
@@ -266,7 +266,7 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string)
 		return ps, nil
 	}
 
-	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blue-green strategy", strategyName)
+	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
 }
 
 func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisConfig *model.AnalysisConfig) (*de.AnalysisAnalysisStepInput, error) {
