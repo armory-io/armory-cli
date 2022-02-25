@@ -26,16 +26,15 @@ type CanaryStep struct {
 }
 
 type BlueGreenStrategy struct {
-	RedirectTrafficAfter    []*BlueGreenCondition    `yaml:"redirectTrafficAfter,omitempty"`
+	RedirectTrafficAfter    []*BlueGreenCondition `yaml:"redirectTrafficAfter,omitempty"`
 	ShutdownOldVersionAfter []*BlueGreenCondition `yaml:"shutdownOldVersionAfter,omitempty"`
-	ActiveService           string                   `yaml:"activeService,omitempty"`
-	PreviewService          string                   `yaml:"previewService,omitempty"`
-	ActiveRootUrl           string                   `yaml:"activeRootUrl,omitempty"`
-	PreviewRootUrl          string                   `yaml:"previewRootUrl,omitempty"`
+	ActiveService           string                `yaml:"activeService,omitempty"`
+	PreviewService          string                `yaml:"previewService,omitempty"`
 }
 
 type BlueGreenCondition struct {
 	Pause    *PauseStep    `yaml:"pause,omitempty"`
+	Analysis *AnalysisStep `yaml:"analysis,omitempty"`
 }
 
 type WeightStep struct {

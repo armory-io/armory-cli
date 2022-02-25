@@ -19,7 +19,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 	var analysis de.AnalysisAnalysisConfig
 	if config.Analysis != nil {
 		analysis.DefaultAccount = &config.Analysis.DefaultMetricProviderName
-		queries, err := CreateAnalysisQueries(*config.Analysis.Queries, config.Analysis.DefaultMetricProviderName)
+		queries, err := CreateAnalysisQueries(*config.Analysis, config.Analysis.DefaultMetricProviderName)
 		if err != nil {
 			return nil, err
 		}
@@ -36,7 +36,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		})
 
 
-		strategy, err := buildStrategy(*config.Strategies, element.Strategy)
+		strategy, err := buildStrategy(*config, element.Strategy)
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +78,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 	return &req, nil
 }
 
-func createDeploymentCanarySteps(strategy model.Strategy) ([]de.KubernetesV2CanaryStep, error) {
+func createDeploymentCanarySteps(strategy model.Strategy, analysisConfig *model.AnalysisConfig) ([]de.KubernetesV2CanaryStep, error) {
 	var steps []de.KubernetesV2CanaryStep
 	for _, step := range *strategy.Canary.Steps {
 		if step.SetWeight != nil {
@@ -106,7 +106,7 @@ func createDeploymentCanarySteps(strategy model.Strategy) ([]de.KubernetesV2Cana
 		}
 
 		if step.Analysis != nil {
-			analysis, err := createDeploymentCanaryAnalysisStep(step.Analysis)
+			analysis, err := createDeploymentCanaryAnalysisStep(step.Analysis, analysisConfig)
 			if err != nil {
 				return nil, err
 			}
@@ -121,8 +121,13 @@ func createDeploymentCanarySteps(strategy model.Strategy) ([]de.KubernetesV2Cana
 	return steps, nil
 }
 
-func CreateAnalysisQueries(queries []model.Query, defaultMetricProviderName string) (*[]de.AnalysisAnalysisQueries, error) {
-	analysisQueries := make([]de.AnalysisAnalysisQueries, 0, len(queries))
+func CreateAnalysisQueries(analysis model.AnalysisConfig, defaultMetricProviderName string) (*[]de.AnalysisAnalysisQueries, error) {
+	if analysis.Queries == nil {
+		// we will only return a validation error if there is an analysis step being used in a canary or blue-green strategy
+		return nil, nil
+	}
+	queries := *analysis.Queries
+	var analysisQueries []de.AnalysisAnalysisQueries
 	for _, query := range queries {
 		if query.MetricProviderName == nil {
 			if defaultMetricProviderName == "" {
@@ -220,10 +225,11 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 	return pipelineConstraints, nil
 }
 
-func buildStrategy(configStrategies map[string]model.Strategy, strategyName string) (*de.PipelinePipelineStrategy, error) {
+func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string) (*de.PipelinePipelineStrategy, error) {
+	configStrategies := *modelStrategy.Strategies
 	strategy := configStrategies[strategyName]
 	if strategy.Canary != nil {
-		steps, err := createDeploymentCanarySteps(strategy)
+		steps, err := createDeploymentCanarySteps(strategy, modelStrategy.Analysis)
 		if err != nil {
 			return nil, err
 		}
@@ -241,19 +247,17 @@ func buildStrategy(configStrategies map[string]model.Strategy, strategyName stri
 			BlueGreen: &de.KubernetesV2BlueGreenStrategy{
 				ActiveService:  strategy.BlueGreen.ActiveService,
 				PreviewService: strategy.BlueGreen.PreviewService,
-				ActiveUrl:      &strategy.BlueGreen.ActiveRootUrl,
-				PreviewUrl:     &strategy.BlueGreen.PreviewRootUrl,
 			},
 		}
 		if strategy.BlueGreen.RedirectTrafficAfter != nil {
-			redirectTrafficAfter, err := createBlueGreenRedirectConditions(strategy.BlueGreen.RedirectTrafficAfter)
+			redirectTrafficAfter, err := createBlueGreenRedirectConditions(strategy.BlueGreen.RedirectTrafficAfter, modelStrategy.Analysis)
 			if err != nil {
 				return nil, err
 			}
 			ps.BlueGreen.RedirectTrafficAfter = &redirectTrafficAfter
 		}
 		if strategy.BlueGreen.ShutdownOldVersionAfter != nil {
-			shutdownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutdownOldVersionAfter)
+			shutdownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutdownOldVersionAfter, modelStrategy.Analysis)
 			if err != nil {
 				return nil, err
 			}
@@ -265,7 +269,22 @@ func buildStrategy(configStrategies map[string]model.Strategy, strategyName stri
 	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
 }
 
-func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep) (*de.AnalysisAnalysisStepInput, error) {
+func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisConfig *model.AnalysisConfig) (*de.AnalysisAnalysisStepInput, error) {
+	if analysisConfig == nil {
+		return nil, errors.New("analysis step is present but a top-level analysis config is not defined")
+	}
+
+	if analysisConfig.Queries == nil {
+		return nil, errors.New("top-level analysis config is present but no queries are defined")
+	}
+
+	for _, query := range *analysis.Queries {
+		queryConfig := findByName(*analysisConfig.Queries, query)
+		if queryConfig == nil {
+			return nil, fmt.Errorf("query in step does not exist in top-level analysis config: %q", query)
+		}
+	}
+
 	var rollBackMode *de.AnalysisRollMode
 	var rollForwardMode *de.AnalysisRollMode
 	var units *de.TimeTimeUnit
@@ -319,7 +338,7 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep) (*de.Analy
 	}, nil
 }
 
-func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition) ([]de.KubernetesV2RedirectTrafficAfter, error) {
+func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition, analysisConfig *model.AnalysisConfig) ([]de.KubernetesV2RedirectTrafficAfter, error) {
 	var redirectConditions []de.KubernetesV2RedirectTrafficAfter
 	for _, condition := range conditions {
 		if condition.Pause != nil {
@@ -333,12 +352,23 @@ func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition) (
 					Pause: pause,
 				})
 		}
-		// TODO(cat): analysis condition
+		if condition.Analysis != nil {
+			analysis, err := createDeploymentCanaryAnalysisStep(condition.Analysis, analysisConfig)
+			if err != nil {
+				return nil, err
+			}
+
+			redirectConditions = append(
+				redirectConditions,
+				de.KubernetesV2RedirectTrafficAfter{
+					Analysis: analysis,
+				})
+		}
 	}
 	return redirectConditions, nil
 }
 
-func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition) ([]de.KubernetesV2ShutdownOldVersionAfter, error) {
+func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, analysisConfig *model.AnalysisConfig) ([]de.KubernetesV2ShutdownOldVersionAfter, error) {
 	var shutdownConditions []de.KubernetesV2ShutdownOldVersionAfter
 	for _, condition := range conditions {
 		if condition.Pause != nil {
@@ -352,7 +382,18 @@ func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition) (
 					Pause: pause,
 				})
 		}
-		// TODO(cat): analysis condition
+		if condition.Analysis != nil {
+			analysis, err := createDeploymentCanaryAnalysisStep(condition.Analysis, analysisConfig)
+			if err != nil {
+				return nil, err
+			}
+
+			shutdownConditions = append(
+				shutdownConditions,
+				de.KubernetesV2ShutdownOldVersionAfter{
+					Analysis: analysis,
+				})
+		}
 	}
 	return shutdownConditions, nil
 }
@@ -426,6 +467,15 @@ func validatePauseStep(pause *model.PauseStep) error {
 		return errors.New("pause is not valid: duration must be set with a unit")
 	} else if pause.Duration < 1 && pause.Unit != "" {
 		return errors.New("pause is not valid: unit must be set with a duration")
+	}
+	return nil
+}
+
+func findByName(queries []model.Query, name string) *model.Query {
+	for _, configQuery := range queries {
+		if name == *configQuery.Name {
+			return &configQuery
+		}
 	}
 	return nil
 }

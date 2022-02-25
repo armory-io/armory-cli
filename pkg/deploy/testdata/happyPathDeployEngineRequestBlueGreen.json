@@ -11,21 +11,50 @@
           }
         }
       ],
+      "analysis":{
+        "defaultAccount": "newrelic-prod",
+        "queries": [
+          {
+            "name": "Average http error rate is less than 10%",
+            "queryTemplate": "SELECT filter(count(http.server.requests), WHERE outcome != 'SUCCESS' and percentile is null) / filter(count(http.server.requests), WHERE percentile is null) * 100 FROM Metric WHERE application_name = '${application-name}' AND environment = '${environment}' AND replica_set = '${replica-set}' TIMESERIES AUTO;",
+            "upperLimit": 10,
+            "metricProviderName": "newrelic-prod"
+          },
+          {
+            "name": "Average RPM is greater than 5",
+            "queryTemplate": "SELECT rate(count(http.server.requests), 1 minute) / 60 FROM Metric WHERE application_name = '${application-name}' AND environment = '${environment}' AND replica_set = '${replica-set}' TIMESERIES AUTO;",
+            "LowerLimit": 5,
+            "metricProviderName": "newrelic-prod"
+          }
+        ]
+      },
       "strategy": {
         "blueGreen": {
           "shutdownOldVersionAfter": [
             {
               "pause": {
-                "duration": 0,
-                "unit": "NONE",
-                "untilApproved": true
-              }
-            },
-            {
-              "pause": {
                 "duration": 600,
                 "unit": "SECONDS",
                 "untilApproved": false
+              }
+            },
+            {
+              "analysis": {
+                "context": {
+                  "foo": "bar",
+                  "fizz": "baz"
+                },
+                "rollBackMode": "AUTOMATIC",
+                "rollForwardMode": "AUTOMATIC",
+                "interval": 5,
+                "units": "MINUTES",
+                "numberOfJudgmentRuns": 5,
+                "AbortOnFailedJudgment": false,
+                "LookbackMethod": "UNSET",
+                "queries": [
+                  "Average http error rate is less than 10%",
+                  "Average RPM is greater than 5"
+                ]
               }
             }
           ],
@@ -38,17 +67,27 @@
               }
             },
             {
-              "pause": {
-                "duration": 600,
-                "unit": "SECONDS",
-                "untilApproved": false
+              "analysis": {
+                "context": {
+                  "foo": "bar",
+                  "fizz": "baz"
+                },
+                "rollBackMode": "AUTOMATIC",
+                "rollForwardMode": "AUTOMATIC",
+                "interval": 5,
+                "units": "MINUTES",
+                "numberOfJudgmentRuns": 5,
+                "AbortOnFailedJudgment": false,
+                "LookbackMethod": "UNSET",
+                "queries": [
+                  "Average http error rate is less than 10%",
+                  "Average RPM is greater than 5"
+                ]
               }
             }
           ],
           "activeService": "my-app-active",
-          "previewService": "my-app-preview",
-          "activeUrl": "https://armory.com/",
-          "previewUrl": "https://staging.armory.com/"
+          "previewService": "my-app-preview"
         }
       }
     }
