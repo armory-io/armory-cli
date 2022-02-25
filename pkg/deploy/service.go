@@ -279,14 +279,9 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisCo
 	}
 
 	for _, query := range *analysis.Queries {
-		var exists bool
-		for _, configQuery := range *analysisConfig.Queries {
-			if query == *configQuery.Name {
-				exists = true
-			}
-		}
-		if !exists {
-			return nil, fmt.Errorf("query in step does not exist in top-level analysis config: %s", query)
+		queryConfig := findByName(*analysisConfig.Queries, query)
+		if queryConfig == nil {
+			return nil, fmt.Errorf("query in step does not exist in top-level analysis config: %q", query)
 		}
 	}
 
@@ -472,6 +467,15 @@ func validatePauseStep(pause *model.PauseStep) error {
 		return errors.New("pause is not valid: duration must be set with a unit")
 	} else if pause.Duration < 1 && pause.Unit != "" {
 		return errors.New("pause is not valid: unit must be set with a duration")
+	}
+	return nil
+}
+
+func findByName(queries []model.Query, name string) *model.Query {
+	for _, configQuery := range queries {
+		if name == *configQuery.Name {
+			return &configQuery
+		}
 	}
 	return nil
 }
