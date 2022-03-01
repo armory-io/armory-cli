@@ -14,9 +14,12 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v2
+      # TODO: remove when Go 1.18 has been released.
+      - name: Setup Go environment
+        uses: actions/setup-go@v2.1.4
         with:
-          go-version: 1.17.4
+          go-version: '1.18.0-rc1'
+          stable: false
 
       - name: Cache Dependencies
         uses: actions/cache@v2
