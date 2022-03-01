@@ -73,7 +73,7 @@ strategies:
     # After each step completes, Borealis exposes the new version
     # to the activeService.
     #
-    # Finally, Borealis executes the "shutDownOldVersion" steps in parallel.
+    # Finally, Borealis executes the "shutDownOldVersionAfter" steps in parallel.
     # After each step completes, Borealis deletes the old version.
     blueGreen:
 
