@@ -186,6 +186,8 @@ github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/armory-io/deploy-engine v0.23.2 h1:UO6t+n9enKPEh5RE69PjnUxa60TTdY0g1NJ2aT/cT+M=
 github.com/armory-io/deploy-engine v0.23.2/go.mod h1:b/OtgsM4D8shLukUdq0dQxY+0weIJTQCQLqq/V125zc=
+github.com/armory-io/deploy-engine v0.26.3 h1:09CQI2xyITOtfN81k+0WJZ+3zRk4gN5gG6FV2s56410=
+github.com/armory-io/deploy-engine v0.26.3/go.mod h1:dNNJ1DbM52M6nNC3NffGK/0GmOUsrmgd+B6vnHvKSU8=
 github.com/armory-io/go-cloud-service v0.8.0-79558ea/go.mod h1:03Nm/K0jn+kr/l3cTsZqdBGPkpjzIocy1vPcpd+zu9M=
 github.com/armory-io/go-spec v0.0.5/go.mod h1:N+tcRZD8J8/zNUUs+/EFhx/uz9XAd6T2MnZRPACuAyQ=
 github.com/armory-io/lib-go-voynich-client v0.3.0/go.mod h1:O9anHTDmQTu1/CWZ7nR+YIanWz/xTW4cJ9piUCKLQIM=
@@ -197,6 +199,8 @@ github.com/armory/go-yaml-tools v0.0.4/go.mod h1:LasFFVo6zuV334Pmx7Diq9L3muOUUI8
 github.com/aryann/difflib v0.0.0-20170710044230-e206f873d14a/go.mod h1:DAHtR1m6lCRdSC2Tm3DSWRPvIPr6xNKyeHdqDQSQT+A=
 github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
 github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
+github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d h1:Byv0BzEl3/e6D5CLfI0j/7hiIEtvGVFPCZ7Ei2oq8iQ=
+github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/auth0/go-jwt-middleware v0.0.0-20170425171159-5493cabe49f7/go.mod h1:LWMyo4iOLWXHGdBki7NIht1kHru/0wM179h+d3g8ATM=
 github.com/aws/aws-lambda-go v1.13.3/go.mod h1:4UKl9IzQMoD+QF79YdCuzCwp8VbmG4VAQwij/eHl5CU=
 github.com/aws/aws-sdk-go v1.15.11/go.mod h1:mFuSZ37Z9YOHbQEwBWztmVzqXrEkub65tZoCYDt7FT0=

@@ -30,7 +30,7 @@
       },
       "strategy": {
         "blueGreen": {
-          "shutdownOldVersionAfter": [
+          "shutDownOldVersionAfter": [
             {
               "pause": {
                 "duration": 600,

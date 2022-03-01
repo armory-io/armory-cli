@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
-	github.com/armory-io/deploy-engine v0.23.2
+	github.com/armory-io/deploy-engine v0.26.3
 	github.com/jarcoal/httpmock v1.0.8
 	github.com/lestrrat-go/jwx v1.2.6
 	github.com/manifoldco/promptui v0.8.0

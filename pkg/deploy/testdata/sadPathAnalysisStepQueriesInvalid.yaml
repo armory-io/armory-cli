@@ -34,7 +34,7 @@ strategies:
   batman:
     # This map key, is the deployment strategy type
     blueGreen:
-      shutdownOldVersionAfter:
+      shutDownOldVersionAfter:
       - pause:
           duration: 600
           unit: SECONDS

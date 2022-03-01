@@ -118,7 +118,7 @@ strategies:
 
       # The shutDownOldVersionAfter steps are pre-conditions for deleting the old
       # version of your software. The steps are executed in parallel.
-      shutdownOldVersionAfter:
+      shutDownOldVersionAfter:
         - pause:
             untilApproved: true
 `
