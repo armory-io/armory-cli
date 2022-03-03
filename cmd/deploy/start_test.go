@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/pkg"
+	de "github.com/armory-io/deploy-engine/client"
 	"github.com/armory/armory-cli/cmd"
 	"github.com/armory/armory-cli/pkg/deploy"
 	"github.com/armory/armory-cli/pkg/output"

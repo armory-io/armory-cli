@@ -3,7 +3,7 @@ package deploy
 import (
 	"errors"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/pkg"
+	de "github.com/armory-io/deploy-engine/client"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
 	"io/fs"
@@ -34,7 +34,6 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			Namespace: &target.Namespace,
 			Account:   &target.Account,
 		})
-
 
 		strategy, err := buildStrategy(*config, element.Strategy)
 		if err != nil {
@@ -256,12 +255,12 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string)
 			}
 			ps.BlueGreen.RedirectTrafficAfter = &redirectTrafficAfter
 		}
-		if strategy.BlueGreen.ShutdownOldVersionAfter != nil {
-			shutdownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutdownOldVersionAfter, modelStrategy.Analysis)
+		if strategy.BlueGreen.ShutDownOldVersionAfter != nil {
+			ShutDownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutDownOldVersionAfter, modelStrategy.Analysis)
 			if err != nil {
 				return nil, err
 			}
-			ps.BlueGreen.ShutdownOldVersionAfter = &shutdownOldVersionAfter
+			ps.BlueGreen.ShutDownOldVersionAfter = &ShutDownOldVersionAfter
 		}
 		return ps, nil
 	}
@@ -368,8 +367,8 @@ func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition, a
 	return redirectConditions, nil
 }
 
-func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, analysisConfig *model.AnalysisConfig) ([]de.KubernetesV2ShutdownOldVersionAfter, error) {
-	var shutdownConditions []de.KubernetesV2ShutdownOldVersionAfter
+func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, analysisConfig *model.AnalysisConfig) ([]de.KubernetesV2ShutDownOldVersionAfter, error) {
+	var shutdownConditions []de.KubernetesV2ShutDownOldVersionAfter
 	for _, condition := range conditions {
 		if condition.Pause != nil {
 			pause, err := createPauseStep(condition.Pause)
@@ -378,7 +377,7 @@ func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, a
 			}
 			shutdownConditions = append(
 				shutdownConditions,
-				de.KubernetesV2ShutdownOldVersionAfter{
+				de.KubernetesV2ShutDownOldVersionAfter{
 					Pause: pause,
 				})
 		}
@@ -390,7 +389,7 @@ func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, a
 
 			shutdownConditions = append(
 				shutdownConditions,
-				de.KubernetesV2ShutdownOldVersionAfter{
+				de.KubernetesV2ShutDownOldVersionAfter{
 					Analysis: analysis,
 				})
 		}
@@ -444,7 +443,7 @@ func createCanaryPause(pause *model.PauseStep) (*de.KubernetesV2CanaryPauseStep,
 	return pauseStep, nil
 }
 
-func createTimeUnit(pause *model.PauseStep) (*de.TimeTimeUnit, error){
+func createTimeUnit(pause *model.PauseStep) (*de.TimeTimeUnit, error) {
 	var unit *de.TimeTimeUnit
 	var err error
 	if pause.Unit == "" {

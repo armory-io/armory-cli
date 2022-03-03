@@ -1,6 +1,6 @@
 package model
 
-import deploy "github.com/armory-io/deploy-engine/pkg"
+import deploy "github.com/armory-io/deploy-engine/client"
 
 type Pipeline struct {
 	Id                 *string                               `json:"id,omitempty" yaml:"id,omitempty"`

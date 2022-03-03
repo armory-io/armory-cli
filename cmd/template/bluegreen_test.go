@@ -115,9 +115,9 @@ strategies:
             # a judgment-based pause.
             untilApproved: true
 
-      # The shutDownOldVersionAfter steps are pre-conditions for deleting the old
+      # The ShutDownOldVersionAfter steps are pre-conditions for deleting the old
       # version of your software. The steps are executed in parallel.
-      shutdownOldVersionAfter:
+      ShutDownOldVersionAfter:
         - pause:
             untilApproved: true
 `

@@ -2,7 +2,7 @@ package deploy
 
 import (
 	"encoding/json"
-	de "github.com/armory-io/deploy-engine/pkg"
+	de "github.com/armory-io/deploy-engine/client"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/r3labs/diff"
 	"github.com/stretchr/testify/assert"
@@ -99,10 +99,10 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBlueGreenSuccess()
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() {
-	cases := []struct{
-		file string
+	cases := []struct {
+		file      string
 		expectErr string
-	} {
+	}{
 		{
 			"testdata/sadPathDeploymentFileBlueGreen1.yaml",
 			"invalid blueGreen config: activeService is required",
@@ -275,10 +275,10 @@ func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) (*de.
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisErrors() {
-	cases := []struct{
-		file string
+	cases := []struct {
+		file      string
 		expectErr string
-	} {
+	}{
 		{
 			"testdata/sadPathAnalysisDeploymentFile.yaml",
 			"analysis configuration block is present but default or explicit account is not set",
