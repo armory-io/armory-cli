@@ -256,12 +256,12 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string)
 			}
 			ps.BlueGreen.RedirectTrafficAfter = &redirectTrafficAfter
 		}
-		if strategy.BlueGreen.ShutdownOldVersionAfter != nil {
-			shutdownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutdownOldVersionAfter, modelStrategy.Analysis)
+		if strategy.BlueGreen.ShutDownOldVersionAfter != nil {
+			shutDownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutDownOldVersionAfter, modelStrategy.Analysis)
 			if err != nil {
 				return nil, err
 			}
-			ps.BlueGreen.ShutdownOldVersionAfter = &shutdownOldVersionAfter
+			ps.BlueGreen.ShutDownOldVersionAfter = &shutDownOldVersionAfter
 		}
 		return ps, nil
 	}
@@ -368,17 +368,17 @@ func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition, a
 	return redirectConditions, nil
 }
 
-func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, analysisConfig *model.AnalysisConfig) ([]de.KubernetesV2ShutdownOldVersionAfter, error) {
-	var shutdownConditions []de.KubernetesV2ShutdownOldVersionAfter
+func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, analysisConfig *model.AnalysisConfig) ([]de.KubernetesV2ShutDownOldVersionAfter, error) {
+	var shutDownConditions []de.KubernetesV2ShutDownOldVersionAfter
 	for _, condition := range conditions {
 		if condition.Pause != nil {
 			pause, err := createPauseStep(condition.Pause)
 			if err != nil {
 				return nil, err
 			}
-			shutdownConditions = append(
-				shutdownConditions,
-				de.KubernetesV2ShutdownOldVersionAfter{
+			shutDownConditions = append(
+				shutDownConditions,
+				de.KubernetesV2ShutDownOldVersionAfter{
 					Pause: pause,
 				})
 		}
@@ -388,14 +388,14 @@ func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, a
 				return nil, err
 			}
 
-			shutdownConditions = append(
-				shutdownConditions,
-				de.KubernetesV2ShutdownOldVersionAfter{
+			shutDownConditions = append(
+				shutDownConditions,
+				de.KubernetesV2ShutDownOldVersionAfter{
 					Analysis: analysis,
 				})
 		}
 	}
-	return shutdownConditions, nil
+	return shutDownConditions, nil
 }
 
 func createPauseStep(pause *model.PauseStep) (*de.KubernetesV2PauseStep, error) {

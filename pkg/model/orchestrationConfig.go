@@ -27,7 +27,7 @@ type CanaryStep struct {
 
 type BlueGreenStrategy struct {
 	RedirectTrafficAfter    []*BlueGreenCondition `yaml:"redirectTrafficAfter,omitempty"`
-	ShutdownOldVersionAfter []*BlueGreenCondition `yaml:"shutdownOldVersionAfter,omitempty"`
+	ShutDownOldVersionAfter []*BlueGreenCondition `yaml:"shutDownOldVersionAfter,omitempty"`
 	ActiveService           string                `yaml:"activeService,omitempty"`
 	PreviewService          string                `yaml:"previewService,omitempty"`
 }

@@ -22,7 +22,7 @@ strategies:
     blueGreen:
       activeService: my-app-active
       previewService: my-app-preview
-      shutdownOldVersionAfter:
+      shutDownOldVersionAfter:
       - pause:
           untilApproved: false
           unit: minutes # invalid without duration set
