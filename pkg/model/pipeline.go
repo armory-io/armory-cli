@@ -20,7 +20,7 @@ func NewPipeline(pipelineStatus deploy.PipelinePipelineStatusResponse, steps *[]
 		CompletedAtIso8601: pipelineStatus.CompletedAtIso8601,
 		Application:        pipelineStatus.Application,
 		Source:             pipelineStatus.Source,
-		Environments:       pipelineStatus.Environments,
+		Environments:       &pipelineStatus.Environments,
 		Status:             pipelineStatus.Status,
 		Steps:              steps,
 	}
@@ -39,7 +39,7 @@ func NewStep(pipelineStage deploy.PipelinePipelineStage, deployment *deploy.Depl
 	return Step{
 		Status:     pipelineStage.Status,
 		Ref:        pipelineStage.Ref,
-		DependsOn:  pipelineStage.DependsOn,
+		DependsOn:  &pipelineStage.DependsOn,
 		Type:       pipelineStage.Type,
 		Deployment: deployment,
 		Pause:      pipelineStage.Pause,

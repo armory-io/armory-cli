@@ -8,6 +8,7 @@ type OrchestrationConfig struct {
 	Manifests   *[]ManifestPath              `yaml:"manifests,omitempty"`
 	Strategies  *map[string]Strategy         `yaml:"strategies,omitempty"`
 	Analysis    *AnalysisConfig              `yaml:"analysis,omitempty"`
+	Webhooks 	*[]WebhookConfig             `yaml:"webhooks,omitempty"`
 }
 
 type Strategy struct {
@@ -20,9 +21,10 @@ type CanaryStrategy struct {
 }
 
 type CanaryStep struct {
-	SetWeight *WeightStep   `yaml:"setWeight,omitempty"`
-	Pause     *PauseStep    `yaml:"pause,omitempty"`
-	Analysis  *AnalysisStep `yaml:"analysis,omitempty"`
+	SetWeight  *WeightStep   `yaml:"setWeight,omitempty"`
+	Pause      *PauseStep    `yaml:"pause,omitempty"`
+	Analysis   *AnalysisStep `yaml:"analysis,omitempty"`
+	RunWebhook *WebhookStep  `yaml:"runWebhook,omitempty"`
 }
 
 type BlueGreenStrategy struct {
@@ -99,4 +101,30 @@ type Constraints struct {
 
 type BeforeDeployment struct {
 	Pause *PauseStep `yaml:"pause,omitempty"`
+}
+
+type WebhookConfig struct {
+	Name            *string   `yaml:"name,omitempty"`
+	Method          *string   `yaml:"method,omitempty"`
+	UriTemplate     *string   `yaml:"uriTemplate,omitempty"`
+	NetworkMode     *string   `yaml:"networkMode,omitempty"`
+	AgentIdentifier *string   `yaml:"agentIdentifier,omitempty"`
+	Headers         *[]Header `yaml:"headers,omitempty"`
+	BodyTemplate    *Body     `yaml:"bodyTemplate,omitempty"`
+	RetryCount      *int32    `yaml:"retryCount,omitempty"`
+}
+
+type Header struct {
+	Key    *string `yaml:"key,omitempty"`
+	Value  *string `yaml:"value,omitempty"`
+}
+
+type Body struct{
+	Inline *string `yaml:"inline,omitempty"`
+	Path   *string `yaml:"path,omitempty"`
+}
+
+type WebhookStep struct{
+	Name    *string            `yaml:"name,omitempty"`
+	Context *map[string]string `yaml:"context,omitempty"`
 }

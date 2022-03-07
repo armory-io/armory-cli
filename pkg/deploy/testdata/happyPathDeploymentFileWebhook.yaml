@@ -1,0 +1,82 @@
+version: v1
+kind: kubernetes
+application: app
+# Map of Deployment Targets, this is set up in a way where
+# we can do multi-target deployments (multi-region or multi-cluster)
+targets:
+  # This in the name of a deployment, underneath it are its configuration
+  test1:
+    account: account1
+    namespace: dev
+    strategy: strategy1
+  test2:
+    account: account2
+    namespace: qa
+    strategy: strategy2
+    constraints:
+      dependsOn: ["test1"]
+      beforeDeployment:
+        - pause:
+            untilApproved: true
+# This is a list of manifest names that should be included in this deployment
+# The list of manifests sources
+manifests:
+  # This specifies a specific manifest file
+  - path: testdata/testManifest3.yaml
+    targets: ["test1", "test2"]
+  - path: testdata/testManifest2.yaml
+    targets: ["test1"]
+webhooks:
+  - name: jenkins-integration
+    method: POST
+    uriTemplate: https://integrations.armory.io/tests/?token=${secrets.potato-facts-jenkins-secret}
+    networkMode: remoteNetworkAgent
+    agentIdentifier: jenkins-rna
+    headers:
+      - key: Authorization
+        value: Basic ${potato-facts-jenkins-auth}
+  - name: generic-integration
+    method: POST
+    uriTemplate: https://integrations.armory.io/tests/
+    networkMode: direct
+    headers:
+      - key: Authorization
+        value: Bearer ${potato-facts-int-jwt}
+      - key: Location
+        value: ${callbackUri}
+    bodyTemplate:
+      inline:  >-
+        {
+        "replicaSetName": "${replicaSetName}",
+        "jobName": "${jobName}"
+        }
+    retryCount: 5
+# The map of strategies, a deployment target will reference one of these
+strategies:
+  # this is the name for the strategy
+  strategy1:
+    # This map key, is the deployment strategy type
+    canary:
+      # List of canary steps
+      steps:
+        # The map key is the step type
+        - setWeight:
+            weight: 33
+        - pause:
+            untilApproved: true
+        - runWebhook:
+            name: generic-integration
+            context:
+              jobName: testStrat-strategy1-${target-name}
+  strategy2:
+    # This map key, is the deployment strategy type
+    canary:
+      # List of canary steps
+      steps:
+        # The map key is the step type
+        - setWeight:
+            weight: 50
+        - runWebhook:
+            name: jenkins-integration
+            context:
+              jobName: testStrat-strategy2-${target-name}
