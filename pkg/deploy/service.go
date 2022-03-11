@@ -520,7 +520,7 @@ func buildWebhooks(webhooks []model.WebhookConfig) (*[]de.WebhooksWebhookRunConf
 			AgentIdentifier: webhook.AgentIdentifier,
 			RetryCount:      getRetryCount(webhook.RetryCount),
 			Headers:         buildHeaders(webhook.Headers),
-			Body:            &body,
+			BodyTemplate:    &body,
 		})
 	}
 	return &webhooksList, nil

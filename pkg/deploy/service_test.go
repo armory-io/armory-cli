@@ -371,7 +371,7 @@ func (suite *ServiceTestSuite) TestBuildWebhooksSuccess() {
 	suite.EqualValues((*received)[0].NetworkMode, (*webhooks)[0].NetworkMode)
 	suite.EqualValues((*received)[0].AgentIdentifier, (*webhooks)[0].AgentIdentifier)
 	suite.EqualValues((*received)[0].RetryCount, (*webhooks)[0].RetryCount)
-	suite.EqualValues((*received)[0].Body, (*webhooks)[0].BodyTemplate.Inline)
+	suite.EqualValues((*received)[0].BodyTemplate, (*webhooks)[0].BodyTemplate.Inline)
 }
 
 const headersYamlStr = `

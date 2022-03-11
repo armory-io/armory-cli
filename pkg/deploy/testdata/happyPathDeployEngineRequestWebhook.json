@@ -2,6 +2,83 @@
   "application": "app",
   "deployments": [
     {
+      "constraints": {},
+      "environment": "test1",
+      "manifests": [
+        {
+          "inline": {
+            "value": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: test\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: test\n      cluster: test\n  template:\n    metadata:\n      labels:\n        app: test\n        cluster: test\n        log-monitor: 'false'"
+          }
+        },
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        }
+      ],
+      "strategy": {
+        "canary": {
+          "steps": [
+            {
+              "setWeight": {
+                "weight": 33
+              }
+            },
+            {
+              "pause": {
+                "duration": 0,
+                "unit": "NONE",
+                "untilApproved": true
+              }
+            },
+            {
+              "webhookRun": {
+                "context": {
+                  "jobName": "testStrat-strategy1-${target-name}"
+                },
+                "name": "generic-integration"
+              }
+            }
+          ]
+        }
+      },
+      "webhooks": [
+        {
+          "agentIdentifier": "jenkins-rna",
+          "bodyTemplate": "",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Basic ${potato-facts-jenkins-auth}"
+            }
+          ],
+          "method": "POST",
+          "name": "jenkins-integration",
+          "networkMode": "remoteNetworkAgent",
+          "retryCount": 0,
+          "uriTemplate": "https://integrations.armory.io/tests/?token=${secrets.potato-facts-jenkins-secret}"
+        },
+        {
+          "bodyTemplate": "{ \"replicaSetName\": \"${replicaSetName}\", \"jobName\": \"${jobName}\" }",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Bearer ${potato-facts-int-jwt}"
+            },
+            {
+              "key": "Location",
+              "value": "${callbackUri}"
+            }
+          ],
+          "method": "POST",
+          "name": "generic-integration",
+          "networkMode": "direct",
+          "retryCount": 5,
+          "uriTemplate": "https://integrations.armory.io/tests/"
+        }
+      ]
+    },
+    {
       "constraints": {
         "beforeDeployment": [
           {
@@ -46,7 +123,7 @@
       "webhooks": [
         {
           "agentIdentifier": "jenkins-rna",
-          "body": "",
+          "bodyTemplate": "",
           "headers": [
             {
               "key": "Authorization",
@@ -60,84 +137,7 @@
           "uriTemplate": "https://integrations.armory.io/tests/?token=${secrets.potato-facts-jenkins-secret}"
         },
         {
-          "body": "{ \"replicaSetName\": \"${replicaSetName}\", \"jobName\": \"${jobName}\" }",
-          "headers": [
-            {
-              "key": "Authorization",
-              "value": "Bearer ${potato-facts-int-jwt}"
-            },
-            {
-              "key": "Location",
-              "value": "${callbackUri}"
-            }
-          ],
-          "method": "POST",
-          "name": "generic-integration",
-          "networkMode": "direct",
-          "retryCount": 5,
-          "uriTemplate": "https://integrations.armory.io/tests/"
-        }
-      ]
-    },
-    {
-      "constraints": {},
-      "environment": "test1",
-      "manifests": [
-        {
-          "inline": {
-            "value": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: test\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: test\n      cluster: test\n  template:\n    metadata:\n      labels:\n        app: test\n        cluster: test\n        log-monitor: 'false'"
-          }
-        },
-        {
-          "inline": {
-            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
-          }
-        }
-      ],
-      "strategy": {
-        "canary": {
-          "steps": [
-            {
-              "setWeight": {
-                "weight": 33
-              }
-            },
-            {
-              "pause": {
-                "duration": 0,
-                "unit": "NONE",
-                "untilApproved": true
-              }
-            },
-            {
-              "webhookRun": {
-                "context": {
-                  "jobName": "testStrat-strategy1-${target-name}"
-                },
-                "name": "generic-integration"
-              }
-            }
-          ]
-        }
-      },
-      "webhooks": [
-        {
-          "agentIdentifier": "jenkins-rna",
-          "body": "",
-          "headers": [
-            {
-              "key": "Authorization",
-              "value": "Basic ${potato-facts-jenkins-auth}"
-            }
-          ],
-          "method": "POST",
-          "name": "jenkins-integration",
-          "networkMode": "remoteNetworkAgent",
-          "retryCount": 0,
-          "uriTemplate": "https://integrations.armory.io/tests/?token=${secrets.potato-facts-jenkins-secret}"
-        },
-        {
-          "body": "{ \"replicaSetName\": \"${replicaSetName}\", \"jobName\": \"${jobName}\" }",
+          "bodyTemplate": "{ \"replicaSetName\": \"${replicaSetName}\", \"jobName\": \"${jobName}\" }",
           "headers": [
             {
               "key": "Authorization",
@@ -159,14 +159,14 @@
   ],
   "environments": [
     {
-      "account": "account2",
-      "name": "test2",
-      "namespace": "qa"
-    },
-    {
       "account": "account1",
       "name": "test1",
       "namespace": "dev"
+    },
+    {
+      "account": "account2",
+      "name": "test2",
+      "namespace": "qa"
     }
   ]
 }
