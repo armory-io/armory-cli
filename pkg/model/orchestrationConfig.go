@@ -8,7 +8,7 @@ type OrchestrationConfig struct {
 	Manifests   *[]ManifestPath              `yaml:"manifests,omitempty"`
 	Strategies  *map[string]Strategy         `yaml:"strategies,omitempty"`
 	Analysis    *AnalysisConfig              `yaml:"analysis,omitempty"`
-	Webhooks 	*[]WebhookConfig             `yaml:"webhooks,omitempty"`
+	Webhooks    *[]WebhookConfig             `yaml:"webhooks,omitempty"`
 }
 
 type Strategy struct {

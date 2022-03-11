@@ -24,9 +24,9 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		if err != nil {
 			return nil, err
 		}
-		analysis.Queries = *queries
+		analysis.Queries = queries
 	}
-	if len(*config.Webhooks) > 0 {
+	if config.Webhooks != nil {
 		webhooksToAdd, err := buildWebhooks(*config.Webhooks)
 		if err != nil {
 			return nil, err
@@ -69,7 +69,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		}
 		deploymentToAdd := de.PipelinePipelineDeployment{
 			Environment: &envName,
-			Manifests:   *CreateDeploymentManifests(files),
+			Manifests:   CreateDeploymentManifests(files),
 			Strategy:    strategy,
 			Constraints: &pipelineConstraint,
 		}
@@ -77,14 +77,14 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			deploymentToAdd.Analysis = &analysis
 		}
 		if config.Webhooks != nil {
-			deploymentToAdd.Webhooks = *webhooks
+			deploymentToAdd.Webhooks = webhooks
 		}
 		deployments = append(deployments, deploymentToAdd)
 	}
 	req := de.PipelineStartPipelineRequest{
 		Application:  &application,
-		Environments: environments,
-		Deployments:  deployments,
+		Environments: &environments,
+		Deployments:  &deployments,
 	}
 	return &req, nil
 }
@@ -275,14 +275,14 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string)
 			if err != nil {
 				return nil, err
 			}
-			ps.BlueGreen.RedirectTrafficAfter = redirectTrafficAfter
+			ps.BlueGreen.RedirectTrafficAfter = &redirectTrafficAfter
 		}
 		if strategy.BlueGreen.ShutDownOldVersionAfter != nil {
 			shutDownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutDownOldVersionAfter, modelStrategy.Analysis)
 			if err != nil {
 				return nil, err
 			}
-			ps.BlueGreen.ShutDownOldVersionAfter = shutDownOldVersionAfter
+			ps.BlueGreen.ShutDownOldVersionAfter = &shutDownOldVersionAfter
 		}
 		return ps, nil
 	}
@@ -355,7 +355,7 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisCo
 		NumberOfJudgmentRuns:  &analysis.NumberOfJudgmentRuns,
 		AbortOnFailedJudgment: &analysis.AbortOnFailedJudgment,
 		LookbackMethod:        lookbackMethod,
-		Queries:               *analysis.Queries,
+		Queries:               analysis.Queries,
 	}, nil
 }
 
@@ -519,7 +519,7 @@ func buildWebhooks(webhooks []model.WebhookConfig) (*[]de.WebhooksWebhookRunConf
 			NetworkMode:     webhook.NetworkMode,
 			AgentIdentifier: webhook.AgentIdentifier,
 			RetryCount:      getRetryCount(webhook.RetryCount),
-			Headers:         *buildHeaders(webhook.Headers),
+			Headers:         buildHeaders(webhook.Headers),
 			Body:            &body,
 		})
 	}
