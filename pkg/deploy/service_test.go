@@ -2,8 +2,10 @@ package deploy
 
 import (
 	"encoding/json"
+	"fmt"
 	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/armory/armory-cli/pkg/util"
 	"github.com/r3labs/diff"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -323,3 +325,100 @@ const testAppYamlStr = `
 apiVersion: apps/v1
 kind: Deployment
 `
+
+func (suite *ServiceTestSuite) TestCreateDeploymentWebhookRequestSuccess() {
+	received, err := createDeploymentForTests(suite, "testdata/happyPathDeploymentFileWebhook.yaml")
+	if err != nil {
+		suite.T().Fatal(err)
+	}
+	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequestWebhook.json")
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+	}
+
+	expectedReq := de.PipelineStartPipelineRequest{}
+	err = json.Unmarshal(expectedJsonStr, &expectedReq)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+	}
+	e, err := json.Marshal(*received)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(e))
+	diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+	suite.NoError(err)
+	suite.Len(diffOfExpectedAndRecieved, 0)
+}
+
+func (suite *ServiceTestSuite) TestBuildWebhooksSuccess() {
+	yamlFile, err := ioutil.ReadFile("testdata/happyWebhookConfig.yaml")
+	if err != nil {
+		suite.T().Fatalf("TestBuildHeadersSuccess failed with: Error Unmarshalling Headers YAML string to obj %s", err)
+	}
+	var webhooks *[]model.WebhookConfig
+	err = yaml.Unmarshal(yamlFile, &webhooks)
+	if err != nil {
+		suite.T().Fatalf("TestBuildHeadersSuccess failed with: Error Unmarshalling Headers YAML string to obj %s", err)
+	}
+	received, err := buildWebhooks(*webhooks)
+
+	suite.Equal(len(*received), len(*webhooks))
+	suite.EqualValues((*received)[0].Name, (*webhooks)[0].Name)
+	suite.EqualValues((*received)[0].Method, (*webhooks)[0].Method)
+	suite.EqualValues((*received)[0].UriTemplate, (*webhooks)[0].UriTemplate)
+	suite.EqualValues((*received)[0].NetworkMode, (*webhooks)[0].NetworkMode)
+	suite.EqualValues((*received)[0].AgentIdentifier, (*webhooks)[0].AgentIdentifier)
+	suite.EqualValues((*received)[0].RetryCount, (*webhooks)[0].RetryCount)
+	suite.EqualValues((*received)[0].BodyTemplate, (*webhooks)[0].BodyTemplate.Inline)
+}
+
+const headersYamlStr = `
+- key: key1
+  value: value1
+- key: key2
+  value: value2
+`
+
+func (suite *ServiceTestSuite) TestBuildHeadersSuccess() {
+	var headers *[]model.Header
+	err := yaml.Unmarshal([]byte(headersYamlStr), &headers)
+	if err != nil {
+		suite.T().Fatalf("TestBuildHeadersSuccess failed with: Error Unmarshalling Headers YAML string to obj %s", err)
+	}
+	received := buildHeaders(headers)
+	suite.Equal(len(*received), len(*headers))
+	suite.EqualValues((*received)[0], (*headers)[0])
+	suite.EqualValues((*received)[1], (*headers)[1])
+}
+
+func (suite *ServiceTestSuite) TestBuildBodyInlineSuccess() {
+	inline := "{test1: value1, test2: value2}"
+	bodyTemplate := model.Body{
+		Inline: &inline,
+	}
+	received, err := buildBody(&bodyTemplate)
+	if err != nil {
+		suite.T().Fatalf("TestBuildBodyInlineSuccess failed with:  %s", err)
+	}
+	suite.Equal(received, inline)
+}
+
+func (suite *ServiceTestSuite) TestBuildBodyPathSuccess() {
+	content := "{test1: value1, test2: value2}"
+	tempFile := util.TempAppFile("", "app", content)
+	if tempFile == nil {
+		suite.T().Fatal("TestBuildBodyPathSuccess failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
+	path := tempFile.Name()
+	bodyTemplate := model.Body{
+		Path: &path,
+	}
+	received, err := buildBody(&bodyTemplate)
+	if err != nil {
+		suite.T().Fatalf("TestBuildBodyPathSuccess failed with:  %s", err)
+	}
+	suite.Equal(received, content)
+}

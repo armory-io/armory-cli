@@ -17,6 +17,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 	environments := make([]de.PipelinePipelineEnvironment, 0, len(*config.Targets))
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
 	var analysis de.AnalysisAnalysisConfig
+	var webhooks *[]de.WebhooksWebhookRunConfig
 	if config.Analysis != nil {
 		analysis.DefaultAccount = &config.Analysis.DefaultMetricProviderName
 		queries, err := CreateAnalysisQueries(*config.Analysis, config.Analysis.DefaultMetricProviderName)
@@ -24,6 +25,13 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			return nil, err
 		}
 		analysis.Queries = queries
+	}
+	if config.Webhooks != nil {
+		webhooksToAdd, err := buildWebhooks(*config.Webhooks)
+		if err != nil {
+			return nil, err
+		}
+		webhooks = webhooksToAdd
 	}
 	for key, element := range *config.Targets {
 
@@ -67,6 +75,9 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		}
 		if config.Analysis != nil {
 			deploymentToAdd.Analysis = &analysis
+		}
+		if config.Webhooks != nil {
+			deploymentToAdd.Webhooks = webhooks
 		}
 		deployments = append(deployments, deploymentToAdd)
 	}
@@ -115,6 +126,16 @@ func createDeploymentCanarySteps(strategy model.Strategy, analysisConfig *model.
 				steps,
 				de.KubernetesV2CanaryStep{
 					Analysis: analysis,
+				})
+		}
+		if step.RunWebhook != nil {
+			steps = append(
+				steps,
+				de.KubernetesV2CanaryStep{
+					WebhookRun: &de.WebhooksWebhookRunStepInput{
+						Name: step.RunWebhook.Name,
+						Context: step.RunWebhook.Context,
+					},
 				})
 		}
 	}
@@ -478,4 +499,60 @@ func findByName(queries []model.Query, name string) *model.Query {
 		}
 	}
 	return nil
+}
+
+func buildWebhooks(webhooks []model.WebhookConfig) (*[]de.WebhooksWebhookRunConfig, error) {
+	var webhooksList []de.WebhooksWebhookRunConfig
+	for _, webhook := range webhooks {
+		var body string
+		if webhook.BodyTemplate != nil {
+			var err error
+			body, err = buildBody(webhook.BodyTemplate)
+			if err != nil{
+				return nil, err
+			}
+		}
+		webhooksList = append(webhooksList, de.WebhooksWebhookRunConfig{
+			Name:            webhook.Name,
+			Method:          webhook.Method,
+			UriTemplate:     webhook.UriTemplate,
+			NetworkMode:     webhook.NetworkMode,
+			AgentIdentifier: webhook.AgentIdentifier,
+			RetryCount:      getRetryCount(webhook.RetryCount),
+			Headers:         buildHeaders(webhook.Headers),
+			BodyTemplate:    &body,
+		})
+	}
+	return &webhooksList, nil
+}
+
+func buildHeaders(headers *[]model.Header) *[]de.WebhooksWebhookHeaders {
+	var headersList []de.WebhooksWebhookHeaders
+	for _, header := range *headers {
+		headersList = append(headersList, de.WebhooksWebhookHeaders{
+			Key: header.Key,
+			Value: header.Value,
+
+		})
+	}
+	return &headersList
+}
+
+func buildBody(bodyTemplate *model.Body) (string, error) {
+	if bodyTemplate.Path != nil {
+		content, err := ioutil.ReadFile(*bodyTemplate.Path)
+		if err != nil {
+			return "", errors.New("unable to read body template file")
+		}
+		return string(content), nil
+	}
+	return *bodyTemplate.Inline, nil
+}
+
+func getRetryCount(retries *int32) *int32 {
+	if retries == nil {
+		def := int32(0)
+		return &def
+	}
+	return retries
 }
