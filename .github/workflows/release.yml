@@ -274,4 +274,18 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_PATH=./build/dist/linux_amd64/armory
+  scan-image:
+    name: CVE Image Scan
+    needs:
+      - build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Security Scan
+        uses: armory-io/aquasec-scan-action@v0.0.8
+        with:
+          url: https://aquasec.armory.io
+          registry: Dockerhub
+          username: ${{ secrets.AQUA_USER }}
+          password: ${{ secrets.AQUA_PASSWORD }}
+          image: armory/armory-cli:${{needs.setup.outputs.version}}
 
