@@ -44,7 +44,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		})
 
 
-		strategy, err := buildStrategy(*config, element.Strategy)
+		strategy, err := buildStrategy(*config, element.Strategy, key)
 		if err != nil {
 			return nil, err
 		}
@@ -246,7 +246,7 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 	return pipelineConstraints, nil
 }
 
-func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string) (*de.PipelinePipelineStrategy, error) {
+func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string) (*de.PipelinePipelineStrategy, error) {
 	configStrategies := *modelStrategy.Strategies
 	strategy := configStrategies[strategyName]
 	if strategy.Canary != nil {
@@ -254,9 +254,14 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string)
 		if err != nil {
 			return nil, err
 		}
+		tm, err := createTrafficManagement(&modelStrategy, target)
+		if err != nil {
+			return nil, fmt.Errorf("invalid traffic management config: %s", err)
+		}
 		return &de.PipelinePipelineStrategy{
 			Canary: &de.KubernetesV2CanaryStrategy{
 				Steps: steps,
+				TrafficManagement: tm,
 			},
 		}, nil
 	} else if strategy.BlueGreen != nil {
@@ -288,6 +293,40 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string)
 	}
 
 	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
+}
+
+func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*[]de.KubernetesV2TrafficManagement, error) {
+	if mo.TrafficManagement == nil {
+		return nil, nil
+	}
+	var tms []de.KubernetesV2TrafficManagement
+	for _, tm := range *mo.TrafficManagement {
+		for _, t := range tm.Targets {
+			if t == currentTarget && tm.SMI != nil {
+				var configErrors []string
+				if tm.SMI.RootServiceName == nil {
+					configErrors = append(configErrors,"rootServiceName required in smi")
+				}
+				if tm.SMI.CanaryServiceName == nil {
+					configErrors = append(configErrors,"canaryServiceName required in smi")
+				}
+				if tm.SMI.TrafficSplitName == nil {
+					configErrors = append(configErrors,"trafficSplitName required in smi")
+				}
+				if len(configErrors) > 0 {
+					return nil, errors.New(strings.Join(configErrors, ", "))
+				}
+				tms = append(tms, de.KubernetesV2TrafficManagement{
+					Smi: &de.KubernetesV2SmiTrafficManagementConfig{
+						RootServiceName: tm.SMI.RootServiceName,
+						CanaryServiceName: tm.SMI.CanaryServiceName,
+						TrafficSplitName: tm.SMI.TrafficSplitName,
+					},
+				})
+			}
+		}
+	}
+	return &tms, nil
 }
 
 func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisConfig *model.AnalysisConfig) (*de.AnalysisAnalysisStepInput, error) {
