@@ -21,8 +21,9 @@ targets:
 trafficManagement:
   - targets: ["test1"]
     smi:
-      rootServiceName: "qa-service-root"
-      # missing traffic split and canary services
+      canaryServiceName: "qa-service-canary"
+      trafficSplitName: "qa-service-split"
+      # missing root
 analysis:
   defaultMetricProviderName: newrelic-prod
   queries:

@@ -123,7 +123,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() 
 		},
 		{
 			"testdata/sadPathDeploymentFileTrafficManagement.yaml",
-			"invalid traffic management config: canaryServiceName required in smi, trafficSplitName required in smi",
+			"invalid traffic management config: rootServiceName required in smi",
 		},
 	}
 

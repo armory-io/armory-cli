@@ -303,18 +303,8 @@ func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string
 	for _, tm := range *mo.TrafficManagement {
 		for _, t := range tm.Targets {
 			if t == currentTarget && tm.SMI != nil {
-				var configErrors []string
 				if tm.SMI.RootServiceName == nil {
-					configErrors = append(configErrors,"rootServiceName required in smi")
-				}
-				if tm.SMI.CanaryServiceName == nil {
-					configErrors = append(configErrors,"canaryServiceName required in smi")
-				}
-				if tm.SMI.TrafficSplitName == nil {
-					configErrors = append(configErrors,"trafficSplitName required in smi")
-				}
-				if len(configErrors) > 0 {
-					return nil, errors.New(strings.Join(configErrors, ", "))
+					return nil, errors.New("rootServiceName required in smi")
 				}
 				tms = append(tms, de.KubernetesV2TrafficManagement{
 					Smi: &de.KubernetesV2SmiTrafficManagementConfig{
