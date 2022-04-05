@@ -5,16 +5,16 @@ go 1.16
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
 	github.com/armory-io/deploy-engine v0.3.0
+	github.com/danielgtaylor/huma v1.3.3
 	github.com/jarcoal/httpmock v1.0.8
 	github.com/lestrrat-go/jwx v1.2.6
 	github.com/manifoldco/promptui v0.8.0
 	github.com/pkg/browser v0.0.0-20210706143420-7d21f8c997e2
 	github.com/sirupsen/logrus v1.8.1
-	github.com/spf13/cobra v1.2.1
+	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816
-	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b

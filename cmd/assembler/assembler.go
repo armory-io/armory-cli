@@ -6,6 +6,7 @@ import (
 	"github.com/armory/armory-cli/cmd/deploy"
 	"github.com/armory/armory-cli/cmd/login"
 	"github.com/armory/armory-cli/cmd/logout"
+	"github.com/armory/armory-cli/cmd/schema"
 	"github.com/armory/armory-cli/cmd/template"
 	"github.com/armory/armory-cli/cmd/version"
 	"github.com/spf13/cobra"
@@ -18,6 +19,7 @@ func AddSubCommands(rootCmd *cobra.Command, rootOpts *cmd.RootOptions) {
 	rootCmd.AddCommand(version.NewCmdVersion())
 	rootCmd.AddCommand(deploy.NewDeployCmd(rootOpts))
 	rootCmd.AddCommand(template.NewTemplateCmd(rootOpts))
+	rootCmd.AddCommand(schema.NewSchemaCmd(rootOpts))
 	rootCmd.AddCommand(login.NewLoginCmd(rootOpts))
 	rootCmd.AddCommand(logout.NewLogoutCmd(rootOpts))
 	setPersistentFlagsFromEnvVariables(rootCmd.Commands())
