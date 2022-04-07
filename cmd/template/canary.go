@@ -77,16 +77,16 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 		case "manual":
 			stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, pauseUA)
 		case "traffic":
-			trafficNode, trafficValuesNode := util.BuildSequenceNode("trafficManagement", "test1")
+			trafficNode, trafficValuesNode := util.BuildSequenceNode("trafficManagement", "")
 			trafficItemNode := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 
-			targetSliceNode, targetSliceValuesNode := util.BuildSequenceNode("targets", "Specify a list of target names where the traffic management should occur. They should be defined in the top level targets block.")
+			targetSliceNode, targetSliceValuesNode := util.BuildSequenceNodeWithTailComment("targets", "Specify a list of target names where the traffic management should occur. They should be defined in the top level targets block.")
 			trafficItemNode.Content = append(trafficItemNode.Content, targetSliceNode, targetSliceValuesNode)
 
 			smiNode, smiValuesNode := util.BuildMapNode("smi", "")
-			smiValuesNode.Content = append(smiValuesNode.Content, util.BuildStringNode("rootServiceName", "", "Name of the root service for deployment. The root service is required and must exist in your target environment at the time of deployment")...)
+			smiValuesNode.Content = append(smiValuesNode.Content, util.BuildStringNode("rootServiceName", "", "Name of the root service for deployment. The root service is required and must exist in your target environment at the time of deployment.")...)
 			smiValuesNode.Content = append(smiValuesNode.Content, util.BuildStringNode("trafficSplitName", "", "Optional name of the service serving the new version. By default, \"<rootServiceName>-canary\".")...)
-			smiValuesNode.Content = append(smiValuesNode.Content, util.BuildStringNode("canaryServiceName", "", "Optional name of the auto-generated trafficSplit custom resource. By default \"<rootServiceName>\"")...)
+			smiValuesNode.Content = append(smiValuesNode.Content, util.BuildStringNode("canaryServiceName", "", "Optional name of the auto-generated trafficSplit custom resource. By default \"<rootServiceName>\".")...)
 			trafficItemNode.Content = append(trafficItemNode.Content, smiNode, smiValuesNode)
 			trafficValuesNode.Content = append(trafficValuesNode.Content, trafficItemNode)
 			root.Content = append(root.Content, trafficNode, trafficValuesNode)
