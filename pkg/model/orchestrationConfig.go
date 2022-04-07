@@ -132,7 +132,7 @@ type WebhookStep struct {
 
 type TrafficManagement struct {
 	Targets []string `yaml:"targets,omitempty"`
-	SMI     *SMI     `yaml:"smi,omitempty"`
+	SMI     []SMI     `yaml:"smi,omitempty"`
 }
 
 type SMI struct {

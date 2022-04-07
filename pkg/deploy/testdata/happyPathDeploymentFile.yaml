@@ -21,14 +21,14 @@ targets:
 trafficManagement:
   - targets: ["test1"]
     smi:
-      rootServiceName: "qa-service-root"
-      canaryServiceName: "qa-service-canary"
-      trafficSplitName: "qa-service-split"
+      - rootServiceName: "qa-service-root"
+        canaryServiceName: "qa-service-canary"
+        trafficSplitName: "qa-service-split"
   - targets: ["test2"]
     smi:
-      rootServiceName: "dev-service-root"
-      canaryServiceName: "dev-service-canary"
-      trafficSplitName: "dev-service-split"
+      - rootServiceName: "dev-service-root"
+        canaryServiceName: "dev-service-canary"
+        trafficSplitName: "dev-service-split"
 analysis:
   defaultMetricProviderName: newrelic-prod
   queries:

@@ -302,18 +302,23 @@ func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string
 	var tms []de.KubernetesV2TrafficManagement
 	for _, tm := range *mo.TrafficManagement {
 		for _, t := range tm.Targets {
-			if t == currentTarget && tm.SMI != nil {
-				if tm.SMI.RootServiceName == nil {
+			if t == currentTarget && len(tm.SMI) > 0 {
+				// TODO(cat):
+				// Take the first SMI config for now,
+				// but iterate through SMIs when multiple deployments implemented in Deploy Engine
+				smi := tm.SMI[0]
+				if smi.RootServiceName == nil {
 					return nil, errors.New("rootServiceName required in smi")
 				}
 				tms = append(tms, de.KubernetesV2TrafficManagement{
 					Smi: &de.KubernetesV2SmiTrafficManagementConfig{
-						RootServiceName: tm.SMI.RootServiceName,
-						CanaryServiceName: tm.SMI.CanaryServiceName,
-						TrafficSplitName: tm.SMI.TrafficSplitName,
+						RootServiceName: smi.RootServiceName,
+						CanaryServiceName: smi.CanaryServiceName,
+						TrafficSplitName: smi.TrafficSplitName,
 					},
 				})
 			}
+
 		}
 	}
 	return &tms, nil
