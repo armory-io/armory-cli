@@ -188,6 +188,8 @@ github.com/armory-io/deploy-engine v0.30.0 h1:QC5yXbHkXIRKgkhLWWFiNETBz2CY/C+eVA
 github.com/armory-io/deploy-engine v0.30.0/go.mod h1:DYXXyvIrz0m98HGy0tfLvpffEnGjY7uRLYyitYwf8QY=
 github.com/armory-io/deploy-engine v0.37.0 h1:bNfyFzCi3AgKUCFG6lXVDBS84Z0yFs5AmbEBjJpqjgQ=
 github.com/armory-io/deploy-engine v0.37.0/go.mod h1:Y+WRLOi++qcicN8jajqmmYcqsuw59TNGkrpzd9NMP50=
+github.com/armory-io/deploy-engine v0.39.0 h1:JXswwgrT/LUKntgE92E3bpWwuxkKNXZVJcMShhPokaQ=
+github.com/armory-io/deploy-engine v0.39.0/go.mod h1:3/N3NRMuKhVbEPKNVc9JPSII2gyy1jY76wmjC/ARuPE=
 github.com/armory-io/go-cloud-service v0.8.0-79558ea/go.mod h1:03Nm/K0jn+kr/l3cTsZqdBGPkpjzIocy1vPcpd+zu9M=
 github.com/armory-io/go-spec v0.0.5/go.mod h1:N+tcRZD8J8/zNUUs+/EFhx/uz9XAd6T2MnZRPACuAyQ=
 github.com/armory-io/go-spec v0.1.0 h1:odzZH7AB/61HhtPmYC38550A73UGF0jx65WRlrvGn/Y=
