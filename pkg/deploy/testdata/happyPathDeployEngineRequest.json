@@ -47,15 +47,20 @@
       },
       "strategy": {
         "canary": {
-          "trafficManagement": [
-            {
-              "smi": {
+          "trafficManagement": {
+            "smi": [
+              {
                 "rootServiceName": "qa-service-root",
                 "canaryServiceName": "qa-service-canary",
                 "trafficSplitName": "qa-service-split"
+              },
+              {
+                "rootServiceName": "qa-service-root2",
+                "canaryServiceName": "qa-service-canary2",
+                "trafficSplitName": "qa-service-split2"
               }
-            }
-          ],
+            ]
+          },
           "steps": [
             {
               "setWeight": {
@@ -143,15 +148,15 @@
       ],
       "strategy": {
         "canary": {
-          "trafficManagement": [
-            {
-              "smi": {
+          "trafficManagement": {
+            "smi": [
+              {
                 "rootServiceName": "dev-service-root",
                 "canaryServiceName": "dev-service-canary",
                 "trafficSplitName": "dev-service-split"
               }
-            }
-          ],
+            ]
+          },
           "steps": [
             {
               "setWeight": {

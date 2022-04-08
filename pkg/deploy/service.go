@@ -295,30 +295,21 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
 }
 
-func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*[]de.KubernetesV2TrafficManagement, error) {
+func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.KubernetesV2TrafficManagement, error) {
 	if mo.TrafficManagement == nil {
 		return nil, nil
 	}
-	var tms []de.KubernetesV2TrafficManagement
+	var tms de.KubernetesV2TrafficManagement
 	for _, tm := range *mo.TrafficManagement {
 		for _, t := range tm.Targets {
 			if t == currentTarget && len(tm.SMI) > 0 {
-				// TODO(cat):
-				// Take the first SMI config for now,
-				// but iterate through SMIs when multiple deployments implemented in Deploy Engine
-				smi := tm.SMI[0]
-				if smi.RootServiceName == nil {
-					return nil, errors.New("rootServiceName required in smi")
+				smis, err := createSMIs(tm)
+				if err != nil {
+					return nil, err
 				}
-				tms = append(tms, de.KubernetesV2TrafficManagement{
-					Smi: &de.KubernetesV2SmiTrafficManagementConfig{
-						RootServiceName: smi.RootServiceName,
-						CanaryServiceName: smi.CanaryServiceName,
-						TrafficSplitName: smi.TrafficSplitName,
-					},
-				})
+				tms.Smi = smis
+				break
 			}
-
 		}
 	}
 	return &tms, nil
@@ -589,4 +580,19 @@ func getRetryCount(retries *int32) *int32 {
 		return &def
 	}
 	return retries
+}
+
+func createSMIs(tm model.TrafficManagement) (*[]de.KubernetesV2SmiTrafficManagementConfig, error) {
+	var smis []de.KubernetesV2SmiTrafficManagementConfig
+	for _, s := range tm.SMI {
+		if s.RootServiceName == nil {
+			return nil, errors.New("rootServiceName required in smi")
+		}
+		smis = append(smis, de.KubernetesV2SmiTrafficManagementConfig{
+			RootServiceName: s.RootServiceName,
+			CanaryServiceName: s.CanaryServiceName,
+			TrafficSplitName: s.TrafficSplitName,
+		})
+	}
+	return &smis, nil
 }
