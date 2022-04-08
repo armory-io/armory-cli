@@ -1,14 +1,15 @@
 package model
 
 type OrchestrationConfig struct {
-	Version     string                       `yaml:"version,omitempty"`
-	Kind        string                       `yaml:"kind,omitempty"`
-	Application string                       `yaml:"application,omitempty"`
-	Targets     *map[string]DeploymentTarget `yaml:"targets,omitempty"`
-	Manifests   *[]ManifestPath              `yaml:"manifests,omitempty"`
-	Strategies  *map[string]Strategy         `yaml:"strategies,omitempty"`
-	Analysis    *AnalysisConfig              `yaml:"analysis,omitempty"`
-	Webhooks    *[]WebhookConfig             `yaml:"webhooks,omitempty"`
+	Version           string                       `yaml:"version,omitempty"`
+	Kind              string                       `yaml:"kind,omitempty"`
+	Application       string                       `yaml:"application,omitempty"`
+	Targets           *map[string]DeploymentTarget `yaml:"targets,omitempty"`
+	Manifests         *[]ManifestPath              `yaml:"manifests,omitempty"`
+	Strategies        *map[string]Strategy         `yaml:"strategies,omitempty"`
+	Analysis          *AnalysisConfig              `yaml:"analysis,omitempty"`
+	Webhooks          *[]WebhookConfig             `yaml:"webhooks,omitempty"`
+	TrafficManagement *[]TrafficManagement         `yaml:"trafficManagement,omitempty"`
 }
 
 type Strategy struct {
@@ -115,16 +116,27 @@ type WebhookConfig struct {
 }
 
 type Header struct {
-	Key    *string `yaml:"key,omitempty"`
-	Value  *string `yaml:"value,omitempty"`
+	Key   *string `yaml:"key,omitempty"`
+	Value *string `yaml:"value,omitempty"`
 }
 
-type Body struct{
+type Body struct {
 	Inline *string `yaml:"inline,omitempty"`
 	Path   *string `yaml:"path,omitempty"`
 }
 
-type WebhookStep struct{
+type WebhookStep struct {
 	Name    *string            `yaml:"name,omitempty"`
 	Context *map[string]string `yaml:"context,omitempty"`
+}
+
+type TrafficManagement struct {
+	Targets []string `yaml:"targets,omitempty"`
+	SMI     []SMI     `yaml:"smi,omitempty"`
+}
+
+type SMI struct {
+	RootServiceName   *string `yaml:"rootServiceName,omitempty"`
+	CanaryServiceName *string `yaml:"canaryServiceName,omitempty"`
+	TrafficSplitName  *string `yaml:"trafficSplitName,omitempty"`
 }

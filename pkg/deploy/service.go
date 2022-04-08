@@ -44,7 +44,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		})
 
 
-		strategy, err := buildStrategy(*config, element.Strategy)
+		strategy, err := buildStrategy(*config, element.Strategy, key)
 		if err != nil {
 			return nil, err
 		}
@@ -246,7 +246,7 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 	return pipelineConstraints, nil
 }
 
-func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string) (*de.PipelinePipelineStrategy, error) {
+func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string) (*de.PipelinePipelineStrategy, error) {
 	configStrategies := *modelStrategy.Strategies
 	strategy := configStrategies[strategyName]
 	if strategy.Canary != nil {
@@ -254,9 +254,14 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string)
 		if err != nil {
 			return nil, err
 		}
+		tm, err := createTrafficManagement(&modelStrategy, target)
+		if err != nil {
+			return nil, fmt.Errorf("invalid traffic management config: %s", err)
+		}
 		return &de.PipelinePipelineStrategy{
 			Canary: &de.KubernetesV2CanaryStrategy{
 				Steps: steps,
+				TrafficManagement: tm,
 			},
 		}, nil
 	} else if strategy.BlueGreen != nil {
@@ -288,6 +293,26 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string)
 	}
 
 	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
+}
+
+func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.KubernetesV2TrafficManagement, error) {
+	if mo.TrafficManagement == nil {
+		return nil, nil
+	}
+	var tms de.KubernetesV2TrafficManagement
+	for _, tm := range *mo.TrafficManagement {
+		for _, t := range tm.Targets {
+			if t == currentTarget && len(tm.SMI) > 0 {
+				smis, err := createSMIs(tm)
+				if err != nil {
+					return nil, err
+				}
+				tms.Smi = smis
+				break
+			}
+		}
+	}
+	return &tms, nil
 }
 
 func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisConfig *model.AnalysisConfig) (*de.AnalysisAnalysisStepInput, error) {
@@ -555,4 +580,19 @@ func getRetryCount(retries *int32) *int32 {
 		return &def
 	}
 	return retries
+}
+
+func createSMIs(tm model.TrafficManagement) (*[]de.KubernetesV2SmiTrafficManagementConfig, error) {
+	var smis []de.KubernetesV2SmiTrafficManagementConfig
+	for _, s := range tm.SMI {
+		if s.RootServiceName == nil {
+			return nil, errors.New("rootServiceName required in smi")
+		}
+		smis = append(smis, de.KubernetesV2SmiTrafficManagementConfig{
+			RootServiceName: s.RootServiceName,
+			CanaryServiceName: s.CanaryServiceName,
+			TrafficSplitName: s.TrafficSplitName,
+		})
+	}
+	return &smis, nil
 }

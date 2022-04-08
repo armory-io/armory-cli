@@ -121,6 +121,10 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() 
 			"testdata/sadPathDeploymentFileBadPause3.yaml",
 			"pause is not valid: duration must be set with a unit",
 		},
+		{
+			"testdata/sadPathDeploymentFileTrafficManagement.yaml",
+			"invalid traffic management config: rootServiceName required in smi",
+		},
 	}
 
 	for _, c := range cases {
@@ -317,7 +321,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisErrors() {
 func TestBuildStrategy(t *testing.T) {
 	_, err := buildStrategy(model.OrchestrationConfig{
 		Strategies: &map[string]model.Strategy{},
-	}, "fakeStrategy")
+	}, "fakeStrategy", "fakeTarget")
 	assert.Errorf(t, err, "fakeStrategy is not a valid strategy; define canary or blueGreen strategy")
 }
 

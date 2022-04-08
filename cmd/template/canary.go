@@ -32,7 +32,7 @@ func NewTemplateCanaryCmd(templateOptions *templateOptions) *cobra.Command {
 			return canary(cmd, options, args)
 		},
 	}
-	cmd.Flags().StringArrayVarP(&options.features, "features", "f", []string {}, "features to include in the template. Available options [manual, automated]")
+	cmd.Flags().StringArrayVarP(&options.features, "features", "f", []string {}, "features to include in the template. Available options [manual, automated, traffic]")
 	return cmd
 }
 
@@ -73,10 +73,24 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 		options.features = append(options.features, "manual")
 	}
 	for _, feature := range options.features {
-		switch {
-		case feature == "manual":
+		switch feature {
+		case "manual":
 			stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, pauseUA)
-		case feature == "automated":
+		case "traffic":
+			trafficNode, trafficValuesNode := util.BuildSequenceNode("trafficManagement", "")
+			trafficItemNode := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+
+			targetSliceNode, targetSliceValuesNode := util.BuildSequenceNodeWithTailComment("targets", "Specify a list of target names where the traffic management should occur. They should be defined in the top level targets block.")
+			trafficItemNode.Content = append(trafficItemNode.Content, targetSliceNode, targetSliceValuesNode)
+
+			smiNode, smiValuesNode := util.BuildMapNode("smi", "")
+			smiValuesNode.Content = append(smiValuesNode.Content, util.BuildStringNode("rootServiceName", "", "Name of the root service for deployment. The root service is required and must exist in your target environment at the time of deployment.")...)
+			smiValuesNode.Content = append(smiValuesNode.Content, util.BuildStringNode("trafficSplitName", "", "Optional name of the service serving the new version. By default, \"<rootServiceName>-canary\".")...)
+			smiValuesNode.Content = append(smiValuesNode.Content, util.BuildStringNode("canaryServiceName", "", "Optional name of the auto-generated trafficSplit custom resource. By default \"<rootServiceName>\".")...)
+			trafficItemNode.Content = append(trafficItemNode.Content, smiNode, smiValuesNode)
+			trafficValuesNode.Content = append(trafficValuesNode.Content, trafficItemNode)
+			root.Content = append(root.Content, trafficNode, trafficValuesNode)
+		case "automated":
 			// automated adds an analysis definition at the root level
 			analysisNode, analysisValuesNode := util.BuildMapNode("analysis", "Define queries and thresholds used for automated analysis.")
 			defaultMetricProviderNameNode := util.BuildStringNode("defaultMetricProviderName", "prometheus-prod", "Optional. Name of the default provider to use for the queries. Add providers in the Configuration UI.")
