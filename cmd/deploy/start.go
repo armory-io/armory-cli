@@ -114,7 +114,7 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 		return fmt.Errorf("error converting deployment object: %s", err)
 	}
 
-	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second*10)
+	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Minute)
 	defer cancel()
 	// prepare request
 	request := options.DeployClient.DeploymentServiceApi.
