@@ -83,10 +83,14 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 			targetSliceNode, targetSliceValuesNode := util.BuildSequenceNodeWithTailComment("targets", "Specify a list of target names where the traffic management should occur. They should be defined in the top level targets block.")
 			trafficItemNode.Content = append(trafficItemNode.Content, targetSliceNode, targetSliceValuesNode)
 
-			smiNode, smiValuesNode := util.BuildMapNode("smi", "")
-			smiValuesNode.Content = append(smiValuesNode.Content, util.BuildStringNode("rootServiceName", "", "Name of the root service for deployment. The root service is required and must exist in your target environment at the time of deployment.")...)
-			smiValuesNode.Content = append(smiValuesNode.Content, util.BuildStringNode("trafficSplitName", "", "Optional name of the service serving the new version. By default, \"<rootServiceName>-canary\".")...)
-			smiValuesNode.Content = append(smiValuesNode.Content, util.BuildStringNode("canaryServiceName", "", "Optional name of the auto-generated trafficSplit custom resource. By default \"<rootServiceName>\".")...)
+			smiNode, smiValuesNode := util.BuildSequenceNode("smi", "")
+			smiItemNode := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+
+			smiItemNode.Content = append(smiItemNode.Content, util.BuildStringNode("rootServiceName", "", "Name of the root service for deployment. The root service is required and must exist in your target environment at the time of deployment.")...)
+			smiItemNode.Content = append(smiItemNode.Content, util.BuildStringNode("trafficSplitName", "", "Optional name of the service serving the new version. By default, \"<rootServiceName>-canary\".")...)
+			smiItemNode.Content = append(smiItemNode.Content, util.BuildStringNode("canaryServiceName", "", "Optional name of the auto-generated trafficSplit custom resource. By default \"<rootServiceName>\".")...)
+			smiValuesNode.Content = append(smiValuesNode.Content, smiItemNode)
+
 			trafficItemNode.Content = append(trafficItemNode.Content, smiNode, smiValuesNode)
 			trafficValuesNode.Content = append(trafficValuesNode.Content, trafficItemNode)
 			root.Content = append(root.Content, trafficNode, trafficValuesNode)

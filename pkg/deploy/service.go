@@ -301,14 +301,22 @@ func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string
 	}
 	var tms de.KubernetesV2TrafficManagement
 	for _, tm := range *mo.TrafficManagement {
-		for _, t := range tm.Targets {
-			if t == currentTarget && len(tm.SMI) > 0 {
-				smis, err := createSMIs(tm)
-				if err != nil {
-					return nil, err
-				}
+		if len(tm.SMI) > 0 {
+			smis, err := createSMIs(tm)
+			if err != nil {
+				return nil, err
+			}
+			// missing targets means smi config will be applied to all targets
+			if len(tm.Targets) == 0  {
 				tms.Smi = smis
 				break
+			}
+			// otherwise we apply the smi config to user-defined targets
+			for _, t := range tm.Targets {
+				if t == currentTarget {
+					tms.Smi = smis
+					break
+				}
 			}
 		}
 	}
