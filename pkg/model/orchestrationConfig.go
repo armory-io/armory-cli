@@ -36,8 +36,9 @@ type BlueGreenStrategy struct {
 }
 
 type BlueGreenCondition struct {
-	Pause    *PauseStep    `yaml:"pause,omitempty"`
-	Analysis *AnalysisStep `yaml:"analysis,omitempty"`
+	Pause      *PauseStep    `yaml:"pause,omitempty"`
+	Analysis   *AnalysisStep `yaml:"analysis,omitempty"`
+	RunWebhook *WebhookStep  `yaml:"runWebhook,omitempty"`
 }
 
 type WeightStep struct {
@@ -76,8 +77,8 @@ type DeploymentTarget struct {
 }
 
 type AnalysisConfig struct {
-	DefaultMetricProviderName string `yaml:"defaultMetricProviderName,omitempty"`
-	Queries        *[]Query      `yaml:"queries,omitempty"`
+	DefaultMetricProviderName string   `yaml:"defaultMetricProviderName,omitempty"`
+	Queries                   *[]Query `yaml:"queries,omitempty"`
 }
 
 type Query struct {
@@ -132,7 +133,7 @@ type WebhookStep struct {
 
 type TrafficManagement struct {
 	Targets []string `yaml:"targets,omitempty"`
-	SMI     []SMI     `yaml:"smi,omitempty"`
+	SMI     []SMI    `yaml:"smi,omitempty"`
 }
 
 type SMI struct {

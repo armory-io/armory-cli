@@ -43,7 +43,6 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			Account:   &target.Account,
 		})
 
-
 		strategy, err := buildStrategy(*config, element.Strategy, key)
 		if err != nil {
 			return nil, err
@@ -133,7 +132,7 @@ func createDeploymentCanarySteps(strategy model.Strategy, analysisConfig *model.
 				steps,
 				de.KubernetesV2CanaryStep{
 					WebhookRun: &de.WebhooksWebhookRunStepInput{
-						Name: step.RunWebhook.Name,
+						Name:    step.RunWebhook.Name,
 						Context: step.RunWebhook.Context,
 					},
 				})
@@ -260,7 +259,7 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 		}
 		return &de.PipelinePipelineStrategy{
 			Canary: &de.KubernetesV2CanaryStrategy{
-				Steps: steps,
+				Steps:             steps,
 				TrafficManagement: tm,
 			},
 		}, nil
@@ -307,7 +306,7 @@ func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string
 				return nil, err
 			}
 			// missing targets means smi config will be applied to all targets
-			if len(tm.Targets) == 0  {
+			if len(tm.Targets) == 0 {
 				tms.Smi = smis
 				break
 			}
@@ -418,6 +417,14 @@ func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition, a
 					Analysis: analysis,
 				})
 		}
+		if condition.RunWebhook != nil {
+			redirectConditions = append(redirectConditions, de.KubernetesV2RedirectTrafficAfter{
+				WebhookRun: &de.WebhooksWebhookRunStepInput{
+					Name:    condition.RunWebhook.Name,
+					Context: condition.RunWebhook.Context,
+				},
+			})
+		}
 	}
 	return redirectConditions, nil
 }
@@ -447,6 +454,14 @@ func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, a
 				de.KubernetesV2ShutDownOldVersionAfter{
 					Analysis: analysis,
 				})
+		}
+		if condition.RunWebhook != nil {
+			shutDownConditions = append(shutDownConditions, de.KubernetesV2ShutDownOldVersionAfter{
+				WebhookRun: &de.WebhooksWebhookRunStepInput{
+					Name:    condition.RunWebhook.Name,
+					Context: condition.RunWebhook.Context,
+				},
+			})
 		}
 	}
 	return shutDownConditions, nil
@@ -483,11 +498,11 @@ func createPauseConstraint(pause *model.PauseStep) (*de.PipelinePauseConstraint,
 	return pauseConstraint, nil
 }
 
-func createCanaryPause(pause *model.PauseStep) (*de.KubernetesV2CanaryPauseStep, error) {
+func createCanaryPause(pause *model.PauseStep) (*de.KubernetesV2PauseStep, error) {
 	if err := validatePauseStep(pause); err != nil {
 		return nil, err
 	}
-	pauseStep := de.NewKubernetesV2CanaryPauseStep()
+	pauseStep := de.NewKubernetesV2PauseStep()
 	unit, err := createTimeUnit(pause)
 	if err != nil {
 		return nil, err
@@ -498,7 +513,7 @@ func createCanaryPause(pause *model.PauseStep) (*de.KubernetesV2CanaryPauseStep,
 	return pauseStep, nil
 }
 
-func createTimeUnit(pause *model.PauseStep) (*de.TimeTimeUnit, error){
+func createTimeUnit(pause *model.PauseStep) (*de.TimeTimeUnit, error) {
 	var unit *de.TimeTimeUnit
 	var err error
 	if pause.Unit == "" {
@@ -541,7 +556,7 @@ func buildWebhooks(webhooks []model.WebhookConfig) (*[]de.WebhooksWebhookRunConf
 		if webhook.BodyTemplate != nil {
 			var err error
 			body, err = buildBody(webhook.BodyTemplate)
-			if err != nil{
+			if err != nil {
 				return nil, err
 			}
 		}
@@ -560,12 +575,15 @@ func buildWebhooks(webhooks []model.WebhookConfig) (*[]de.WebhooksWebhookRunConf
 }
 
 func buildHeaders(headers *[]model.Header) *[]de.WebhooksWebhookHeaders {
+	if headers == nil {
+		return nil
+	}
+
 	var headersList []de.WebhooksWebhookHeaders
 	for _, header := range *headers {
 		headersList = append(headersList, de.WebhooksWebhookHeaders{
-			Key: header.Key,
+			Key:   header.Key,
 			Value: header.Value,
-
 		})
 	}
 	return &headersList
@@ -597,9 +615,9 @@ func createSMIs(tm model.TrafficManagement) (*[]de.KubernetesV2SmiTrafficManagem
 			return nil, errors.New("rootServiceName required in smi")
 		}
 		smis = append(smis, de.KubernetesV2SmiTrafficManagementConfig{
-			RootServiceName: s.RootServiceName,
+			RootServiceName:   s.RootServiceName,
 			CanaryServiceName: s.CanaryServiceName,
-			TrafficSplitName: s.TrafficSplitName,
+			TrafficSplitName:  s.TrafficSplitName,
 		})
 	}
 	return &smis, nil

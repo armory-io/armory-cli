@@ -39,6 +39,15 @@ analysis:
         TIMESERIES AUTO;
       aggregationMethod: avg
       lowerLimit: 5
+webhooks:
+  - name: jenkins-integration
+    method: POST
+    uriTemplate: https://integrations.armory.io/tests/?token=${secrets.potato-facts-jenkins-secret}
+    networkMode: remoteNetworkAgent
+    agentIdentifier: jenkins-rna
+    headers:
+      - key: Authorization
+        value: Basic ${potato-facts-jenkins-auth}
 # The map of strategies, a deployment target will reference one of these
 strategies:
   # this is the name for the strategy
@@ -59,6 +68,8 @@ strategies:
           queries:
             - Average http error rate is less than 10%
             - Average RPM is greater than 5
+      - runWebhook:
+          name: jenkins-integration
       redirectTrafficAfter:
       - pause:
           untilApproved: true
@@ -72,5 +83,7 @@ strategies:
           queries:
             - Average http error rate is less than 10%
             - Average RPM is greater than 5
+      - runWebhook:
+          name: jenkins-integration
       activeService: my-app-active
       previewService: my-app-preview
