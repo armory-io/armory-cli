@@ -35,10 +35,12 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
-	cases := []struct{
-		input string
+	t := suite.T()
+
+	cases := []struct {
+		input  string
 		output string
-	} {
+	}{
 		{
 			"testdata/happyPathDeploymentFile.yaml",
 			"testdata/happyPathDeployEngineRequest.json",
@@ -57,23 +59,26 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 		},
 	}
 	for _, c := range cases {
-		received, err := createDeploymentForTests(suite, c.input)
-		if err != nil {
-			suite.T().Fatal(err)
-		}
-		expectedJsonStr, err := ioutil.ReadFile(c.output)
-		if err != nil {
-			suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
-		}
+		t.Run(fmt.Sprintf("%s -> %s", c.input, c.output), func(t *testing.T) {
+			received, err := createDeploymentForTests(suite, c.input)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		expectedReq := de.PipelineStartPipelineRequest{}
-		err = json.Unmarshal(expectedJsonStr, &expectedReq)
-		if err != nil {
-			suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
-		}
-		diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
-		suite.NoError(err)
-		suite.Len(diffOfExpectedAndRecieved, 0)
+			expectedJsonStr, err := ioutil.ReadFile(c.output)
+			if err != nil {
+				t.Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+			}
+
+			expectedReq := de.PipelineStartPipelineRequest{}
+			err = json.Unmarshal(expectedJsonStr, &expectedReq)
+			if err != nil {
+				t.Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+			}
+			diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+			suite.NoError(err)
+			suite.Len(diffOfExpectedAndRecieved, 0)
+		})
 	}
 }
 
@@ -88,10 +93,10 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestInvalidYaml() {
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() {
-	cases := []struct{
-		file string
+	cases := []struct {
+		file      string
 		expectErr string
-	} {
+	}{
 		{
 			"testdata/sadPathDeploymentFileBlueGreen1.yaml",
 			"invalid blueGreen config: activeService is required",
@@ -268,10 +273,10 @@ func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) (*de.
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisErrors() {
-	cases := []struct{
-		file string
+	cases := []struct {
+		file      string
 		expectErr string
-	} {
+	}{
 		{
 			"testdata/sadPathAnalysisDeploymentFile.yaml",
 			"analysis configuration block is present but default or explicit account is not set",

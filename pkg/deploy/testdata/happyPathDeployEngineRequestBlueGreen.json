@@ -56,6 +56,11 @@
                   "Average RPM is greater than 5"
                 ]
               }
+            },
+            {
+              "webhookRun": {
+                "name": "jenkins-integration"
+              }
             }
           ],
           "redirectTrafficAfter": [
@@ -84,12 +89,34 @@
                   "Average RPM is greater than 5"
                 ]
               }
+            },
+            {
+              "webhookRun": {
+                "name": "jenkins-integration"
+              }
             }
           ],
           "activeService": "my-app-active",
           "previewService": "my-app-preview"
         }
-      }
+      },
+      "webhooks": [
+        {
+          "agentIdentifier": "jenkins-rna",
+          "bodyTemplate": "",
+          "headers": [
+            {
+              "key": "Authorization",
+              "value": "Basic ${potato-facts-jenkins-auth}"
+            }
+          ],
+          "method": "POST",
+          "name": "jenkins-integration",
+          "networkMode": "remoteNetworkAgent",
+          "retryCount": 0,
+          "uriTemplate": "https://integrations.armory.io/tests/?token=${secrets.potato-facts-jenkins-secret}"
+        }
+      ]
     }
   ],
   "environments": [
