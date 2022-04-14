@@ -319,7 +319,10 @@ func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string
 			}
 		}
 	}
-	return &tms, nil
+	if tms.Smi != nil {
+		return &tms, nil
+	}
+	return nil, nil
 }
 
 func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisConfig *model.AnalysisConfig) (*de.AnalysisAnalysisStepInput, error) {
