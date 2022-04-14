@@ -348,6 +348,32 @@ func (suite *ServiceTestSuite) TestCreateDeploymentWebhookRequestSuccess() {
 	suite.Len(diffOfExpectedAndRecieved, 0)
 }
 
+func (suite *ServiceTestSuite) TestCreateDeploymentWebhookBeforeDeploymentRequestSuccess() {
+	received, err := createDeploymentForTests(suite, "testdata/happyPathDeploymentFileWebhookBeforeDeployment.yaml")
+	if err != nil {
+		suite.T().Fatal(err)
+	}
+	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequestWebhookBeforeDeployment.json")
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+	}
+
+	expectedReq := de.PipelineStartPipelineRequest{}
+	err = json.Unmarshal(expectedJsonStr, &expectedReq)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+	}
+	e, err := json.Marshal(*received)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(e))
+	diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+	suite.NoError(err)
+	suite.Len(diffOfExpectedAndRecieved, 0)
+}
+
 func (suite *ServiceTestSuite) TestBuildWebhooksSuccess() {
 	yamlFile, err := ioutil.ReadFile("testdata/happyWebhookConfig.yaml")
 	if err != nil {

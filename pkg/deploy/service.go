@@ -232,14 +232,26 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 		return []de.PipelineConstraint{}, nil
 	}
 	pipelineConstraints := make([]de.PipelineConstraint, 0, len(*beforeDeployment))
+	var constraint de.PipelineConstraint
 	for _, obj := range *beforeDeployment {
-		pause, err := createPauseConstraint(obj.Pause)
-		if err != nil {
-			return nil, err
+		if obj.Pause != nil {
+			pause, err := createPauseConstraint(obj.Pause)
+			if err != nil {
+				return nil, err
+			}
+			constraint = de.PipelineConstraint{
+				Pause: pause,
+			}
+		} else if obj.Webhook != nil {
+			webhook, err := createWebhookConstraint(obj.Webhook)
+			if err != nil {
+				return nil, err
+			}
+			constraint = de.PipelineConstraint{
+				Webhook: webhook,
+			}
 		}
-		constraint := de.PipelineConstraint{
-			Pause: pause,
-		}
+
 		pipelineConstraints = append(pipelineConstraints, constraint)
 	}
 	return pipelineConstraints, nil
@@ -501,6 +513,18 @@ func createPauseConstraint(pause *model.PauseStep) (*de.PipelinePauseConstraint,
 	return pauseConstraint, nil
 }
 
+func createWebhookConstraint(webhook *model.WebhookStep) (*de.WebhooksWebhookRunStepInput, error) {
+	if err := validateWebhookStep(webhook); err != nil {
+		return nil, err
+	}
+	webhookConstraint := de.NewWebhooksWebhookRunStepInput()
+	webhookConstraint.SetName(*webhook.Name)
+	if webhook.Context != nil {
+		webhookConstraint.SetContext(*webhook.Context)
+	}
+	return webhookConstraint, nil
+}
+
 func createCanaryPause(pause *model.PauseStep) (*de.KubernetesV2PauseStep, error) {
 	if err := validatePauseStep(pause); err != nil {
 		return nil, err
@@ -539,6 +563,13 @@ func validatePauseStep(pause *model.PauseStep) error {
 		return errors.New("pause is not valid: duration must be set with a unit")
 	} else if pause.Duration < 1 && pause.Unit != "" {
 		return errors.New("pause is not valid: unit must be set with a duration")
+	}
+	return nil
+}
+
+func validateWebhookStep(webhook *model.WebhookStep) error {
+	if *webhook.Name == "" {
+		return errors.New("webhook constraint is not valid: you must provide a name for a configured webhook")
 	}
 	return nil
 }
