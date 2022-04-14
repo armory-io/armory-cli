@@ -123,6 +123,14 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 	return nil
 }
 
+func createArmoryDirectoryIfNotExists(dir string) {
+    _, error := os.Stat(dir)
+    if error == nil {
+        return
+    }
+    os.MkdirAll(dir, 0755)
+}
+
 func writeCredentialToFile(err error, options *loginOptions, jwt jwt.Token, response *auth.SuccessfulResponse) error {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
@@ -130,6 +138,7 @@ func writeCredentialToFile(err error, options *loginOptions, jwt jwt.Token, resp
 	}
 
 	credentials := auth.NewCredentials(options.audience, "user-login", ClientId, jwt.Expiration().Format(time.RFC3339), response.AccessToken, response.RefreshToken)
+	createArmoryDirectoryIfNotExists(dirname + "/.armory/")
 	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
 	if err != nil {
 		return fmt.Errorf("there was an error writing the credentials file. Err: %s", err)
