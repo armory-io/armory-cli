@@ -16,7 +16,7 @@ targets:
     constraints:
       dependsOn: ["test1"]
       beforeDeployment:
-        - webhook:
+        - runWebhook:
             name: jenkins-integration
             context:
               jobName: testStrat-strategy2-${target-name}
