@@ -102,7 +102,8 @@ type Constraints struct {
 }
 
 type BeforeDeployment struct {
-	Pause *PauseStep `yaml:"pause,omitempty"`
+	Pause   *PauseStep   `yaml:"pause,omitempty"`
+	Webhook *WebhookStep `yaml:"webhook,omitempty"`
 }
 
 type WebhookConfig struct {
