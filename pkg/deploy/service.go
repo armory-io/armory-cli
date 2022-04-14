@@ -242,8 +242,8 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 			constraint = de.PipelineConstraint{
 				Pause: pause,
 			}
-		} else if obj.Webhook != nil {
-			webhook, err := createWebhookConstraint(obj.Webhook)
+		} else if obj.RunWebhook != nil {
+			webhook, err := createWebhookConstraint(obj.RunWebhook)
 			if err != nil {
 				return nil, err
 			}
