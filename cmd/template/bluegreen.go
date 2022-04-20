@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/spf13/cobra"
 	"strings"
 )
@@ -123,28 +124,24 @@ strategies:
             untilApproved: true
 `
 
-type templateBlueGreenOptions struct {
-	*templateOptions
-}
-
-func NewTemplateBlueGreenCmd(templateOptions *templateOptions) *cobra.Command {
-	options := &templateBlueGreenOptions{
-		templateOptions: templateOptions,
-	}
+func NewTemplateBlueGreenCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "bluegreen",
 		Aliases: []string{"bluegreen"},
 		Short:   templateBlueGreenShort,
 		Long:    templateBlueGreenLong,
 		Example: templateBlueGreenExample,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cmdUtils.ExecuteParentHooks(cmd, args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return blueGreen(cmd, options, args)
+			return blueGreen(cmd)
 		},
 	}
 	return cmd
 }
 
-func blueGreen(cmd *cobra.Command, options *templateBlueGreenOptions, args []string) error {
+func blueGreen(cmd *cobra.Command) error {
 	template := strings.Join([]string{KubernetesCoreTemplate, blueGreenTemplate}, "\n")
 	_, err := cmd.OutOrStdout().Write([]byte(template))
 	if err != nil {

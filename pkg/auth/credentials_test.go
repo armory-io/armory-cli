@@ -29,7 +29,7 @@ func TestGetEnvironmentSuccess(t *testing.T) {
 	credentials := Credentials{
 		Token: token,
 	}
-	env, err := credentials.GetEnvironment()
+	env, err := credentials.GetEnvironmentId()
 	if err != nil {
 		t.Fatalf("TestGetEnvironmentSuccess failed with %s", err)
 	}

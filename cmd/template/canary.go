@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -14,20 +15,20 @@ const (
 )
 
 type templateCanaryOptions struct {
-	*templateOptions
 	features []string
 }
 
-func NewTemplateCanaryCmd(templateOptions *templateOptions) *cobra.Command {
-	options := &templateCanaryOptions{
-		templateOptions: templateOptions,
-	}
+func NewTemplateCanaryCmd() *cobra.Command {
+	options := &templateCanaryOptions{}
 	cmd := &cobra.Command{
 		Use:     "canary",
 		Aliases: []string{"canary"},
 		Short:   templateCanaryShort,
 		Long:    templateCanaryLong,
 		Example: templateCanaryExample,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cmdUtils.ExecuteParentHooks(cmd, args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return canary(cmd, options, args)
 		},

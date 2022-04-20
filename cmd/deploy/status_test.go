@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	de "github.com/armory-io/deploy-engine/pkg"
+	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
@@ -33,6 +34,20 @@ func getExpectedPipelineDeployment() (*de.PipelinePipelineStatusResponse, *de.De
 	return expected, expectedDeploy
 }
 
+func getStdTestConfig(outFmt string) *config.Configuration {
+	token := "some-token"
+	addr := "https://localhost"
+	clientId := ""
+	clientSecret := ""
+	return config.New(&config.Input{
+		AccessToken:  &token,
+		ApiAddr:      &addr,
+		ClientId:     &clientId,
+		ClientSecret: &clientSecret,
+		OutFormat:    &outFmt,
+	})
+}
+
 func TestDeployStatusJsonSuccess(t *testing.T) {
 	expected, expectedDeploy := getExpectedPipelineDeployment()
 	httpmock.Activate()
@@ -47,19 +62,16 @@ func TestDeployStatusJsonSuccess(t *testing.T) {
 		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
 	}
 	httpmock.RegisterResponder("GET", "https://localhost/deployments/5678", responderDeploy)
+
+	cmd := NewDeployCmd(getStdTestConfig("json"))
 	outWriter := bytes.NewBufferString("")
-	rootCmd, options, err := getOverrideRootCmd(outWriter)
-	if err != nil {
-		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
-	}
-	rootCmd.AddCommand(NewDeployCmd(options))
+	cmd.SetOut(outWriter)
 	args := []string{
-		"deploy", "status",
+		"status",
 		"--deploymentId=12345",
-		"--output=json",
 	}
-	rootCmd.SetArgs(args)
-	err = rootCmd.Execute()
+	cmd.SetArgs(args)
+	err = cmd.Execute()
 	if err != nil {
 		t.Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
@@ -78,7 +90,6 @@ func TestDeployStatusJsonSuccess(t *testing.T) {
 	receivedDeployment := *received.DeployResp.Steps
 	expectedDeployment := expected.GetSteps()[0].GetDeployment()
 	assert.Equal(t, receivedDeployment[0].Deployment.Id, expectedDeployment.GetId(), "they should be equal")
-
 }
 
 func TestDeployStatusYAMLSuccess(t *testing.T) {
@@ -95,19 +106,16 @@ func TestDeployStatusYAMLSuccess(t *testing.T) {
 		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
 	}
 	httpmock.RegisterResponder("GET", "https://localhost/deployments/5678", responderDeploy)
+
+	cmd := NewDeployCmd(getStdTestConfig("yaml"))
 	outWriter := bytes.NewBufferString("")
-	rootCmd, options, err := getOverrideRootCmd(outWriter)
-	if err != nil {
-		t.Fatalf("TestDeployStatusYAMLSuccess failed with: %s", err)
-	}
-	rootCmd.AddCommand(NewDeployCmd(options))
+	cmd.SetOut(outWriter)
 	args := []string{
-		"deploy", "status",
+		"status",
 		"--deploymentId=12345",
-		"--output=yaml",
 	}
-	rootCmd.SetArgs(args)
-	err = rootCmd.Execute()
+	cmd.SetArgs(args)
+	err = cmd.Execute()
 	if err != nil {
 		t.Fatal("TestDeployStatusYAMLSuccess failed with: error should not be null")
 	}
@@ -135,19 +143,15 @@ func TestDeployStatusHttpError(t *testing.T) {
 		t.Fatalf("TestDeployStatusHttpError failed with: %s", err)
 	}
 	httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
+	cmd := NewDeployCmd(getStdTestConfig("json"))
 	outWriter := bytes.NewBufferString("")
-	rootCmd, options, err := getOverrideRootCmd(outWriter)
-	if err != nil {
-		t.Fatalf("TestDeployStatusHttpError failed with: %s", err)
-	}
-	rootCmd.AddCommand(NewDeployCmd(options))
+	cmd.SetOut(outWriter)
 	args := []string{
-		"deploy", "status",
+		"status",
 		"--deploymentId=12345",
-		"--output=json",
 	}
-	rootCmd.SetArgs(args)
-	err = rootCmd.Execute()
+	cmd.SetArgs(args)
+	err = cmd.Execute()
 	if err != nil {
 		t.Fatal("TestDeployStatusHttpError failed with: error should not be null")
 	}
@@ -160,19 +164,14 @@ func TestDeployStatusHttpError(t *testing.T) {
 }
 
 func TestDeployStatusFlagDeploymentIdRequired(t *testing.T) {
+	cmd := NewDeployCmd(getStdTestConfig("json"))
 	outWriter := bytes.NewBufferString("")
-	rootCmd, options, err := getOverrideRootCmd(outWriter)
-	if err != nil {
-		t.Fatalf("TestDeployStatusFlagDeploymentIdRequired failed with: %s", err)
-	}
-	rootCmd.AddCommand(NewDeployCmd(options))
-
+	cmd.SetOut(outWriter)
 	args := []string{
-		"deploy", "status",
-		"--output=json",
+		"status",
 	}
-	rootCmd.SetArgs(args)
-	err = rootCmd.Execute()
+	cmd.SetArgs(args)
+	err := cmd.Execute()
 	if err == nil {
 		t.Fatal("TestDeployStatusFlagDeploymentIdRequired failed with: error should not be null")
 	}

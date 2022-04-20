@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/pkg"
+	"github.com/armory/armory-cli/pkg/cmdUtils"
+	"github.com/armory/armory-cli/pkg/config"
 	deployment "github.com/armory/armory-cli/pkg/deploy"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/spf13/cobra"
@@ -21,7 +23,6 @@ const (
 )
 
 type deployStartOptions struct {
-	*deployOptions
 	deploymentFile string
 	application    string
 }
@@ -58,18 +59,19 @@ func (u FormattableDeployStartResponse) String() string {
 	return fmt.Sprintf("[%v] Deployment ID: %s", time.Now().Format(time.RFC3339), u.DeploymentId)
 }
 
-func NewDeployStartCmd(deployOptions *deployOptions) *cobra.Command {
-	options := &deployStartOptions{
-		deployOptions: deployOptions,
-	}
+func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
+	options := &deployStartOptions{}
 	cmd := &cobra.Command{
 		Use:     "start --file [<path to file>]",
 		Aliases: []string{"start"},
 		Short:   deployStartShort,
 		Long:    deployStartLong,
 		Example: deployStartExample,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cmdUtils.ExecuteParentHooks(cmd, args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return start(cmd, options, args)
+			return start(cmd, configuration, options)
 		},
 	}
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
@@ -78,7 +80,7 @@ func NewDeployStartCmd(deployOptions *deployOptions) *cobra.Command {
 	return cmd
 }
 
-func start(cmd *cobra.Command, options *deployStartOptions, args []string) error {
+func start(cmd *cobra.Command, configuration *config.Configuration, options *deployStartOptions) error {
 	payload := model.OrchestrationConfig{}
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
@@ -106,7 +108,7 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 	}
 
 	if len(application) < 1 {
-		return fmt.Errorf("application name must be defined in deployment file or by application-name opt")
+		return fmt.Errorf("application name must be defined in deployment file or by application opt")
 	}
 
 	dep, err := deployment.CreateDeploymentRequest(application, &payload)
@@ -114,21 +116,23 @@ func start(cmd *cobra.Command, options *deployStartOptions, args []string) error
 		return fmt.Errorf("error converting deployment object: %s", err)
 	}
 
-	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Minute)
+	deployClient := configuration.GetDeployEngineClient()
+
+	ctx, cancel := context.WithTimeout(deployClient.Context, time.Minute)
 	defer cancel()
 	// prepare request
-	request := options.DeployClient.DeploymentServiceApi.
+	request := deployClient.DeploymentServiceApi.
 		DeploymentServiceStartKubernetesPipeline(ctx).Body(*dep)
 	// execute request
 	raw, response, err := request.Execute()
 	// create response object
 	deploy := newDeployStartResponse(&raw, response, err)
 	// format response
-	dataFormat, err := options.Output.Formatter(deploy)
+	dataFormat, err := configuration.GetOutputFormatter()(deploy)
 	if err != nil {
 		return fmt.Errorf("error trying to parse response: %s", err)
 	}
-	options.deploymentId = deploy.DeploymentId
+	cmd.SetContext(context.WithValue(ctx, "deploymentId", deploy.DeploymentId))
 	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
 	return err
 }

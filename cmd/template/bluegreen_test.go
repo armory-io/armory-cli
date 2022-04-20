@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewTemplateBlueGreenCmd(t *testing.T) {
-	cmd := NewTemplateBlueGreenCmd(&templateOptions{})
+	cmd := NewTemplateBlueGreenCmd()
 	b := bytes.NewBufferString("")
 	cmd.SetOut(b)
 	cmd.Execute()

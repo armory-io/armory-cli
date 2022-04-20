@@ -1,6 +1,7 @@
 package template
 
 import (
+	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -12,17 +13,21 @@ const (
 
 // TODO(cat): update template language using slab doc
 
-func NewTemplateKubernetesCmd(rootOptions *templateOptions) *cobra.Command {
+func NewTemplateKubernetesCmd() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "kubernetes",
 		Aliases: []string{"kubernetes"},
 		Short:   kubernetesShort,
 		Long:    "",
 		Example: "",
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cmdUtils.ExecuteParentHooks(cmd, args)
+		},
 	}
 	// create subcommands
-	command.AddCommand(NewTemplateCanaryCmd(rootOptions))
-	command.AddCommand(NewTemplateBlueGreenCmd(rootOptions))
+	command.AddCommand(NewTemplateCanaryCmd())
+	command.AddCommand(NewTemplateBlueGreenCmd())
+	cmdUtils.SetPersistentFlagsFromEnvVariables(command.Commands())
 	return command
 }
 
