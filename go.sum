@@ -185,6 +185,8 @@ github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/armory-io/deploy-engine v0.43.1 h1:BRJuGZWxvFsVSatYKNvBl7MwxPZy1H0IRyeqGMc8ZJY=
 github.com/armory-io/deploy-engine v0.43.1/go.mod h1:w6ZUpo7868LwYDGwzzAnxLTA73eU9DQHQ1ciLxT8foY=
+github.com/armory-io/deploy-engine v0.43.2-0.20220415212913-f3616b8ab6bb h1:c1mEYSmGki3HyYux6MLRosvBXMV5navPo2K0KwUu/xI=
+github.com/armory-io/deploy-engine v0.43.2-0.20220415212913-f3616b8ab6bb/go.mod h1:w6ZUpo7868LwYDGwzzAnxLTA73eU9DQHQ1ciLxT8foY=
 github.com/armory-io/go-cloud-service v0.8.0-79558ea/go.mod h1:03Nm/K0jn+kr/l3cTsZqdBGPkpjzIocy1vPcpd+zu9M=
 github.com/armory-io/go-spec v0.1.0/go.mod h1:pj8e6JP5Ts/R0m2qfuQ6vuc189UV2CdWaO9W4V/4Tqc=
 github.com/armory-io/lib-go-voynich-client v0.3.0/go.mod h1:O9anHTDmQTu1/CWZ7nR+YIanWz/xTW4cJ9piUCKLQIM=

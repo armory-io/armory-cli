@@ -9,6 +9,12 @@ targets:
     account: account1
     namespace: dev
     strategy: strategy1
+    constraints:
+      afterDeployment:
+        - runWebhook:
+            name: generic-integration
+            context:
+              jobName: afterDeployment-test1
   test2:
     account: account2
     namespace: qa

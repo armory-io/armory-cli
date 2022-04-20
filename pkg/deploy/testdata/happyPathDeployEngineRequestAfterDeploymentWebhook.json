@@ -2,7 +2,20 @@
   "application": "app",
   "deployments": [
     {
-      "constraints": {},
+      "constraints": {
+        "afterDeployment": [
+          {
+            "webhook": {
+              "context": {
+                "jobName": "afterDeployment-test1"
+              },
+              "name": "generic-integration"
+            }
+          }
+        ],
+        "beforeDeployment": [],
+        "dependsOn": []
+      },
       "environment": "test1",
       "manifests": [
         {
@@ -80,6 +93,7 @@
     },
     {
       "constraints": {
+        "afterDeployment": [],
         "beforeDeployment": [
           {
             "pause": {

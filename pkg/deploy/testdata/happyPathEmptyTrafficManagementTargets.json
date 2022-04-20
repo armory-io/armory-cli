@@ -107,6 +107,7 @@
     {
       "environment": "test2",
       "constraints": {
+        "afterDeployment": [],
         "beforeDeployment": [
           {
             "pause": {
