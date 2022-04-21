@@ -49,3 +49,7 @@ clean:
 integration: build-dirs Makefile
 	@go test -v -cover ./integration/... -json > integration-test-report.json
 	@go test -v -coverprofile=integration.cov ./integration/...
+
+.PHONY: format
+format:
+	@go fmt ./...

@@ -124,11 +124,11 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 }
 
 func createArmoryDirectoryIfNotExists(dir string) {
-    _, error := os.Stat(dir)
-    if error == nil {
-        return
-    }
-    os.MkdirAll(dir, 0755)
+	_, error := os.Stat(dir)
+	if error == nil {
+		return
+	}
+	os.MkdirAll(dir, 0755)
 }
 
 func writeCredentialToFile(err error, options *loginOptions, jwt jwt.Token, response *auth.SuccessfulResponse) error {
