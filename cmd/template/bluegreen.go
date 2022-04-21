@@ -145,7 +145,7 @@ func NewTemplateBlueGreenCmd(templateOptions *templateOptions) *cobra.Command {
 }
 
 func blueGreen(cmd *cobra.Command, options *templateBlueGreenOptions, args []string) error {
-	template := strings.Join([]string{KubernetesCoreTemplate, blueGreenTemplate},"\n")
+	template := strings.Join([]string{KubernetesCoreTemplate, blueGreenTemplate}, "\n")
 	_, err := cmd.OutOrStdout().Write([]byte(template))
 	if err != nil {
 		return fmt.Errorf("error trying to parse bluegreen template: %s", err)

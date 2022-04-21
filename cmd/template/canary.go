@@ -32,7 +32,7 @@ func NewTemplateCanaryCmd(templateOptions *templateOptions) *cobra.Command {
 			return canary(cmd, options, args)
 		},
 	}
-	cmd.Flags().StringArrayVarP(&options.features, "features", "f", []string {}, "features to include in the template. Available options [manual, automated, traffic]")
+	cmd.Flags().StringArrayVarP(&options.features, "features", "f", []string{}, "features to include in the template. Available options [manual, automated, traffic]")
 	return cmd
 }
 
@@ -127,7 +127,7 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 	return nil
 }
 func buildAnalysisQueries() (*yaml.Node, *yaml.Node) {
-	queriesNode, queriesValuesNode := util.BuildSequenceNode("queries", "Note that the example queries require Prometheus to have \"kube-state-metrics.metricAnnotationsAllowList[0]=pods=[*]\"\n" +
+	queriesNode, queriesValuesNode := util.BuildSequenceNode("queries", "Note that the example queries require Prometheus to have \"kube-state-metrics.metricAnnotationsAllowList[0]=pods=[*]\"\n"+
 		"set and for your applications pods to have the annotation \"prometheus.io/scrape\": \"true\"")
 	queryTemplate1 := "avg (avg_over_time(container_cpu_system_seconds_total{job=\"kubelet\"}[{{armory.promQlStepInterval}}]) * on (pod)  group_left (annotation_app)\n" +
 		"sum(kube_pod_annotations{job=\"kube-state-metrics\",annotation_deploy_armory_io_replica_set_name=\"{{armory.replicaSetName}}\"})\n" +
@@ -135,7 +135,7 @@ func buildAnalysisQueries() (*yaml.Node, *yaml.Node) {
 	queryTemplate2 := "avg (avg_over_time(container_memory_working_set_bytes{job=\"kubelet\"}[{{armory.promQlStepInterval}}]) * on (pod)  group_left (annotation_app)\n" +
 		"sum(kube_pod_annotations{job=\"kube-state-metrics\",annotation_deploy_armory_io_replica_set_name=\"{{armory.replicaSetName}}\"})\n" +
 		"by (annotation_app, pod)) by (annotation_app)"
-	queriesValuesNode.Content =  append(queriesValuesNode.Content,
+	queriesValuesNode.Content = append(queriesValuesNode.Content,
 		buildAnalysisQueryDefinitionNode("containerCPUSeconds", "my-prometheus-provider", "100", "0", queryTemplate1),
 		buildAnalysisQueryDefinitionNode("avgMemoryUsage", "", "10", "0", queryTemplate2),
 	)
@@ -145,16 +145,16 @@ func buildAnalysisQueries() (*yaml.Node, *yaml.Node) {
 func buildAnalysisQueryDefinitionNode(name string, metricProviderName string, upperLimit string, lowerLimit string, queryTemplate string) *yaml.Node {
 	query := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	query.Content = append(query.Content, util.BuildStringNode("name", name,
-		""	)...)
+		"")...)
 	if len(metricProviderName) > 0 {
 		query.Content = append(query.Content, util.BuildStringNode("metricProviderName", metricProviderName,
-			"Optional. Override the defaultMetricProviderName specified in analysis.queries."	)...)
+			"Optional. Override the defaultMetricProviderName specified in analysis.queries.")...)
 	}
 	query.Content = append(query.Content, util.BuildIntNode("upperLimit", upperLimit,
-		"Optional when 'lowerLimit' is specified. If the metric exceeds this value, the automated analysis fails, causing the step to fail."	)...)
+		"Optional when 'lowerLimit' is specified. If the metric exceeds this value, the automated analysis fails, causing the step to fail.")...)
 	query.Content = append(query.Content, util.BuildIntNode("lowerLimit", lowerLimit,
-		"Optional when 'upperLimit' is specified. If the metric goes below this value, the automated analysis fails, causing the step to fail."	)...)
-	query.Content = append(query.Content, util.BuildStringNode("queryTemplate", queryTemplate,"")...)
+		"Optional when 'upperLimit' is specified. If the metric goes below this value, the automated analysis fails, causing the step to fail.")...)
+	query.Content = append(query.Content, util.BuildStringNode("queryTemplate", queryTemplate, "")...)
 	return query
 }
 
@@ -162,12 +162,12 @@ func buildAutomatedPauseStep() []*yaml.Node {
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	pauseUANode, pauseUAValuesNode := util.BuildMapNode("analysis", "An analysis step pauses the deployment until analysis judgement runs complete.")
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildIntNode("interval", "7",
-		"How long each sample of the query gets summarized over"	)...)
+		"How long each sample of the query gets summarized over")...)
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildStringNode("units", "seconds",
-		"The unit for the interval: 'seconds', 'minutes' or 'hours'"	)...)
+		"The unit for the interval: 'seconds', 'minutes' or 'hours'")...)
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildIntNode("numberOfJudgmentRuns", "1",
 		"How many times the queries run.")...)
-	queriesNode, queriesValuesNode := util.BuildSequenceNode("queries", "rollBackMode: manual # Optional. Defaults to 'automatic' if omitted. Uncomment to require a manual review before rolling back if automated analysis detects an issue.\n" +
+	queriesNode, queriesValuesNode := util.BuildSequenceNode("queries", "rollBackMode: manual # Optional. Defaults to 'automatic' if omitted. Uncomment to require a manual review before rolling back if automated analysis detects an issue.\n"+
 		"rollForwardMode: manual # Optional. Defaults to 'automatic' if omitted. Uncomment to require a manual review before continuing deployment if automated analysis determines the app is healthy.")
 	queriesValuesNode.Content = append(queriesValuesNode.Content,
 		&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "containerCPUSeconds",
