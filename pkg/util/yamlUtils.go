@@ -71,11 +71,11 @@ func BuildSequenceNode(key, comment string) (*yaml.Node, *yaml.Node) {
 
 func BuildSequenceNodeWithTailComment(key, comment string) (*yaml.Node, *yaml.Node) {
 	return &yaml.Node{
-			Kind:        yaml.ScalarNode,
-			Tag:         "!!str",
-			Value:       key,
+			Kind:  yaml.ScalarNode,
+			Tag:   "!!str",
+			Value: key,
 		}, &yaml.Node{Kind: yaml.SequenceNode,
-			Tag: "!!seq",
+			Tag:         "!!seq",
 			LineComment: comment,
 		}
 }
