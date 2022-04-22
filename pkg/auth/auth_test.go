@@ -45,7 +45,7 @@ func (suite *AuthTestSuite) TestTokenAuthSuccess() {
 	token, err := auth.GetToken()
 	suite.Nilf(err, "TestTokenAuthSuccess failed getting token: %s", err)
 	suite.Equal(jwt, token, "TestTokenAuthSuccess: Token and Jwt must be equal")
-	environment, err := auth.GetEnvironment()
+	environment, err := auth.GetEnvironmentId()
 	suite.Nilf(err, "TestTokenAuthSuccess failed getting environment: %s", err)
 	suite.Equal(environment, "12345", "TestTokenAuthSuccess: Environment and Jwt envId must be equal")
 }

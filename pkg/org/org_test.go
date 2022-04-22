@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/suite"
+	"net/url"
 	"testing"
 )
 
@@ -47,7 +48,7 @@ func (suite *OrgTestSuite) TestGetEnvironmentsSuccess() {
 	httpmock.RegisterResponder("GET", "http://localhost/environments",
 		httpmock.NewStringResponder(200, string(resp)))
 
-	received, err := GetEnvironments("http://localhost", nil)
+	received, err := GetEnvironments(&url.URL{Scheme: "http", Host: "localhost"}, nil)
 	if err != nil {
 		suite.T().Fatalf("TestGetEnvironmentsSuccess failed with: %s", err)
 	}
@@ -58,7 +59,7 @@ func (suite *OrgTestSuite) TestGetEnvironmentsHttpFail() {
 	httpmock.RegisterResponder("GET", "http://localhost/environments",
 		httpmock.NewStringResponder(500, `{"error_id":"a814890f-e0cf-4ae5-a78a-39040ed51a35","errors":[{"code":"99001","message":"No valid auth credentials found."}]}`))
 
-	received, err := GetEnvironments("http://localhost", nil)
+	received, err := GetEnvironments(&url.URL{Scheme: "http", Host: "localhost"}, nil)
 	if err == nil {
 		suite.T().Fatal("TestGetEnvironmentsHttpFail failed with: error shouldn't be null")
 	}

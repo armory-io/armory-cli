@@ -2,7 +2,7 @@ package logout
 
 import (
 	"fmt"
-	"github.com/armory/armory-cli/cmd"
+	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/input"
 	"github.com/spf13/cobra"
 	"os"
@@ -14,31 +14,24 @@ const (
 	logoutExample = "armory logout"
 )
 
-type logoutOptions struct {
-	*cmd.RootOptions
-}
-
-func NewLogoutCmd(rootOptions *cmd.RootOptions) *cobra.Command {
-	options := &logoutOptions{
-		RootOptions: rootOptions,
-	}
+func NewLogoutCmd() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "logout",
 		Aliases: []string{"logout"},
 		Short:   logoutShort,
 		Long:    logoutLong,
 		Example: logoutExample,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return nil
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return logout(cmd, options, args)
+			return logout(cmd)
 		},
 	}
 	return command
 }
 
-func logout(cmd *cobra.Command, options *logoutOptions, args []string) error {
+func logout(cmd *cobra.Command) error {
 	promptMsg := input.PromptMsg{
 		Text:     "Are you sure you want to log out? Y/N",
 		ErrorMsg: "Invalid answer",

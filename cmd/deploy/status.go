@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	deploy "github.com/armory-io/deploy-engine/pkg"
+	"github.com/armory/armory-cli/pkg/cmdUtils"
+	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/armory/armory-cli/pkg/output"
 	"github.com/spf13/cobra"
 	_nethttp "net/http"
 	"time"
@@ -15,10 +18,6 @@ const (
 	deployStatusLong    = "Watch deployment on Armory Cloud"
 	deployStatusExample = "armory deploy status [options]"
 )
-
-type deployStatusOptions struct {
-	*deployOptions
-}
 
 type FormattableDeployStatus struct {
 	DeployResp   model.Pipeline `json:"deployment"`
@@ -67,43 +66,46 @@ func (u FormattableDeployStatus) String() string {
 	return ret
 }
 
-func NewDeployStatusCmd(deployOptions *deployOptions) *cobra.Command {
-	options := &deployStatusOptions{
-		deployOptions: deployOptions,
-	}
+func NewDeployStatusCmd(configuration *config.Configuration) *cobra.Command {
+	deploymentId := ""
 	cmd := &cobra.Command{
 		Use:     "status --deploymentId [deploymentId]",
 		Aliases: []string{"status"},
 		Short:   deployStatusShort,
 		Long:    deployStatusLong,
 		Example: deployStatusExample,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cmdUtils.ExecuteParentHooks(cmd, args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return status(cmd, options)
+			return status(cmd, configuration, deploymentId)
 		},
 	}
-	cmd.Flags().StringVarP(&options.deploymentId, "deploymentId", "i", "", "(Required) The ID of an existing deployment.")
+	cmd.Flags().StringVarP(&deploymentId, "deploymentId", "i", "", "(Required) The ID of an existing deployment.")
 	cmd.MarkFlagRequired("deploymentId")
 	return cmd
 }
 
-func status(cmd *cobra.Command, options *deployStatusOptions) error {
-	ctx, cancel := context.WithTimeout(options.DeployClient.Context, time.Second*5)
+func status(cmd *cobra.Command, configuration *config.Configuration, deploymentId string) error {
+	cmd.SetContext(context.WithValue(cmd.Context(), "deploymentId", deploymentId))
+	deployClient := configuration.GetDeployEngineClient()
+	ctx, cancel := context.WithTimeout(deployClient.Context, time.Second*5)
 	defer cancel()
-	req := options.DeployClient.DeploymentServiceApi.DeploymentServicePipelineStatus(ctx, options.deploymentId)
+	req := deployClient.DeploymentServiceApi.DeploymentServicePipelineStatus(ctx, deploymentId)
 	pipelineResp, response, err := req.Execute()
 	var steps []model.Step
-	if response != nil && response.StatusCode == 200 && options.O != "" {
+	if response != nil && response.StatusCode == 200 && configuration.GetOutputType() != output.Text {
 		for _, stages := range pipelineResp.GetSteps() {
 			var step = model.Step{}
 			if stages.GetType() == "deployment" && stages.GetStatus() != deploy.WORKFLOWWORKFLOWSTATUS_NOT_STARTED {
 				deployment := stages.GetDeployment()
-				request := options.DeployClient.DeploymentServiceApi.DeploymentServiceStatus(ctx, deployment.GetId())
-				deploy, response, err := request.Execute()
+				request := deployClient.DeploymentServiceApi.DeploymentServiceStatus(ctx, deployment.GetId())
+				deployRes, response, err := request.Execute()
 				err = getRequestError(response, err)
 				if err != nil {
 					return err
 				}
-				step = model.NewStep(stages, &deploy)
+				step = model.NewStep(stages, &deployRes)
 			} else {
 				step = model.NewStep(stages, nil)
 			}
@@ -111,7 +113,7 @@ func status(cmd *cobra.Command, options *deployStatusOptions) error {
 		}
 	}
 	pipeline := model.NewPipeline(pipelineResp, &steps)
-	dataFormat, err := options.Output.Formatter(newDeployStatusResponseWrapper(*pipeline, response, err))
+	dataFormat, err := configuration.GetOutputFormatter()(newDeployStatusResponseWrapper(*pipeline, response, err))
 	// if we've made it this far, the command is valid. if an error occurs it isn't a usage error
 	cmd.SilenceUsage = true
 	if err != nil {

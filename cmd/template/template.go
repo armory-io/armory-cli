@@ -1,7 +1,7 @@
 package template
 
 import (
-	"github.com/armory/armory-cli/cmd"
+	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/spf13/cobra"
 )
 
@@ -11,25 +11,19 @@ const (
 	templateExample = ""
 )
 
-type templateOptions struct {
-	*cmd.RootOptions
-}
-
-func NewTemplateCmd(rootOptions *cmd.RootOptions) *cobra.Command {
-	options := &templateOptions{
-		RootOptions: rootOptions,
-	}
+func NewTemplateCmd() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "template",
 		Aliases: []string{"template"},
 		Short:   templateShort,
 		Long:    templateLong,
 		Example: templateExample,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return nil
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
 	}
 	// create subcommands
-	command.AddCommand(NewTemplateKubernetesCmd(options))
+	command.AddCommand(NewTemplateKubernetesCmd())
+	cmdUtils.SetPersistentFlagsFromEnvVariables(command.Commands())
 	return command
 }

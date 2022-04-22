@@ -94,9 +94,9 @@ func (a *Auth) GetToken() (string, error) {
 	return credentials.Token, nil
 }
 
-func (a *Auth) GetEnvironment() (string, error) {
+func (a *Auth) GetEnvironmentId() (string, error) {
 	if a.token != "" {
-		return NewCredentials("", "", "", "", a.token, "").GetEnvironment()
+		return NewCredentials("", "", "", "", a.token, "").GetEnvironmentId()
 	}
 
 	dirname, err := os.UserHomeDir()
@@ -108,7 +108,7 @@ func (a *Auth) GetEnvironment() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return currentCreds.GetEnvironment()
+	return currentCreds.GetEnvironmentId()
 }
 
 func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {

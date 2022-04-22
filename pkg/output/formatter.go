@@ -20,17 +20,11 @@ type Output struct {
 	Formatter Formatter
 }
 
-func NewOutput(outputFormatter string) *Output {
-	return &Output{
-		Formatter: parseOutputFormat(outputFormatter),
-	}
-}
-
-func parseOutputFormat(outputFormat string) Formatter {
+func GetFormatterForOutputType(outputFormat Type) Formatter {
 	switch {
-	case outputFormat == "json":
+	case outputFormat == Json:
 		return MarshalToJson
-	case outputFormat == "yaml":
+	case outputFormat == Yaml:
 		return MarshalToYaml
 	default:
 		return DefaultStructToString
