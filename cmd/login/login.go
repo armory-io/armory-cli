@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ahmetb/go-linq/v3"
-	"github.com/armory/armory-cli/cmd"
 	"github.com/armory/armory-cli/pkg/auth"
+	"github.com/armory/armory-cli/pkg/cmdUtils"
+	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/org"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/lestrrat-go/jwx/jwt"
@@ -13,6 +14,7 @@ import (
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	"io"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -24,52 +26,35 @@ const (
 	loginExample = ""
 )
 
-var ClientId = "GjHFCN83nbHZaUT4CR4mQ65QYk8uUAKy"
+const scope = "openid profile email offline_access"
 
-type loginOptions struct {
-	*cmd.RootOptions
-	clientId string
-	scope    string
-	audience string
-	envName  string
-}
-
-func NewLoginCmd(rootOptions *cmd.RootOptions) *cobra.Command {
-	options := &loginOptions{
-		RootOptions: rootOptions,
-	}
+func NewLoginCmd(configuration *config.Configuration) *cobra.Command {
+	envName := ""
 	command := &cobra.Command{
 		Use:     "login",
 		Aliases: []string{"login"},
 		Short:   loginShort,
 		Long:    loginLong,
 		Example: loginExample,
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return nil
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return login(cmd, options, args)
+			return login(cmd, configuration, envName)
 		},
 	}
-	command.Flags().StringVarP(&options.clientId, "clientId", "", "", "")
-	command.Flags().StringVarP(&options.envName, "envName", "e", "", "")
-	command.Flags().StringVarP(&options.scope, "scope", "", "openid profile email offline_access", "")
-	command.Flags().StringVarP(&options.audience, "audience", "", "https://api.cloud.armory.io", "")
-	command.Flags().StringVarP(&options.TokenIssuerUrl, "tokenIssuerUrl", "", "https://auth.cloud.armory.io/oauth", "")
-
-	command.Flags().MarkHidden("clientId")
-	command.Flags().MarkHidden("scope")
-	command.Flags().MarkHidden("audience")
-	command.Flags().MarkHidden("tokenIssuerUrl")
+	command.Flags().StringVarP(&envName, "envName", "e", "", "")
 	return command
 }
 
-func login(cmd *cobra.Command, options *loginOptions, args []string) error {
-	if options.clientId != "" {
-		ClientId = options.clientId
-	}
+func login(cmd *cobra.Command, configuration *config.Configuration, envName string) error {
 	cmd.SilenceUsage = true
-	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(ClientId, options.scope, options.audience, options.TokenIssuerUrl)
+	armoryCloudEnvironmentConfiguration := configuration.GetArmoryCloudEnvironmentConfiguration()
+	clientId := armoryCloudEnvironmentConfiguration.CliClientId
+	audience := armoryCloudEnvironmentConfiguration.Audience
+	TokenIssuerUrl := armoryCloudEnvironmentConfiguration.TokenIssuerUrl
+
+	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(clientId, scope, audience, TokenIssuerUrl)
 	if err != nil {
 		return fmt.Errorf("error at getting device code: %s", err)
 	}
@@ -90,7 +75,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 		fmt.Fprintf(cmd.OutOrStdout(), deviceTokenResponse.VerificationUriComplete)
 	}
 
-	response, err := auth.PollAuthorizationServerForResponse(ClientId, options.TokenIssuerUrl, deviceTokenResponse, authStartedAt)
+	response, err := auth.PollAuthorizationServerForResponse(clientId, TokenIssuerUrl, deviceTokenResponse, authStartedAt)
 	if err != nil {
 		return fmt.Errorf("error at polling auth server for response. Err: %s", err)
 	}
@@ -99,12 +84,12 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 		return fmt.Errorf("error at decoding jwt. Err: %s", err)
 	}
 
-	selectedEnv, err := selectEnvironment(options.audience, response.AccessToken, options.envName)
+	selectedEnv, err := selectEnvironment(configuration.GetArmoryCloudAddr(), response.AccessToken, envName)
 	if err != nil {
 		return err
 	}
 
-	response, err = auth.RefreshAuthToken(ClientId, options.TokenIssuerUrl, response.RefreshToken, selectedEnv.Id)
+	response, err = auth.RefreshAuthToken(clientId, TokenIssuerUrl, response.RefreshToken, selectedEnv.Id)
 	if err != nil {
 		return err
 	}
@@ -113,7 +98,7 @@ func login(cmd *cobra.Command, options *loginOptions, args []string) error {
 		return fmt.Errorf("error at decoding jwt. Err: %s", err)
 	}
 
-	err = writeCredentialToFile(err, options, jwt, response)
+	err = writeCredentialToFile(err, configuration, jwt, response)
 	if err != nil {
 		return err
 	}
@@ -131,13 +116,17 @@ func createArmoryDirectoryIfNotExists(dir string) {
 	os.MkdirAll(dir, 0755)
 }
 
-func writeCredentialToFile(err error, options *loginOptions, jwt jwt.Token, response *auth.SuccessfulResponse) error {
+func writeCredentialToFile(err error, configuration *config.Configuration, jwt jwt.Token, response *auth.SuccessfulResponse) error {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("there was an error getting the home directory. Err: %s", err)
 	}
 
-	credentials := auth.NewCredentials(options.audience, "user-login", ClientId, jwt.Expiration().Format(time.RFC3339), response.AccessToken, response.RefreshToken)
+	armoryCloudEnvironmentConfiguration := configuration.GetArmoryCloudEnvironmentConfiguration()
+	clientId := armoryCloudEnvironmentConfiguration.CliClientId
+	audience := armoryCloudEnvironmentConfiguration.Audience
+
+	credentials := auth.NewCredentials(audience, "user-login", clientId, jwt.Expiration().Format(time.RFC3339), response.AccessToken, response.RefreshToken)
 	createArmoryDirectoryIfNotExists(dirname + "/.armory/")
 	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
 	if err != nil {
@@ -146,8 +135,8 @@ func writeCredentialToFile(err error, options *loginOptions, jwt jwt.Token, resp
 	return nil
 }
 
-func selectEnvironment(audience string, accessToken string, namedEnvironment ...string) (*org.Environment, error) {
-	environments, err := org.GetEnvironments(audience, &accessToken)
+func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnvironment ...string) (*org.Environment, error) {
+	environments, err := org.GetEnvironments(armoryCloudAddr, &accessToken)
 	if err != nil {
 		return nil, err
 	}

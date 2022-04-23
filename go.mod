@@ -1,24 +1,50 @@
 module github.com/armory/armory-cli
 
-go 1.16
+go 1.18
 
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
-	github.com/armory-io/deploy-engine v0.43.2-0.20220415212913-f3616b8ab6bb
+	github.com/armory-io/deploy-engine v0.44.2
+	github.com/iancoleman/strcase v0.2.0
 	github.com/jarcoal/httpmock v1.0.8
 	github.com/lestrrat-go/jwx v1.2.6
 	github.com/manifoldco/promptui v0.8.0
 	github.com/pkg/browser v0.0.0-20210706143420-7d21f8c997e2
 	github.com/r3labs/diff v1.1.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/spf13/cobra v1.2.1
+	github.com/spf13/cobra v1.4.1-0.20220417210457-68b6b24f0c99
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/t-tomalak/logrus-easy-formatter v0.0.0-20190827215021-c074f06c5816
-	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+)
+
+require (
+	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.0-20210816181553-5444fa50b93d // indirect
+	github.com/goccy/go-json v0.7.6 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/juju/ansiterm v0.0.0-20180109212912-720a0952cc2a // indirect
+	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
+	github.com/lestrrat-go/blackmagic v1.0.0 // indirect
+	github.com/lestrrat-go/httpcc v1.0.0 // indirect
+	github.com/lestrrat-go/iter v1.0.1 // indirect
+	github.com/lestrrat-go/option v1.0.0 // indirect
+	github.com/lunixbochs/vtclean v0.0.0-20180621232353-2d01aacdc34a // indirect
+	github.com/mattn/go-colorable v0.0.9 // indirect
+	github.com/mattn/go-isatty v0.0.4 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
+	golang.org/x/net v0.0.0-20211109214657-ef0fda0de508 // indirect
+	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
+	golang.org/x/sys v0.0.0-20211110154304-99a53858aa08 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 )
 
 replace (

@@ -3,11 +3,8 @@ package deploy
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	de "github.com/armory-io/deploy-engine/pkg"
-	"github.com/armory/armory-cli/cmd"
-	"github.com/armory/armory-cli/pkg/deploy"
-	"github.com/armory/armory-cli/pkg/output"
+	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/jarcoal/httpmock"
 	"github.com/spf13/cobra"
@@ -55,8 +52,8 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	rootCmd, err := getDeployCmdWithTmpFile(outWriter, tempFile, "json")
-	err = rootCmd.Execute()
+	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "json")
+	err = cmd.Execute()
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
@@ -82,8 +79,8 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	rootCmd, err := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
-	err = rootCmd.Execute()
+	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
+	err = cmd.Execute()
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -107,8 +104,9 @@ func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	rootCmd, err := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
-	err = rootCmd.Execute()
+	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
+
+	err = cmd.Execute()
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartHttpError failed with: %s", err)
 	}
@@ -121,19 +119,14 @@ func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartFlagFileRequired() {
-	outWriter := bytes.NewBufferString("")
-	rootCmd, options, err := getOverrideRootCmd(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartFlagRequired failed with: %s", err)
-	}
-	rootCmd.AddCommand(NewDeployCmd(options))
-
-	args := []string{
-		"deploy", "start",
-		"--output=json",
-	}
-	rootCmd.SetArgs(args)
-	err = rootCmd.Execute()
+	token := "some-token"
+	configuration := config.New(&config.Input{
+		AccessToken: &token,
+	})
+	deployCmd := NewDeployCmd(configuration)
+	args := []string{"start"}
+	deployCmd.SetArgs(args)
+	err := deployCmd.Execute()
 	if err == nil {
 		suite.T().Fatal("TestDeployStartFlagRequired failed with: error should not be null")
 	}
@@ -141,20 +134,17 @@ func (suite *DeployStartTestSuite) TestDeployStartFlagFileRequired() {
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartBadPath() {
+	configuration := config.New(&config.Input{})
+	deployCmd := NewDeployCmd(configuration)
 	outWriter := bytes.NewBufferString("")
-	rootCmd, options, err := getOverrideRootCmd(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartBadPath failed with: %s", err)
-	}
-	rootCmd.AddCommand(NewDeployCmd(options))
+	deployCmd.SetOut(outWriter)
 
 	args := []string{
-		"deploy", "start",
+		"start",
 		"--file=/badPath/test.yml",
-		"--output=json",
 	}
-	rootCmd.SetArgs(args)
-	err = rootCmd.Execute()
+	deployCmd.SetArgs(args)
+	err := deployCmd.Execute()
 	if err == nil {
 		suite.T().Fatal("TestDeployStartBadPath failed with: error should not be null")
 	}
@@ -174,12 +164,12 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnE
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	rootCmd, err := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
-	err = rootCmd.Execute()
+	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
+	err = cmd.Execute()
 	if err == nil {
 		suite.T().Fatal("TestWhenTheManifestAndFlagDoNotHaveAppNameAnErrorIsRaised failed with: error should not be null")
 	}
-	suite.EqualError(err, "application name must be defined in deployment file or by application-name opt")
+	suite.EqualError(err, "application name must be defined in deployment file or by application opt")
 }
 
 func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameButFlagIsSuppliedAnErrorIsNotRaised() {
@@ -195,40 +185,18 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameBut
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	rootCmd, options, err := getOverrideRootCmd(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestWhenTheManifestAndFlagDoNotHaveAppNameButFlagIsSuppliedAnErrorIsNotRaised failed with: %s", err)
-	}
-	rootCmd.AddCommand(NewDeployCmd(options))
+	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
 	args := []string{
-		"deploy", "start",
+		"start",
 		"--file=" + tempFile.Name(),
 		"--application=foo",
-		"--output=json",
 	}
-	rootCmd.SetArgs(args)
+	cmd.SetArgs(args)
 
-	err = rootCmd.Execute()
+	err = cmd.Execute()
 	if err != nil {
 		suite.T().Fatalf("TestWhenTheManifestAndFlagDoNotHaveAppNameButFlagIsSuppliedAnErrorIsNotRaised failed with: %s", err)
 	}
-}
-
-func getOverrideRootCmd(outWriter io.Writer) (*cobra.Command, *cmd.RootOptions, error) {
-	rootCmd, options := cmd.NewCmdRoot(outWriter, ioutil.Discard)
-	client, err := deploy.NewDeployClient(
-		"localhost",
-		"token",
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("could not create the deploy client")
-	}
-	options.DeployClient = client
-	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		options.Output = output.NewOutput(options.O)
-		return nil
-	}
-	return rootCmd, options, nil
 }
 
 func registerResponder(body interface{}, status int) error {
@@ -240,19 +208,26 @@ func registerResponder(body interface{}, status int) error {
 	return nil
 }
 
-func getDeployCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output string) (*cobra.Command, error) {
-	rootCmd, options, err := getOverrideRootCmd(outWriter)
-	if err != nil {
-		return nil, err
-	}
-	rootCmd.AddCommand(NewDeployCmd(options))
+func getDeployCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output string) *cobra.Command {
+	token := "some-token"
+	addr := "https://localhost"
+	clientId := ""
+	clientSecret := ""
+	configuration := config.New(&config.Input{
+		AccessToken:  &token,
+		ApiAddr:      &addr,
+		ClientId:     &clientId,
+		ClientSecret: &clientSecret,
+		OutFormat:    &output,
+	})
+	deployCmd := NewDeployCmd(configuration)
+	deployCmd.SetOut(outWriter)
 	args := []string{
-		"deploy", "start",
+		"start",
 		"--file=" + tmpFile.Name(),
-		"--output=" + output,
 	}
-	rootCmd.SetArgs(args)
-	return rootCmd, nil
+	deployCmd.SetArgs(args)
+	return deployCmd
 }
 
 const testAppYamlStr = `
