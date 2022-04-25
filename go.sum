@@ -35,8 +35,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/ahmetb/go-linq/v3 v3.2.0 h1:BEuMfp+b59io8g5wYzNoFe9pWPalRklhlhbiU3hYZDE=
 github.com/ahmetb/go-linq/v3 v3.2.0/go.mod h1:haQ3JfOeWK8HpVxMtHHEMPVgBKiYyQ+f1/kLZh/cj9U=
-github.com/armory-io/deploy-engine v0.43.1 h1:BRJuGZWxvFsVSatYKNvBl7MwxPZy1H0IRyeqGMc8ZJY=
-github.com/armory-io/deploy-engine v0.43.1/go.mod h1:w6ZUpo7868LwYDGwzzAnxLTA73eU9DQHQ1ciLxT8foY=
+github.com/armory-io/deploy-engine v0.44.2 h1:LU62vJhdXDNpM0TKIBV1zwrsORIF45EM0sHLMTIcDRE=
+github.com/armory-io/deploy-engine v0.44.2/go.mod h1:w6ZUpo7868LwYDGwzzAnxLTA73eU9DQHQ1ciLxT8foY=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=

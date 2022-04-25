@@ -15,7 +15,19 @@
   "deployments": [
     {
       "environment": "test1",
-      "constraints": {},
+      "constraints": {
+        "afterDeployment": [
+          {
+            "pause": {
+              "duration": 0,
+              "unit": "NONE",
+              "untilApproved": true
+            }
+          }
+        ],
+        "beforeDeployment": [],
+        "dependsOn": []
+      },
       "manifests": [
         {
           "inline": {
@@ -107,6 +119,7 @@
     {
       "environment": "test2",
       "constraints": {
+        "afterDeployment": [],
         "beforeDeployment": [
           {
             "pause": {

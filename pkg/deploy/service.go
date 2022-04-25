@@ -65,6 +65,17 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 				pipelineConstraint.SetDependsOn([]string{})
 			}
 			pipelineConstraint.SetBeforeDeployment(beforeDeployment)
+
+			afterDeployment, err := CreateAfterDeploymentConstraints(target.Constraints.AfterDeployment)
+			if err != nil {
+				return nil, err
+			}
+			if target.Constraints.DependsOn != nil {
+				pipelineConstraint.SetDependsOn(*target.Constraints.DependsOn)
+			} else {
+				pipelineConstraint.SetDependsOn([]string{})
+			}
+			pipelineConstraint.SetAfterDeployment(afterDeployment)
 		}
 		deploymentToAdd := de.PipelinePipelineDeployment{
 			Environment: &envName,
@@ -234,6 +245,36 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 	pipelineConstraints := make([]de.PipelineConstraint, 0, len(*beforeDeployment))
 	var constraint de.PipelineConstraint
 	for _, obj := range *beforeDeployment {
+		if obj.Pause != nil {
+			pause, err := createPauseConstraint(obj.Pause)
+			if err != nil {
+				return nil, err
+			}
+			constraint = de.PipelineConstraint{
+				Pause: pause,
+			}
+		} else if obj.RunWebhook != nil {
+			webhook, err := createWebhookConstraint(obj.RunWebhook)
+			if err != nil {
+				return nil, err
+			}
+			constraint = de.PipelineConstraint{
+				Webhook: webhook,
+			}
+		}
+
+		pipelineConstraints = append(pipelineConstraints, constraint)
+	}
+	return pipelineConstraints, nil
+}
+
+func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment) ([]de.PipelineConstraint, error) {
+	if afterDeployment == nil {
+		return []de.PipelineConstraint{}, nil
+	}
+	pipelineConstraints := make([]de.PipelineConstraint, 0, len(*afterDeployment))
+	var constraint de.PipelineConstraint
+	for _, obj := range *afterDeployment {
 		if obj.Pause != nil {
 			pause, err := createPauseConstraint(obj.Pause)
 			if err != nil {

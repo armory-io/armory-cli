@@ -9,6 +9,10 @@ targets:
     account: account1
     namespace: dev
     strategy: strategy1
+    constraints:
+      afterDeployment:
+        - pause:
+            untilApproved: true
   test2:
     account: account2
     namespace: qa
