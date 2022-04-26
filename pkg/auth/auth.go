@@ -20,13 +20,14 @@ const (
 )
 
 type Auth struct {
-	clientId       string `yaml:"clientId,omitempty" json:"clientId,omitempty"`
-	secret         string `yaml:"secret,omitempty" json:"secret,omitempty"`
-	tokenIssuerUrl string `yaml:"tokenIssuerUrl,omitempty" json:"tokenIssuerUrl,omitempty"`
-	audience       string `yaml:"audience,omitempty" json:"audience,omitempty"`
-	verify         bool   `yaml:"verify" json:"verify"`
-	source         string `yaml:"source" json:"source"`
-	token          string `yaml:"token" json:"token"`
+	clientId           string `yaml:"clientId,omitempty" json:"clientId,omitempty"`
+	secret             string `yaml:"secret,omitempty" json:"secret,omitempty"`
+	tokenIssuerUrl     string `yaml:"tokenIssuerUrl,omitempty" json:"tokenIssuerUrl,omitempty"`
+	audience           string `yaml:"audience,omitempty" json:"audience,omitempty"`
+	verify             bool   `yaml:"verify" json:"verify"`
+	source             string `yaml:"source" json:"source"`
+	token              string `yaml:"token" json:"token"`
+	memCachedAuthToken *Credentials
 }
 
 func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience, token string) *Auth {
@@ -45,6 +46,30 @@ func (a *Auth) GetToken() (string, error) {
 	if a.token != "" {
 		return a.token, nil
 	}
+
+	if os.Getenv("CI") == "true" {
+		return a.getTokenForCI()
+	}
+
+	return a.getTokenForSystemUser()
+}
+
+func (a *Auth) getTokenForCI() (string, error) {
+	if a.memCachedAuthToken != nil {
+		return a.memCachedAuthToken.Token, nil
+	}
+
+	token, expires, err := a.authentication(nil)
+	if err != nil {
+		return "", err
+	}
+
+	a.memCachedAuthToken = NewCredentials(a.audience, a.source, a.clientId, expires.Format(time.RFC3339), token, "")
+
+	return token, nil
+}
+
+func (a *Auth) getTokenForSystemUser() (string, error) {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -97,6 +122,13 @@ func (a *Auth) GetToken() (string, error) {
 func (a *Auth) GetEnvironmentId() (string, error) {
 	if a.token != "" {
 		return NewCredentials("", "", "", "", a.token, "").GetEnvironmentId()
+	}
+
+	if os.Getenv("CI") == "true" {
+		if a.memCachedAuthToken != nil {
+			return a.memCachedAuthToken.GetEnvironmentId()
+		}
+		return "", fmt.Errorf("failed to fetch env id in CI environment, mem cached token was null")
 	}
 
 	dirname, err := os.UserHomeDir()
