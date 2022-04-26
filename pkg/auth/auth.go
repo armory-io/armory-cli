@@ -48,25 +48,26 @@ func (a *Auth) GetToken() (string, error) {
 	}
 
 	if os.Getenv("CI") == "true" {
-		return a.getTokenForCI()
+		creds, err := a.getTokenForCI()
+		if err != nil {
+			return "", err
+		}
+		return creds.Token, nil
 	}
 
 	return a.getTokenForSystemUser()
 }
 
-func (a *Auth) getTokenForCI() (string, error) {
+func (a *Auth) getTokenForCI() (*Credentials, error) {
 	if a.memCachedAuthToken != nil {
-		return a.memCachedAuthToken.Token, nil
+		return a.memCachedAuthToken, nil
 	}
-
 	token, expires, err := a.authentication(nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
 	a.memCachedAuthToken = NewCredentials(a.audience, a.source, a.clientId, expires.Format(time.RFC3339), token, "")
-
-	return token, nil
+	return a.memCachedAuthToken, nil
 }
 
 func (a *Auth) getTokenForSystemUser() (string, error) {
@@ -125,10 +126,11 @@ func (a *Auth) GetEnvironmentId() (string, error) {
 	}
 
 	if os.Getenv("CI") == "true" {
-		if a.memCachedAuthToken != nil {
-			return a.memCachedAuthToken.GetEnvironmentId()
+		creds, err := a.getTokenForCI()
+		if err != nil {
+			return "", err
 		}
-		return "", fmt.Errorf("failed to fetch env id in CI environment, mem cached token was null")
+		return creds.Token, nil
 	}
 
 	dirname, err := os.UserHomeDir()
