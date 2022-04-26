@@ -107,6 +107,11 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 			//automated uses an automated approval via canary analysis
 			pauseUA.Content = buildAutomatedPauseStep()
 			stepsValuesNode.Content = append(stepsValuesNode.Content, weight, pauseUA, weight100)
+
+			webhooksNode, webhooksValuesNode := util.BuildSequenceNode("webhooks", "Define webhooks to be executed before, after or during deployment.")
+			webhooksValuesNode.Content = append(webhooksValuesNode.Content,
+				buildWebhookDefinitionNode("run integration test", "POST", "http://example.com/myurl/{{armory.deploymentId}}", "direct", "agent-rna", "2", "{ \"callbackUri\": \"{{armory.callbackUri}}\" }"))
+			root.Content = append(root.Content, webhooksNode, webhooksValuesNode)
 		default:
 			return fmt.Errorf("unknown feature specified for template: %s", feature)
 		}
@@ -157,6 +162,27 @@ func buildAnalysisQueryDefinitionNode(name string, metricProviderName string, up
 		"Optional when 'upperLimit' is specified. If the metric goes below this value, the automated analysis fails, causing the step to fail.")...)
 	query.Content = append(query.Content, util.BuildStringNode("queryTemplate", queryTemplate, "")...)
 	return query
+}
+
+func buildWebhookDefinitionNode(name string, method string, uriTemplate string, networkMode string, agentIdentifier string, retryCount string, bodyTemplate string) *yaml.Node {
+	hook := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	headers, headersValuesNode := util.BuildSequenceNode("headers", "HTTP headers for the request. i.e. for Authorization or ContentType")
+	auth := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	auth.Content = append(auth.Content, util.BuildStringNode("key", "Authorization", "")...)
+	auth.Content = append(auth.Content, util.BuildStringNode("value", "Bearer {{secrets.oauthToken}}", "")...)
+	headersValuesNode.Content = append(headersValuesNode.Content, auth)
+
+	hook.Content = append(hook.Content, util.BuildStringNode("name", name,
+		"Name of the webhook")...)
+
+	hook.Content = append(hook.Content, util.BuildStringNode("method", method, "HTTP Method")...)
+	hook.Content = append(hook.Content, headers, headersValuesNode)
+	hook.Content = append(hook.Content, util.BuildStringNode("uriTemplate", uriTemplate, "the URI for the HTTP request")...)
+	hook.Content = append(hook.Content, util.BuildStringNode("networkMode", networkMode, "Optional: direct or remoteNetworkAgent")...)
+	hook.Content = append(hook.Content, util.BuildStringNode("agentIdentifier", agentIdentifier, "Optional: name of agent or account that has a remote network agent configured")...)
+	hook.Content = append(hook.Content, util.BuildIntNode("retryCount", retryCount, "Optional: number of times to execute the webhook again if the trigger is unsuccessful")...)
+	hook.Content = append(hook.Content, util.BuildStringNode("bodyTemplate", bodyTemplate, "Optional: a body for the HTTP request")...)
+	return hook
 }
 
 func buildAutomatedPauseStep() []*yaml.Node {

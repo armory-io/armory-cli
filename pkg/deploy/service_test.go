@@ -75,9 +75,9 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 			if err != nil {
 				t.Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
 			}
-			diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+			diffOfExpectedAndReceived, err := diff.Diff(expectedReq, *received)
 			suite.NoError(err)
-			suite.Len(diffOfExpectedAndRecieved, 0)
+			suite.Len(diffOfExpectedAndReceived, 0)
 		})
 	}
 }
@@ -323,11 +323,11 @@ kind: Deployment
 `
 
 func (suite *ServiceTestSuite) TestCreateDeploymentWebhookRequestSuccess() {
-	received, err := createDeploymentForTests(suite, "testdata/happyPathDeploymentFileWebhook.yaml")
+	received, err := createDeploymentForTests(suite, "testdata/happyPathDeploymentFileAfterDeploymentWebhook.yaml")
 	if err != nil {
 		suite.T().Fatal(err)
 	}
-	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequestWebhook.json")
+	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequestAfterDeploymentWebhook.json")
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
@@ -343,9 +343,9 @@ func (suite *ServiceTestSuite) TestCreateDeploymentWebhookRequestSuccess() {
 		return
 	}
 	fmt.Println(string(e))
-	diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+	diffOfExpectedAndReceived, err := diff.Diff(expectedReq, *received)
 	suite.NoError(err)
-	suite.Len(diffOfExpectedAndRecieved, 0)
+	suite.Len(diffOfExpectedAndReceived, 0)
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentWebhookBeforeDeploymentRequestSuccess() {
@@ -369,9 +369,9 @@ func (suite *ServiceTestSuite) TestCreateDeploymentWebhookBeforeDeploymentReques
 		return
 	}
 	fmt.Println(string(e))
-	diffOfExpectedAndRecieved, err := diff.Diff(expectedReq, *received)
+	diffOfExpectedAndReceived, err := diff.Diff(expectedReq, *received)
 	suite.NoError(err)
-	suite.Len(diffOfExpectedAndRecieved, 0)
+	suite.Len(diffOfExpectedAndReceived, 0)
 }
 
 func (suite *ServiceTestSuite) TestBuildWebhooksSuccess() {

@@ -60,8 +60,18 @@ func buildTemplateKubernetesCore() *yaml.Node {
 	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildBoolNode("untilApproved", "false",
 		"If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.")...)
 	pause.Content = append(pause.Content, pauseNode, pauseValuesNode)
+	afterNode, afterValuesNode := util.BuildSequenceNode("afterDeployment", "A set of steps that are executed in parallel, after the deployment is run")
+	hook := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	hookNode, hookValuesNode := util.BuildMapNode("runWebhook", "The map key is the step type")
+	hookValuesNode.Content = append(hookValuesNode.Content, util.BuildStringNode("name", "run integration test", "The name of a defined webhook")...)
+	hookValuesNode.Content = append(hookValuesNode.Content, util.BuildStringNode("unit", "SECONDS", "")...)
+	context := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	contextNode, contextValuesNode := util.BuildMapNode("context", "A context of configured values for use as variable replacement")
+	context.Content = append(context.Content, contextNode, contextValuesNode)
+	hook.Content = append(hook.Content, hookNode, hookValuesNode)
+	afterValuesNode.Content = append(afterValuesNode.Content, hook)
 	beforeValuesNode.Content = append(beforeValuesNode.Content, pause)
-	constraintValuesNode.Content = append(constraintValuesNode.Content, beforeNode, beforeValuesNode, dependsOnNode, dependsOnValuesNode)
+	constraintValuesNode.Content = append(constraintValuesNode.Content, beforeNode, beforeValuesNode, afterNode, afterValuesNode, dependsOnNode, dependsOnValuesNode)
 	devValuesNode.Content = append(devValuesNode.Content, constraintNode, constraintValuesNode)
 
 	targetValuesNode.Content = append(targetValuesNode.Content, devNode, devValuesNode)
