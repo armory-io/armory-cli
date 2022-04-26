@@ -20,14 +20,14 @@ const (
 )
 
 type Auth struct {
-	clientId           string `yaml:"clientId,omitempty" json:"clientId,omitempty"`
-	secret             string `yaml:"secret,omitempty" json:"secret,omitempty"`
-	tokenIssuerUrl     string `yaml:"tokenIssuerUrl,omitempty" json:"tokenIssuerUrl,omitempty"`
-	audience           string `yaml:"audience,omitempty" json:"audience,omitempty"`
-	verify             bool   `yaml:"verify" json:"verify"`
-	source             string `yaml:"source" json:"source"`
-	token              string `yaml:"token" json:"token"`
-	memCachedAuthToken *Credentials
+	clientId             string `yaml:"clientId,omitempty" json:"clientId,omitempty"`
+	secret               string `yaml:"secret,omitempty" json:"secret,omitempty"`
+	tokenIssuerUrl       string `yaml:"tokenIssuerUrl,omitempty" json:"tokenIssuerUrl,omitempty"`
+	audience             string `yaml:"audience,omitempty" json:"audience,omitempty"`
+	verify               bool   `yaml:"verify" json:"verify"`
+	source               string `yaml:"source" json:"source"`
+	token                string `yaml:"token" json:"token"`
+	memCachedCredentials *Credentials
 }
 
 func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience, token string) *Auth {
@@ -48,25 +48,31 @@ func (a *Auth) GetToken() (string, error) {
 	}
 
 	if os.Getenv("CI") == "true" {
-		return a.getTokenForCI()
+		creds, err := a.getTokenForCI()
+		if err != nil {
+			return "", err
+		}
+		return creds.Token, nil
 	}
 
 	return a.getTokenForSystemUser()
 }
 
-func (a *Auth) getTokenForCI() (string, error) {
-	if a.memCachedAuthToken != nil {
-		return a.memCachedAuthToken.Token, nil
+func (a *Auth) getTokenForCI() (*Credentials, error) {
+	if a.memCachedCredentials != nil {
+		return a.memCachedCredentials, nil
+	}
+
+	if a.clientId == "" || a.secret == "" {
+		return nil, errors.New("no credentials set or expired, run armory login command or add clientId and clientSecret flags on the command")
 	}
 
 	token, expires, err := a.authentication(nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	a.memCachedAuthToken = NewCredentials(a.audience, a.source, a.clientId, expires.Format(time.RFC3339), token, "")
-
-	return token, nil
+	a.memCachedCredentials = NewCredentials(a.audience, a.source, a.clientId, expires.Format(time.RFC3339), token, "")
+	return a.memCachedCredentials, nil
 }
 
 func (a *Auth) getTokenForSystemUser() (string, error) {
@@ -102,7 +108,7 @@ func (a *Auth) getTokenForSystemUser() (string, error) {
 	}
 
 	if a.clientId == "" || a.secret == "" {
-		return "", errors.New("no credentials set or expired, run armory login command or add clientId and clientSecret flags on the command")
+		return "", errors.New("no credentials set, add clientId and clientSecret flags on the command")
 	}
 
 	token, expires, err := a.authentication(nil)
@@ -125,10 +131,11 @@ func (a *Auth) GetEnvironmentId() (string, error) {
 	}
 
 	if os.Getenv("CI") == "true" {
-		if a.memCachedAuthToken != nil {
-			return a.memCachedAuthToken.GetEnvironmentId()
+		creds, err := a.getTokenForCI()
+		if err != nil {
+			return "", err
 		}
-		return "", fmt.Errorf("failed to fetch env id in CI environment, mem cached token was null")
+		return creds.Token, nil
 	}
 
 	dirname, err := os.UserHomeDir()
