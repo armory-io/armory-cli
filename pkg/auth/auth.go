@@ -62,6 +62,11 @@ func (a *Auth) getTokenForCI() (*Credentials, error) {
 	if a.memCachedCredentials != nil {
 		return a.memCachedCredentials, nil
 	}
+
+	if a.clientId == "" || a.secret == "" {
+		return nil, errors.New("no credentials set or expired, run armory login command or add clientId and clientSecret flags on the command")
+	}
+
 	token, expires, err := a.authentication(nil)
 	if err != nil {
 		return nil, err
