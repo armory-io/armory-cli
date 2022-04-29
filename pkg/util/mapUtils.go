@@ -1,10 +1,10 @@
 package util
 
 func MergeMaps(x *map[string]string,  y *map[string]string) *map[string]string {
-	if x == nil{
+	if x == nil || *x == nil{
 		return y
 	}
-	if y == nil{
+	if y == nil || *y == nil{
 		return x
 	}
 	for k, v := range *y {
