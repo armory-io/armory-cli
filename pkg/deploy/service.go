@@ -66,7 +66,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			}
 			pipelineConstraint.SetBeforeDeployment(beforeDeployment)
 
-			afterDeployment, err := CreateAfterDeploymentConstraints(target.Constraints.AfterDeployment)
+			afterDeployment, err := CreateAfterDeploymentConstraints(target.Constraints.AfterDeployment, config.Analysis)
 			if err != nil {
 				return nil, err
 			}
@@ -268,7 +268,7 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 	return pipelineConstraints, nil
 }
 
-func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment) ([]de.PipelineConstraint, error) {
+func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, analysisConfig *model.AnalysisConfig) ([]de.PipelineConstraint, error) {
 	if afterDeployment == nil {
 		return []de.PipelineConstraint{}, nil
 	}
@@ -290,6 +290,14 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment) 
 			}
 			constraint = de.PipelineConstraint{
 				Webhook: webhook,
+			}
+		} else if obj.Analysis != nil {
+			analysis, err := createDeploymentCanaryAnalysisStep(obj.Analysis, analysisConfig)
+			if err != nil {
+				return nil, err
+			}
+			constraint = de.PipelineConstraint{
+				Analysis: analysis,
 			}
 		}
 

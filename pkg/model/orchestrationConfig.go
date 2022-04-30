@@ -99,7 +99,7 @@ type ManifestPath struct {
 type Constraints struct {
 	DependsOn        *[]string           `yaml:"dependsOn,omitempty"`
 	BeforeDeployment *[]BeforeDeployment `yaml:"beforeDeployment,omitempty"`
-	AfterDeployment  *[]AfterDeployment `yaml:"afterDeployment,omitempty"`
+	AfterDeployment  *[]AfterDeployment  `yaml:"afterDeployment,omitempty"`
 }
 
 type BeforeDeployment struct {
@@ -108,8 +108,9 @@ type BeforeDeployment struct {
 }
 
 type AfterDeployment struct {
-	Pause      *PauseStep   `yaml:"pause,omitempty"`
-	RunWebhook *WebhookStep `yaml:"runWebhook,omitempty"`
+	Pause      *PauseStep    `yaml:"pause,omitempty"`
+	RunWebhook *WebhookStep  `yaml:"runWebhook,omitempty"`
+	Analysis   *AnalysisStep `yaml:"analysis,omitempty"`
 }
 
 type WebhookConfig struct {

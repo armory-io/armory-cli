@@ -1,6 +1,7 @@
 package template
 
 import (
+	"fmt"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/spf13/cobra"
@@ -31,7 +32,7 @@ func NewTemplateKubernetesCmd() *cobra.Command {
 	return command
 }
 
-func buildTemplateKubernetesCore() *yaml.Node {
+func buildTemplateKubernetesCore(options *templateCanaryOptions) (*yaml.Node, error) {
 	root := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	//Core
 	root.Content = append(root.Content, util.BuildStringNode("version", "v1", "")...)
@@ -61,15 +62,42 @@ func buildTemplateKubernetesCore() *yaml.Node {
 		"If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.")...)
 	pause.Content = append(pause.Content, pauseNode, pauseValuesNode)
 	afterNode, afterValuesNode := util.BuildSequenceNode("afterDeployment", "A set of steps that are executed in parallel, after the deployment is run")
-	hook := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	hookNode, hookValuesNode := util.BuildMapNode("runWebhook", "The map key is the step type")
-	hookValuesNode.Content = append(hookValuesNode.Content, util.BuildStringNode("name", "run integration test", "The name of a defined webhook")...)
-	hookValuesNode.Content = append(hookValuesNode.Content, util.BuildStringNode("unit", "SECONDS", "")...)
-	context := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	contextNode, contextValuesNode := util.BuildMapNode("context", "A context of configured values for use as variable replacement")
-	context.Content = append(context.Content, contextNode, contextValuesNode)
-	hook.Content = append(hook.Content, hookNode, hookValuesNode)
-	afterValuesNode.Content = append(afterValuesNode.Content, hook)
+
+	for _, feature := range options.features {
+		switch feature {
+		case "automated":
+			// automated adds an analysis definition at the root level
+			analysisNode, analysisValuesNode := util.BuildMapNode("analysis", "Define queries and thresholds used for automated analysis.")
+			defaultMetricProviderNameNode := util.BuildStringNode("defaultMetricProviderName", "prometheus-prod", "Optional. Name of the default provider to use for the queries. Add providers in the Configuration UI.")
+			queriesNode, queriesValuesNode := buildAnalysisQueries()
+			analysisValuesNode.Content = append(analysisValuesNode.Content, defaultMetricProviderNameNode...)
+			analysisValuesNode.Content = append(analysisValuesNode.Content, queriesNode, queriesValuesNode)
+			root.Content = append(root.Content, analysisNode, analysisValuesNode)
+
+			analysisStepNode := buildAutomatedAnalysisStep()
+			analysis := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+			analysis.Content = append(analysis.Content, analysisStepNode...)
+			afterValuesNode.Content = append(afterValuesNode.Content, analysis)
+		case "webhook":
+			hook := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+			hookNode, hookValuesNode := util.BuildMapNode("runWebhook", "The map key is the step type")
+			hookValuesNode.Content = append(hookValuesNode.Content, util.BuildStringNode("name", "run integration test", "The name of a defined webhook")...)
+			hookValuesNode.Content = append(hookValuesNode.Content, util.BuildStringNode("unit", "SECONDS", "")...)
+			context := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+			contextNode, contextValuesNode := util.BuildMapNode("context", "A context of configured values for use as variable replacement")
+			context.Content = append(context.Content, contextNode, contextValuesNode)
+			hook.Content = append(hook.Content, hookNode, hookValuesNode)
+			afterValuesNode.Content = append(afterValuesNode.Content, hook)
+
+			webhooksNode, webhooksValuesNode := util.BuildSequenceNode("webhooks", "Define webhooks to be executed before, after or during deployment.")
+			webhooksValuesNode.Content = append(webhooksValuesNode.Content,
+				buildWebhookDefinitionNode("run integration test", "POST", "http://example.com/myurl/{{armory.deploymentId}}", "direct", "agent-rna", "2", "{ \"callbackUri\": \"{{armory.callbackUri}}\" }"))
+			root.Content = append(root.Content, webhooksNode, webhooksValuesNode)
+		default:
+			return nil, fmt.Errorf("unknown feature specified for template: %s", feature)
+		}
+	}
+
 	beforeValuesNode.Content = append(beforeValuesNode.Content, pause)
 	constraintValuesNode.Content = append(constraintValuesNode.Content, beforeNode, beforeValuesNode, afterNode, afterValuesNode, dependsOnNode, dependsOnValuesNode)
 	devValuesNode.Content = append(devValuesNode.Content, constraintNode, constraintValuesNode)
@@ -98,5 +126,5 @@ func buildTemplateKubernetesCore() *yaml.Node {
 
 	root.Content = append(root.Content, manifestsNode, manifestValuesNode)
 
-	return root
+	return root, nil
 }
