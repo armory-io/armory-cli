@@ -1,14 +1,14 @@
 package util
 
-func MergeMaps(x *map[string]string,  y *map[string]string) *map[string]string {
-	if x == nil || *x == nil{
-		return y
+func MergeMaps(dst *map[string]string, src *map[string]string) *map[string]string {
+	if dst == nil || *dst == nil{
+		return src
 	}
-	if y == nil || *y == nil{
-		return x
+	if src == nil || *src == nil{
+		return dst
 	}
-	for k, v := range *y {
-		(*x)[k] = v
+	for k, v := range *src {
+		(*dst)[k] = v
 	}
-	return x
+	return dst
 }
