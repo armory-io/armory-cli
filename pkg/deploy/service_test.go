@@ -229,7 +229,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess() {
 			},
 		},
 	}
-	received, err := createDeploymentCanarySteps(strategy, &model.AnalysisConfig{}, map[string]string{"c1" : "test3"})
+	received, err := createDeploymentCanarySteps(strategy, &model.AnalysisConfig{}, map[string]string{"c1": "test3"})
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentCanaryStepSuccess failed with: %s", err)
 	}
@@ -259,7 +259,7 @@ func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess() {
 			},
 		},
 	}
-	received, err := CreateBeforeDeploymentConstraints(&beforeDeployment)
+	received, err := CreateBeforeDeploymentConstraints(&beforeDeployment, map[string]string{})
 	if err != nil {
 		suite.T().Fatalf("TestCreateBeforeDeploymentConstraintsSuccess failed with: %s", err)
 	}
@@ -267,6 +267,10 @@ func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess() {
 }
 
 func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) (*de.PipelineStartPipelineRequest, error) {
+	return createDeploymentForTestsWithContext(suite, pathToInput, map[string]string{})
+}
+
+func createDeploymentForTestsWithContext(suite *ServiceTestSuite, pathToInput string, context map[string]string) (*de.PipelineStartPipelineRequest, error) {
 	inputYamlStr, err := ioutil.ReadFile(pathToInput)
 	if err != nil {
 		suite.T().Logf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
@@ -279,7 +283,7 @@ func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) (*de.
 		return nil, err
 	}
 
-	received, err := CreateDeploymentRequest(orchestration.Application, &orchestration, map[string]string{})
+	received, err := CreateDeploymentRequest(orchestration.Application, &orchestration, context)
 	if err != nil {
 		suite.T().Logf("TestCreateDeploymentRequestSuccess failed with: %s", err)
 		return nil, err
@@ -346,6 +350,34 @@ func (suite *ServiceTestSuite) TestCreateDeploymentWebhookRequestSuccess() {
 	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequestAfterDeploymentWebhook.json")
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+	}
+
+	expectedReq := de.PipelineStartPipelineRequest{}
+	err = json.Unmarshal(expectedJsonStr, &expectedReq)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+	}
+	e, err := json.Marshal(*received)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(e))
+	diffOfExpectedAndReceived, err := diff.Diff(expectedReq, *received)
+	suite.NoError(err)
+	suite.Len(diffOfExpectedAndReceived, 0)
+}
+
+func (suite *ServiceTestSuite) TestContextOverridesSuccessfully() {
+	received, err := createDeploymentForTestsWithContext(suite, "testdata/addContextOverrides.yaml", map[string]string{
+		"jobName": "override-test1",
+	})
+	if err != nil {
+		suite.T().Fatal(err)
+	}
+	expectedJsonStr, err := ioutil.ReadFile("testdata/addContextOverridesRequest.json")
+	if err != nil {
+		suite.T().Fatalf("TestContextOverridesSuccessfully failed with: Error loading tesdata file %s", err)
 	}
 
 	expectedReq := de.PipelineStartPipelineRequest{}

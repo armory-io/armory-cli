@@ -135,8 +135,6 @@
       },
       "analysis":{
         "defaultAccount": "newrelic-prod",
-        "AbortOnFailedJudgment": true,
-        "LookbackMethod": "GROWING",
         "queries": [
           {
             "name": "Average http error rate is less than 10%",

@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func CreateDeploymentRequest(application string, config *model.OrchestrationConfig, context map[string]string) (*de.PipelineStartPipelineRequest, error) {
+func CreateDeploymentRequest(application string, config *model.OrchestrationConfig, contextOverrides map[string]string) (*de.PipelineStartPipelineRequest, error) {
 	environments := make([]de.PipelinePipelineEnvironment, 0, len(*config.Targets))
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
 	var analysis de.AnalysisAnalysisConfig
@@ -43,7 +43,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			Account:   &target.Account,
 		})
 
-		strategy, err := buildStrategy(*config, element.Strategy, key, context)
+		strategy, err := buildStrategy(*config, element.Strategy, key, contextOverrides)
 		if err != nil {
 			return nil, err
 		}
@@ -55,7 +55,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 
 		pipelineConstraint := de.PipelineConstraintConfiguration{}
 		if target.Constraints != nil {
-			beforeDeployment, err := CreateBeforeDeploymentConstraints(target.Constraints.BeforeDeployment)
+			beforeDeployment, err := CreateBeforeDeploymentConstraints(target.Constraints.BeforeDeployment, contextOverrides)
 			if err != nil {
 				return nil, err
 			}
@@ -66,7 +66,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			}
 			pipelineConstraint.SetBeforeDeployment(beforeDeployment)
 
-			afterDeployment, err := CreateAfterDeploymentConstraints(target.Constraints.AfterDeployment)
+			afterDeployment, err := CreateAfterDeploymentConstraints(target.Constraints.AfterDeployment, contextOverrides)
 			if err != nil {
 				return nil, err
 			}
@@ -238,7 +238,7 @@ func CreateDeploymentManifests(manifests *[]string) *[]de.KubernetesV2Manifest {
 	return &deManifests
 }
 
-func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeployment) ([]de.PipelineConstraint, error) {
+func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeployment, contextOverrides map[string]string) ([]de.PipelineConstraint, error) {
 	if beforeDeployment == nil {
 		return []de.PipelineConstraint{}, nil
 	}
@@ -254,7 +254,7 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 				Pause: pause,
 			}
 		} else if obj.RunWebhook != nil {
-			webhook, err := createWebhookConstraint(obj.RunWebhook)
+			webhook, err := createWebhookConstraint(obj.RunWebhook, contextOverrides)
 			if err != nil {
 				return nil, err
 			}
@@ -268,7 +268,7 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 	return pipelineConstraints, nil
 }
 
-func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment) ([]de.PipelineConstraint, error) {
+func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, contextOverrides map[string]string) ([]de.PipelineConstraint, error) {
 	if afterDeployment == nil {
 		return []de.PipelineConstraint{}, nil
 	}
@@ -284,7 +284,7 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment) 
 				Pause: pause,
 			}
 		} else if obj.RunWebhook != nil {
-			webhook, err := createWebhookConstraint(obj.RunWebhook)
+			webhook, err := createWebhookConstraint(obj.RunWebhook, contextOverrides)
 			if err != nil {
 				return nil, err
 			}
@@ -554,15 +554,14 @@ func createPauseConstraint(pause *model.PauseStep) (*de.PipelinePauseConstraint,
 	return pauseConstraint, nil
 }
 
-func createWebhookConstraint(webhook *model.WebhookStep) (*de.WebhooksWebhookRunStepInput, error) {
+func createWebhookConstraint(webhook *model.WebhookStep, contextOverrides map[string]string) (*de.WebhooksWebhookRunStepInput, error) {
 	if err := validateWebhookStep(webhook); err != nil {
 		return nil, err
 	}
 	webhookConstraint := de.NewWebhooksWebhookRunStepInput()
 	webhookConstraint.SetName(*webhook.Name)
-	if webhook.Context != nil {
-		webhookConstraint.SetContext(*webhook.Context)
-	}
+	webhookConstraint.SetContext(*util.MergeMaps(webhook.Context, &contextOverrides))
+
 	return webhookConstraint, nil
 }
 
