@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func CreateDeploymentRequest(application string, config *model.OrchestrationConfig) (*de.PipelineStartPipelineRequest, error) {
+func CreateDeploymentRequest(application string, config *model.OrchestrationConfig, contextOverrides map[string]string) (*de.PipelineStartPipelineRequest, error) {
 	environments := make([]de.PipelinePipelineEnvironment, 0, len(*config.Targets))
 	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
 	var analysis de.AnalysisAnalysisConfig
@@ -43,7 +43,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			Account:   &target.Account,
 		})
 
-		strategy, err := buildStrategy(*config, element.Strategy, key)
+		strategy, err := buildStrategy(*config, element.Strategy, key, contextOverrides)
 		if err != nil {
 			return nil, err
 		}
@@ -55,7 +55,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 
 		pipelineConstraint := de.PipelineConstraintConfiguration{}
 		if target.Constraints != nil {
-			beforeDeployment, err := CreateBeforeDeploymentConstraints(target.Constraints.BeforeDeployment)
+			beforeDeployment, err := CreateBeforeDeploymentConstraints(target.Constraints.BeforeDeployment, contextOverrides)
 			if err != nil {
 				return nil, err
 			}
@@ -66,7 +66,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			}
 			pipelineConstraint.SetBeforeDeployment(beforeDeployment)
 
-			afterDeployment, err := CreateAfterDeploymentConstraints(target.Constraints.AfterDeployment)
+			afterDeployment, err := CreateAfterDeploymentConstraints(target.Constraints.AfterDeployment, contextOverrides)
 			if err != nil {
 				return nil, err
 			}
@@ -99,7 +99,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 	return &req, nil
 }
 
-func createDeploymentCanarySteps(strategy model.Strategy, analysisConfig *model.AnalysisConfig) ([]de.KubernetesV2CanaryStep, error) {
+func createDeploymentCanarySteps(strategy model.Strategy, analysisConfig *model.AnalysisConfig, context map[string]string) ([]de.KubernetesV2CanaryStep, error) {
 	var steps []de.KubernetesV2CanaryStep
 	for _, step := range *strategy.Canary.Steps {
 		if step.SetWeight != nil {
@@ -127,7 +127,7 @@ func createDeploymentCanarySteps(strategy model.Strategy, analysisConfig *model.
 		}
 
 		if step.Analysis != nil {
-			analysis, err := createDeploymentCanaryAnalysisStep(step.Analysis, analysisConfig)
+			analysis, err := createDeploymentCanaryAnalysisStep(step.Analysis, analysisConfig, context)
 			if err != nil {
 				return nil, err
 			}
@@ -144,7 +144,7 @@ func createDeploymentCanarySteps(strategy model.Strategy, analysisConfig *model.
 				de.KubernetesV2CanaryStep{
 					WebhookRun: &de.WebhooksWebhookRunStepInput{
 						Name:    step.RunWebhook.Name,
-						Context: step.RunWebhook.Context,
+						Context: util.MergeMaps(step.RunWebhook.Context, &context),
 					},
 				})
 		}
@@ -238,7 +238,7 @@ func CreateDeploymentManifests(manifests *[]string) *[]de.KubernetesV2Manifest {
 	return &deManifests
 }
 
-func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeployment) ([]de.PipelineConstraint, error) {
+func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeployment, contextOverrides map[string]string) ([]de.PipelineConstraint, error) {
 	if beforeDeployment == nil {
 		return []de.PipelineConstraint{}, nil
 	}
@@ -254,7 +254,7 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 				Pause: pause,
 			}
 		} else if obj.RunWebhook != nil {
-			webhook, err := createWebhookConstraint(obj.RunWebhook)
+			webhook, err := createWebhookConstraint(obj.RunWebhook, contextOverrides)
 			if err != nil {
 				return nil, err
 			}
@@ -268,7 +268,7 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 	return pipelineConstraints, nil
 }
 
-func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment) ([]de.PipelineConstraint, error) {
+func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, contextOverrides map[string]string) ([]de.PipelineConstraint, error) {
 	if afterDeployment == nil {
 		return []de.PipelineConstraint{}, nil
 	}
@@ -284,7 +284,7 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment) 
 				Pause: pause,
 			}
 		} else if obj.RunWebhook != nil {
-			webhook, err := createWebhookConstraint(obj.RunWebhook)
+			webhook, err := createWebhookConstraint(obj.RunWebhook, contextOverrides)
 			if err != nil {
 				return nil, err
 			}
@@ -298,11 +298,11 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment) 
 	return pipelineConstraints, nil
 }
 
-func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string) (*de.PipelinePipelineStrategy, error) {
+func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string, context map[string]string) (*de.PipelinePipelineStrategy, error) {
 	configStrategies := *modelStrategy.Strategies
 	strategy := configStrategies[strategyName]
 	if strategy.Canary != nil {
-		steps, err := createDeploymentCanarySteps(strategy, modelStrategy.Analysis)
+		steps, err := createDeploymentCanarySteps(strategy, modelStrategy.Analysis, context)
 		if err != nil {
 			return nil, err
 		}
@@ -378,7 +378,7 @@ func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string
 	return nil, nil
 }
 
-func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisConfig *model.AnalysisConfig) (*de.AnalysisAnalysisStepInput, error) {
+func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisConfig *model.AnalysisConfig, context map[string]string) (*de.AnalysisAnalysisStepInput, error) {
 	if analysisConfig == nil {
 		return nil, errors.New("analysis step is present but a top-level analysis config is not defined")
 	}
@@ -435,7 +435,7 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisCo
 	}
 
 	return &de.AnalysisAnalysisStepInput{
-		Context:               &analysis.Context,
+		Context:               util.MergeMaps(&analysis.Context, &context),
 		RollBackMode:          rollBackMode,
 		RollForwardMode:       rollForwardMode,
 		Interval:              &analysis.Interval,
@@ -462,7 +462,7 @@ func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition, a
 				})
 		}
 		if condition.Analysis != nil {
-			analysis, err := createDeploymentCanaryAnalysisStep(condition.Analysis, analysisConfig)
+			analysis, err := createDeploymentCanaryAnalysisStep(condition.Analysis, analysisConfig, map[string]string{})
 			if err != nil {
 				return nil, err
 			}
@@ -500,7 +500,7 @@ func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, a
 				})
 		}
 		if condition.Analysis != nil {
-			analysis, err := createDeploymentCanaryAnalysisStep(condition.Analysis, analysisConfig)
+			analysis, err := createDeploymentCanaryAnalysisStep(condition.Analysis, analysisConfig, map[string]string{})
 			if err != nil {
 				return nil, err
 			}
@@ -554,15 +554,14 @@ func createPauseConstraint(pause *model.PauseStep) (*de.PipelinePauseConstraint,
 	return pauseConstraint, nil
 }
 
-func createWebhookConstraint(webhook *model.WebhookStep) (*de.WebhooksWebhookRunStepInput, error) {
+func createWebhookConstraint(webhook *model.WebhookStep, contextOverrides map[string]string) (*de.WebhooksWebhookRunStepInput, error) {
 	if err := validateWebhookStep(webhook); err != nil {
 		return nil, err
 	}
 	webhookConstraint := de.NewWebhooksWebhookRunStepInput()
 	webhookConstraint.SetName(*webhook.Name)
-	if webhook.Context != nil {
-		webhookConstraint.SetContext(*webhook.Context)
-	}
+	webhookConstraint.SetContext(*util.MergeMaps(webhook.Context, &contextOverrides))
+
 	return webhookConstraint, nil
 }
 

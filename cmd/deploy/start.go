@@ -25,6 +25,7 @@ const (
 type deployStartOptions struct {
 	deploymentFile string
 	application    string
+	context        map[string]string
 }
 
 type FormattableDeployStartResponse struct {
@@ -76,6 +77,7 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
+	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{},  "add context values to be used in strategy steps")
 	cmd.MarkFlagRequired("file")
 	return cmd
 }
@@ -111,7 +113,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 		return fmt.Errorf("application name must be defined in deployment file or by application opt")
 	}
 
-	dep, err := deployment.CreateDeploymentRequest(application, &payload)
+	dep, err := deployment.CreateDeploymentRequest(application, &payload, options.context)
 	if err != nil {
 		return fmt.Errorf("error converting deployment object: %s", err)
 	}
