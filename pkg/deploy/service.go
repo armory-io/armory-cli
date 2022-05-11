@@ -355,11 +355,11 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
 }
 
-func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.KubernetesV2TrafficManagement, error) {
+func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.KubernetesV2TrafficManagementInput, error) {
 	if mo.TrafficManagement == nil {
 		return nil, nil
 	}
-	var tms de.KubernetesV2TrafficManagement
+	var tms de.KubernetesV2TrafficManagementInput
 	for _, tm := range *mo.TrafficManagement {
 		if len(tm.SMI) > 0 {
 			smis, err := createSMIs(tm)
