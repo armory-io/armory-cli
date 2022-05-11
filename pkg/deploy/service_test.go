@@ -198,6 +198,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess() {
 	weight := int32(33)
 	untilApproved := true
 	duration := int32(600)
+	webhookName := "webhook-test"
 	strategy := model.Strategy{
 		Canary: &model.CanaryStrategy{
 			Steps: &[]model.CanaryStep{
@@ -217,14 +218,29 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess() {
 						Unit:     "SECONDS",
 					},
 				},
+				{
+					RunWebhook: &model.WebhookStep{
+						Name: &webhookName,
+						Context: &map[string]string{
+							"a1": "test1", "b2": "test2",
+						},
+					},
+				},
 			},
 		},
 	}
-	received, err := createDeploymentCanarySteps(strategy, &model.AnalysisConfig{})
+	received, err := createDeploymentCanarySteps(strategy, &model.AnalysisConfig{}, map[string]string{"c1": "test3"})
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentCanaryStepSuccess failed with: %s", err)
 	}
 	suite.Equal(len(received), len(*strategy.Canary.Steps))
+	suite.EqualValues(received[0].SetWeight.GetWeight(), (*strategy.Canary.Steps)[0].SetWeight.Weight)
+	suite.EqualValues(received[1].Pause.GetUntilApproved(), (*strategy.Canary.Steps)[1].Pause.UntilApproved)
+	suite.EqualValues(received[2].Pause.GetDuration(), (*strategy.Canary.Steps)[2].Pause.Duration)
+	suite.EqualValues(received[3].WebhookRun.GetName(), *(*strategy.Canary.Steps)[3].RunWebhook.Name)
+	suite.EqualValues(received[3].WebhookRun.GetContext()["a1"], "test1")
+	suite.EqualValues(received[3].WebhookRun.GetContext()["b2"], "test2")
+	suite.EqualValues(received[3].WebhookRun.GetContext()["c1"], "test3")
 }
 
 func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess() {
@@ -243,7 +259,7 @@ func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess() {
 			},
 		},
 	}
-	received, err := CreateBeforeDeploymentConstraints(&beforeDeployment)
+	received, err := CreateBeforeDeploymentConstraints(&beforeDeployment, map[string]string{})
 	if err != nil {
 		suite.T().Fatalf("TestCreateBeforeDeploymentConstraintsSuccess failed with: %s", err)
 	}
@@ -251,6 +267,10 @@ func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess() {
 }
 
 func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) (*de.PipelineStartPipelineRequest, error) {
+	return createDeploymentForTestsWithContext(suite, pathToInput, map[string]string{})
+}
+
+func createDeploymentForTestsWithContext(suite *ServiceTestSuite, pathToInput string, context map[string]string) (*de.PipelineStartPipelineRequest, error) {
 	inputYamlStr, err := ioutil.ReadFile(pathToInput)
 	if err != nil {
 		suite.T().Logf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
@@ -263,7 +283,7 @@ func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) (*de.
 		return nil, err
 	}
 
-	received, err := CreateDeploymentRequest(orchestration.Application, &orchestration)
+	received, err := CreateDeploymentRequest(orchestration.Application, &orchestration, context)
 	if err != nil {
 		suite.T().Logf("TestCreateDeploymentRequestSuccess failed with: %s", err)
 		return nil, err
@@ -305,7 +325,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisErrors() {
 		if err != nil {
 			suite.T().Fatalf("TestCreateDeploymentAnalysisErrors failed with: Error Unmarshalling YAML string to Request obj %s", err)
 		}
-		_, err = CreateDeploymentRequest(orchestration.Application, &orchestration)
+		_, err = CreateDeploymentRequest(orchestration.Application, &orchestration, map[string]string{})
 		suite.Errorf(err, c.expectErr)
 	}
 }
@@ -313,7 +333,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisErrors() {
 func TestBuildStrategy(t *testing.T) {
 	_, err := buildStrategy(model.OrchestrationConfig{
 		Strategies: &map[string]model.Strategy{},
-	}, "fakeStrategy", "fakeTarget")
+	}, "fakeStrategy", "fakeTarget", map[string]string{})
 	assert.Errorf(t, err, "fakeStrategy is not a valid strategy; define canary or blueGreen strategy")
 }
 
@@ -330,6 +350,34 @@ func (suite *ServiceTestSuite) TestCreateDeploymentWebhookRequestSuccess() {
 	expectedJsonStr, err := ioutil.ReadFile("testdata/happyPathDeployEngineRequestAfterDeploymentWebhook.json")
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
+	}
+
+	expectedReq := de.PipelineStartPipelineRequest{}
+	err = json.Unmarshal(expectedJsonStr, &expectedReq)
+	if err != nil {
+		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
+	}
+	e, err := json.Marshal(*received)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(e))
+	diffOfExpectedAndReceived, err := diff.Diff(expectedReq, *received)
+	suite.NoError(err)
+	suite.Len(diffOfExpectedAndReceived, 0)
+}
+
+func (suite *ServiceTestSuite) TestContextOverridesSuccessfully() {
+	received, err := createDeploymentForTestsWithContext(suite, "testdata/addContextOverrides.yaml", map[string]string{
+		"jobName": "override-test1",
+	})
+	if err != nil {
+		suite.T().Fatal(err)
+	}
+	expectedJsonStr, err := ioutil.ReadFile("testdata/addContextOverridesRequest.json")
+	if err != nil {
+		suite.T().Fatalf("TestContextOverridesSuccessfully failed with: Error loading tesdata file %s", err)
 	}
 
 	expectedReq := de.PipelineStartPipelineRequest{}
