@@ -38,7 +38,10 @@ func NewTemplateCanaryCmd() *cobra.Command {
 }
 
 func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) error {
-	root := buildTemplateKubernetesCore()
+	root, error := buildTemplateKubernetesCore(options)
+	if error != nil {
+		return error
+	}
 
 	// Strategies root
 	strategiesNode, strategyValuesNode := util.BuildMapNode("strategies", "A map of named strategies that can be assigned to deployment targets in the targets block.")
@@ -96,22 +99,20 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 			trafficValuesNode.Content = append(trafficValuesNode.Content, trafficItemNode)
 			root.Content = append(root.Content, trafficNode, trafficValuesNode)
 		case "automated":
-			// automated adds an analysis definition at the root level
-			analysisNode, analysisValuesNode := util.BuildMapNode("analysis", "Define queries and thresholds used for automated analysis.")
-			defaultMetricProviderNameNode := util.BuildStringNode("defaultMetricProviderName", "prometheus-prod", "Optional. Name of the default provider to use for the queries. Add providers in the Configuration UI.")
-			queriesNode, queriesValuesNode := buildAnalysisQueries()
-			analysisValuesNode.Content = append(analysisValuesNode.Content, defaultMetricProviderNameNode...)
-			analysisValuesNode.Content = append(analysisValuesNode.Content, queriesNode, queriesValuesNode)
-			root.Content = append(root.Content, analysisNode, analysisValuesNode)
-
 			//automated uses an automated approval via canary analysis
-			pauseUA.Content = buildAutomatedPauseStep()
+			pauseUA.Content = buildAutomatedAnalysisStep()
 			stepsValuesNode.Content = append(stepsValuesNode.Content, weight, pauseUA, weight100)
 
-			webhooksNode, webhooksValuesNode := util.BuildSequenceNode("webhooks", "Define webhooks to be executed before, after or during deployment.")
-			webhooksValuesNode.Content = append(webhooksValuesNode.Content,
-				buildWebhookDefinitionNode("run integration test", "POST", "http://example.com/myurl/{{armory.deploymentId}}", "direct", "agent-rna", "2", "{ \"callbackUri\": \"{{armory.callbackUri}}\" }"))
-			root.Content = append(root.Content, webhooksNode, webhooksValuesNode)
+		case "webhook":
+			hook := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+			hookNode, hookValuesNode := util.BuildMapNode("runWebhook", "The map key is the step type")
+			hookValuesNode.Content = append(hookValuesNode.Content, util.BuildStringNode("name", "run integration test", "The name of a defined webhook")...)
+			hookValuesNode.Content = append(hookValuesNode.Content, util.BuildStringNode("unit", "SECONDS", "")...)
+			context := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+			contextNode, contextValuesNode := util.BuildMapNode("context", "A context of configured values for use as variable replacement")
+			context.Content = append(context.Content, contextNode, contextValuesNode)
+			hook.Content = append(hook.Content, hookNode, hookValuesNode)
+			stepsValuesNode.Content = append(stepsValuesNode.Content, hook)
 		default:
 			return fmt.Errorf("unknown feature specified for template: %s", feature)
 		}
@@ -185,7 +186,7 @@ func buildWebhookDefinitionNode(name string, method string, uriTemplate string, 
 	return hook
 }
 
-func buildAutomatedPauseStep() []*yaml.Node {
+func buildAutomatedAnalysisStep() []*yaml.Node {
 	pauseUA := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	pauseUANode, pauseUAValuesNode := util.BuildMapNode("analysis", "An analysis step pauses the deployment until analysis judgement runs complete.")
 	pauseUAValuesNode.Content = append(pauseUAValuesNode.Content, util.BuildIntNode("interval", "7",

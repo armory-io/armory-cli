@@ -77,7 +77,7 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
-	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{},  "add context values to be used in strategy steps")
+	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{}, "add context values to be used in strategy steps")
 	cmd.MarkFlagRequired("file")
 	return cmd
 }

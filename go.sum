@@ -37,6 +37,10 @@ github.com/ahmetb/go-linq/v3 v3.2.0 h1:BEuMfp+b59io8g5wYzNoFe9pWPalRklhlhbiU3hYZ
 github.com/ahmetb/go-linq/v3 v3.2.0/go.mod h1:haQ3JfOeWK8HpVxMtHHEMPVgBKiYyQ+f1/kLZh/cj9U=
 github.com/armory-io/deploy-engine v0.44.2 h1:LU62vJhdXDNpM0TKIBV1zwrsORIF45EM0sHLMTIcDRE=
 github.com/armory-io/deploy-engine v0.44.2/go.mod h1:w6ZUpo7868LwYDGwzzAnxLTA73eU9DQHQ1ciLxT8foY=
+github.com/armory-io/deploy-engine v0.47.5-0.20220430064028-099291d3e304 h1:JYDGAsSeqhWFxYuzr/yBTa6Q5FNAgs8OKEo4Cxy5rHA=
+github.com/armory-io/deploy-engine v0.47.5-0.20220430064028-099291d3e304/go.mod h1:JnXKTJMKRo7ryNctfodXuXIMx8lDozig3LJYCK8ltfQ=
+github.com/armory-io/deploy-engine v0.56.0 h1:DSGDYYmj0oB3dhigzsEOVOPmAehaMT7R/uR3MNfSMGg=
+github.com/armory-io/deploy-engine v0.56.0/go.mod h1:mU9qeWLtmV8FfOVpHaRE+1KWeUArhpyOPU3Th5/VCWA=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=

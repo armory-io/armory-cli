@@ -108,8 +108,9 @@ type BeforeDeployment struct {
 }
 
 type AfterDeployment struct {
-	Pause      *PauseStep   `yaml:"pause,omitempty"`
-	RunWebhook *WebhookStep `yaml:"runWebhook,omitempty"`
+	Pause      *PauseStep    `yaml:"pause,omitempty"`
+	RunWebhook *WebhookStep  `yaml:"runWebhook,omitempty"`
+	Analysis   *AnalysisStep `yaml:"analysis,omitempty"`
 }
 
 type WebhookConfig struct {

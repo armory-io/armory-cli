@@ -66,7 +66,7 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			}
 			pipelineConstraint.SetBeforeDeployment(beforeDeployment)
 
-			afterDeployment, err := CreateAfterDeploymentConstraints(target.Constraints.AfterDeployment, contextOverrides)
+			afterDeployment, err := CreateAfterDeploymentConstraints(target.Constraints.AfterDeployment, contextOverrides, config.Analysis)
 			if err != nil {
 				return nil, err
 			}
@@ -268,7 +268,7 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 	return pipelineConstraints, nil
 }
 
-func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, contextOverrides map[string]string) ([]de.PipelineConstraint, error) {
+func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, contextOverrides map[string]string, analysisConfig *model.AnalysisConfig) ([]de.PipelineConstraint, error) {
 	if afterDeployment == nil {
 		return []de.PipelineConstraint{}, nil
 	}
@@ -290,6 +290,14 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, 
 			}
 			constraint = de.PipelineConstraint{
 				Webhook: webhook,
+			}
+		} else if obj.Analysis != nil {
+			analysis, err := createDeploymentCanaryAnalysisStep(obj.Analysis, analysisConfig, contextOverrides)
+			if err != nil {
+				return nil, err
+			}
+			constraint = de.PipelineConstraint{
+				Analysis: analysis,
 			}
 		}
 
@@ -347,11 +355,11 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
 }
 
-func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.KubernetesV2TrafficManagement, error) {
+func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.KubernetesV2TrafficManagementInput, error) {
 	if mo.TrafficManagement == nil {
 		return nil, nil
 	}
-	var tms de.KubernetesV2TrafficManagement
+	var tms de.KubernetesV2TrafficManagementInput
 	for _, tm := range *mo.TrafficManagement {
 		if len(tm.SMI) > 0 {
 			smis, err := createSMIs(tm)
