@@ -29,7 +29,7 @@ targets:
   <target>:
 
       # An account corresponds to a Kubernetes cluster.
-      # You can create and configure accounts inside CDaaS Console
+      # You can create and configure accounts inside CD-as-a-Service Console
       # or by installing Armory RNA inside a cluster.
       account: <accountName>
 
@@ -66,16 +66,16 @@ strategies:
     # When using a blue/green strategy, only one version of your software
     # gets exposed to users at a time.
     #
-    # First, Armory CDaaS deploys the new version without
+    # First, Armory CD-as-a-Service deploys the new version without
     # exposing it to the "activeService" defined below. The new version is
     # then accessible using the "previewService" (if defined).
     #
-    # Second, Armory CDaaS executes the "redirectTrafficAfter" steps in parallel.
-    # After each step completes, Armory CDaaS exposes the new version
+    # Second, Armory CD-as-a-Service executes the "redirectTrafficAfter" steps in parallel.
+    # After each step completes, Armory CD-as-a-Service exposes the new version
     # to the activeService.
     #
-    # Finally, Armory CDaaS executes the "shutDownOldVersionAfter" steps in parallel.
-    # After each step completes, Armory CDaaS deletes the old version.
+    # Finally, Armory CD-as-a-Service executes the "shutDownOldVersionAfter" steps in parallel.
+    # After each step completes, Armory CD-as-a-Service deletes the old version.
     blueGreen:
 
       # The name of a Kubernetes Service resource.

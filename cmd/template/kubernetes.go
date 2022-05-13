@@ -41,7 +41,7 @@ func buildTemplateKubernetesCore(options *templateCanaryOptions) (*yaml.Node, er
 
 	// Target root
 	targetNode, targetValuesNode := util.BuildMapNode("targets", "Map of your deployment target, "+
-		"Armory CDaaS supports deploying to one target cluster.")
+		"Armory CD-as-a-Service supports deploying to one target cluster.")
 	devNode, devValuesNode := util.BuildMapNode("<deploymentName>",
 		"Name for your deployment. Use a descriptive value such as the environment name.")
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("account",
