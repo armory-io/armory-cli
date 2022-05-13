@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	deployStartShort   = "Start deployment with Armory Cloud"
-	deployStartLong    = "Start deployment with Armory Cloud"
+	deployStartShort   = "Start deployment with Armory CDaaS"
+	deployStartLong    = "Start deployment with Armory CDaaS"
 	deployStartExample = "armory deploy start [options]"
 )
 

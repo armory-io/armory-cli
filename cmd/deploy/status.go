@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	deployStatusShort   = "Watch deployment on Armory Cloud"
-	deployStatusLong    = "Watch deployment on Armory Cloud"
+	deployStatusShort   = "Watch deployment on Armory CDaaS"
+	deployStatusLong    = "Watch deployment on Armory CDaaS"
 	deployStatusExample = "armory deploy status [options]"
 )
 
@@ -55,11 +55,11 @@ func (u FormattableDeployStatus) String() string {
 	case deploy.WORKFLOWWORKFLOWSTATUS_PAUSED:
 		for _, stages := range *u.DeployResp.Steps {
 			if *stages.Type == "pause" && *stages.Status == deploy.WORKFLOWWORKFLOWSTATUS_PAUSED {
-				ret += fmt.Sprintf("[%s] msg: Paused for %d %s. You can skip the pause in the cloud console or CLI\n", status, stages.Pause.GetDuration(), stages.Pause.GetUnit())
+				ret += fmt.Sprintf("[%s] msg: Paused for %d %s. You can skip the pause in the CDaaS Console or CLI\n", status, stages.Pause.GetDuration(), stages.Pause.GetUnit())
 			}
 		}
 	case deploy.WORKFLOWWORKFLOWSTATUS_AWAITING_APPROVAL:
-		ret += fmt.Sprintf("[%s] msg: Paused for Manual Judgment. You can approve the rollout and continue the deployment in the cloud console or CLI.\n", status)
+		ret += fmt.Sprintf("[%s] msg: Paused for Manual Judgment. You can approve the rollout and continue the deployment in the CDaaS Console or CLI.\n", status)
 	default:
 		ret += string(status) + "\n"
 	}

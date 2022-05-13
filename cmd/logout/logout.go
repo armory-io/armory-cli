@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	logoutShort   = "Logout from Armory Cloud."
-	logoutLong    = "Logout from Armory Cloud and delete any credentials stored."
+	logoutShort   = "Log out from Armory CDaaS."
+	logoutLong    = "Log out from Armory CDaaS and delete any credentials stored."
 	logoutExample = "armory logout"
 )
 
