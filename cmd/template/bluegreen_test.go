@@ -57,20 +57,6 @@ strategies:
   <strategy>:
 
     # Define a blue/green deployment strategy.
-    #
-    # When using a blue/green strategy, only one version of your software
-    # gets exposed to users at a time.
-    #
-    # First, Armory CD-as-a-Service deploys the new version without
-    # exposing it to the activeService defined below. The new version is
-    # then accessible using the previewService (if defined).
-    #
-    # Second, Armory CD-as-a-Service executes the "redirectTrafficAfter" steps in parallel.
-    # After each step completes, Armory CD-as-a-Service exposes the new version
-    # to the activeService.
-    #
-    # Finally, Armory CD-as-a-Service executes the "shutDownOldVersionAfter" steps in parallel.
-    # After each step completes, Armory CD-as-a-Service deletes the old version.
     blueGreen:
 
       # The name of a Kubernetes Service resource.
