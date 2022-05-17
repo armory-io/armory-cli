@@ -32,7 +32,7 @@ targets:
       account: <accountName>
 
       # (Recommended) Set the namespace that the app gets deployed to. 
-      # Overrides the namespaces that are in your manifests")
+      # Overrides the namespaces that are in your manifests.
       namespace: <namespace>
 
       # A named strategy from the strategies block.
