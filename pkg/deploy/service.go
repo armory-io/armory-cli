@@ -181,7 +181,6 @@ func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]strin
 	var fileNames []string
 	var files []string
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
-	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
 	for _, manifestPath := range *manifests {
 		if manifestPath.Targets != nil && len(manifestPath.Targets) == 0 {
 			return nil, fmt.Errorf("please omit targets to include the manifests for all targets or specify the targets")
@@ -191,10 +190,10 @@ func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]strin
 			if manifestPath.Inline != "" {
 				files = append(files, manifestPath.Inline)
 			}
-			if present && !isATest {
-				manifestPath.Path = gitWorkspace + manifestPath.Path
-			}
 			if manifestPath.Path != "" {
+				if present {
+					manifestPath.Path = gitWorkspace + "/" + manifestPath.Path
+				}
 				err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
 					if err != nil {
 						fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)

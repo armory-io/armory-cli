@@ -17,6 +17,7 @@ import (
 
 const PathToTestManifest1 = "testdata/testManifest1.yaml"
 const PathToTestManifest2 = "testdata/testManifest1.yaml"
+const PathToNestedDir = "testdata/nested"
 
 func TestServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ServiceTestSuite))
@@ -168,6 +169,48 @@ func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
 	suite.Equal(len(*files), 3)
 	for _, file := range *files {
 		suite.Equal(testAppYamlStr, file, "TestGetManifestsFromPathSuccess expected files to match")
+	}
+}
+
+func (suite *ServiceTestSuite) TestGetManifestsFromGithubPathSuccess() {
+	dir, err := os.Getwd()
+	if err != nil {
+		suite.T().Fatalf("TestGetManifestsFromGithubPathSuccess failed to get current working dir: %s", err)
+	}
+	os.Setenv("GITHUB_WORKSPACE", dir)
+	manifests := []model.ManifestPath{
+		{
+			Path: "/" + PathToTestManifest1,
+			Targets: []string{
+				"env-test",
+			},
+		},
+		{
+			Path: PathToTestManifest2,
+			Targets: []string{
+				"env-test",
+			},
+		},
+		{
+			Path: PathToNestedDir,
+			Targets: []string{
+				"env-test",
+			},
+		},
+		{
+			Inline: testAppYamlStr,
+		},
+	}
+	files, err := GetManifestsFromFile(&manifests, "env-test")
+	os.Unsetenv("GITHUB_WORKSPACE")
+	if err != nil {
+		suite.T().Fatalf("TestGetManifestsFromGithubPathSuccess failed with: %s", err)
+	}
+
+	suite.Equal(5, len(*files))
+
+	for _, file := range *files {
+		suite.Equal(testAppYamlStr, file, "TestGetManifestsFromGithubPathSuccess expected files to match")
 	}
 }
 
