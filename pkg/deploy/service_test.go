@@ -173,18 +173,11 @@ func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
 }
 
 func (suite *ServiceTestSuite) TestGetManifestsFromGithubPathSuccess() {
-	//If running test on github build action, we don't want to simulate this environment
-	_, present := os.LookupEnv("GITHUB_WORKSPACE")
-	unset := false
-	if !present {
-		dir, err := os.Getwd()
-		if err != nil {
-			suite.T().Fatalf("TestGetManifestsFromGithubPathSuccess failed to get current working dir: %s", err)
-		}
-		os.Setenv("GITHUB_WORKSPACE", dir)
-		unset = true
+	dir, err := os.Getwd()
+	if err != nil {
+		suite.T().Fatalf("TestGetManifestsFromGithubPathSuccess failed to get current working dir: %s", err)
 	}
-
+	os.Setenv("GITHUB_WORKSPACE", dir)
 	manifests := []model.ManifestPath{
 		{
 			Path: "/" + PathToTestManifest1,
@@ -209,9 +202,7 @@ func (suite *ServiceTestSuite) TestGetManifestsFromGithubPathSuccess() {
 		},
 	}
 	files, err := GetManifestsFromFile(&manifests, "env-test")
-	if unset {
-		os.Unsetenv("GITHUB_WORKSPACE")
-	}
+	os.Unsetenv("GITHUB_WORKSPACE")
 	if err != nil {
 		suite.T().Fatalf("TestGetManifestsFromGithubPathSuccess failed with: %s", err)
 	}
