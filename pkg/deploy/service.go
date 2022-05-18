@@ -6,6 +6,7 @@ import (
 	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
+	log "github.com/sirupsen/logrus"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -188,11 +189,15 @@ func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]strin
 		}
 
 		if util.Contains(manifestPath.Targets, env) || manifestPath.Targets == nil {
+			log.Infof("GithubWorkspace: " + gitWorkspace)
+			log.Infof("ManifestPath: " + manifestPath.Path)
 			if manifestPath.Inline != "" {
 				files = append(files, manifestPath.Inline)
 			}
 			if present && !isATest {
 				manifestPath.Path = gitWorkspace + manifestPath.Path
+				manifestPath.Path = gitWorkspace + "/" + manifestPath.Path
+				log.Infof("Combined ManifestPath: " + manifestPath.Path)
 			}
 			if manifestPath.Path != "" {
 				err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
