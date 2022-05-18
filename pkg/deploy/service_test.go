@@ -35,6 +35,12 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 	os.Unsetenv("ARMORY_CLI_TEST")
 }
 
+func skipCI(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping testing in CI environment")
+	}
+}
+
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 	t := suite.T()
 
@@ -173,6 +179,7 @@ func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
 }
 
 func (suite *ServiceTestSuite) TestGetManifestsFromGithubPathSuccess() {
+	skipCI(suite.T())
 	dir, err := os.Getwd()
 	if err != nil {
 		suite.T().Fatalf("TestGetManifestsFromGithubPathSuccess failed to get current working dir: %s", err)
