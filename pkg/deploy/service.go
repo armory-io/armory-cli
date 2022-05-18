@@ -182,6 +182,7 @@ func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]strin
 	var fileNames []string
 	var files []string
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
+	_, isCI := os.LookupEnv("CI")
 	for _, manifestPath := range *manifests {
 		if manifestPath.Targets != nil && len(manifestPath.Targets) == 0 {
 			return nil, fmt.Errorf("please omit targets to include the manifests for all targets or specify the targets")
@@ -192,7 +193,7 @@ func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]strin
 				files = append(files, manifestPath.Inline)
 			}
 			if manifestPath.Path != "" {
-				if present {
+				if present && !isCI {
 					log.Infof("GithubWorkspace: " + gitWorkspace)
 					log.Infof("ManifestPath: " + manifestPath.Path)
 					manifestPath.Path = gitWorkspace + "/" + manifestPath.Path
