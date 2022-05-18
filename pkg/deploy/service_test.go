@@ -54,6 +54,10 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 			"testdata/happyPathDeployEngineRequestBlueGreen.json",
 		},
 		{
+			"testdata/happyPathMultiDeploymentFileBlueGreen.yaml",
+			"testdata/happyPathMultiDeployEngineRequestBlueGreen.json",
+		},
+		{
 			"testdata/happyPathEmptyTrafficManagementTargets.yaml",
 			"testdata/happyPathEmptyTrafficManagementTargets.json",
 		},
@@ -97,10 +101,6 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() 
 		file      string
 		expectErr string
 	}{
-		{
-			"testdata/sadPathDeploymentFileBlueGreen1.yaml",
-			"invalid blueGreen config: activeService is required",
-		},
 		{
 			"testdata/sadPathDeploymentFileBadPause1.yaml",
 			"pause is not valid: untilApproved cannot be set with both a unit and duration",

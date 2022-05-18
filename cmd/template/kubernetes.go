@@ -11,8 +11,6 @@ const (
 	kubernetesShort = "Generate a Kubernetes deployment template."
 )
 
-// TODO(cat): update template language using slab doc
-
 func NewTemplateKubernetesCmd() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "kubernetes",

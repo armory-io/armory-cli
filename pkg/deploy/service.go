@@ -301,32 +301,48 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, 
 func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string, context map[string]string) (*de.PipelinePipelineStrategy, error) {
 	configStrategies := *modelStrategy.Strategies
 	strategy := configStrategies[strategyName]
+
+	tm, err := createTrafficManagement(&modelStrategy, target)
+	if err != nil {
+		return nil, fmt.Errorf("invalid traffic management config: %s", err)
+	}
+
 	if strategy.Canary != nil {
 		steps, err := createDeploymentCanarySteps(strategy, modelStrategy.Analysis, context)
 		if err != nil {
 			return nil, err
 		}
-		tm, err := createTrafficManagement(&modelStrategy, target)
-		if err != nil {
-			return nil, fmt.Errorf("invalid traffic management config: %s", err)
+		canary := de.KubernetesV2CanaryStrategy{
+			Steps: steps,
+		}
+		if tm != nil && tm.Smi != nil {
+			canary.TrafficManagement = &de.KubernetesV2TrafficManagementInput{
+				Smi: tm.Smi,
+			}
 		}
 		return &de.PipelinePipelineStrategy{
-			Canary: &de.KubernetesV2CanaryStrategy{
-				Steps:             steps,
-				TrafficManagement: tm,
-			},
+			Canary: &canary,
 		}, nil
 	} else if strategy.BlueGreen != nil {
-		if strategy.BlueGreen.ActiveService == "" {
-			return nil, errors.New("invalid blueGreen config: activeService is required")
+		ps := &de.PipelinePipelineStrategy{
+			BlueGreen: &de.KubernetesV2BlueGreenStrategy{},
 		}
 
-		ps := &de.PipelinePipelineStrategy{
-			BlueGreen: &de.KubernetesV2BlueGreenStrategy{
-				ActiveService:  strategy.BlueGreen.ActiveService,
-				PreviewService: strategy.BlueGreen.PreviewService,
-			},
+		if strategy.BlueGreen.ActiveService != "" {
+			ps.BlueGreen.ActiveService = strategy.BlueGreen.ActiveService
+
 		}
+
+		if strategy.BlueGreen.PreviewService != "" {
+			ps.BlueGreen.PreviewService = strategy.BlueGreen.PreviewService
+		}
+
+		if tm != nil && tm.Kubernetes != nil {
+			ps.BlueGreen.TrafficManagement = &de.KubernetesV2TrafficManagementInput{
+				Kubernetes: tm.Kubernetes,
+			}
+		}
+
 		if strategy.BlueGreen.RedirectTrafficAfter != nil {
 			redirectTrafficAfter, err := createBlueGreenRedirectConditions(strategy.BlueGreen.RedirectTrafficAfter, modelStrategy.Analysis)
 			if err != nil {
@@ -347,11 +363,11 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
 }
 
-func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.KubernetesV2TrafficManagement, error) {
+func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.KubernetesV2TrafficManagementInput, error) {
 	if mo.TrafficManagement == nil {
 		return nil, nil
 	}
-	var tms de.KubernetesV2TrafficManagement
+	var tms de.KubernetesV2TrafficManagementInput
 	for _, tm := range *mo.TrafficManagement {
 		if len(tm.SMI) > 0 {
 			smis, err := createSMIs(tm)
@@ -371,8 +387,20 @@ func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string
 				}
 			}
 		}
+		if len(tm.Kubernetes) > 0 {
+			kubernetesTraffic, err := createKubernetesTraffic(tm)
+			if err != nil {
+				return nil, err
+			}
+			for _, t := range tm.Targets {
+				if t == currentTarget {
+					tms.Kubernetes = kubernetesTraffic
+					break
+				}
+			}
+		}
 	}
-	if tms.Smi != nil {
+	if tms.Smi != nil || tms.Kubernetes != nil {
 		return &tms, nil
 	}
 	return nil, nil
@@ -695,4 +723,16 @@ func createSMIs(tm model.TrafficManagement) (*[]de.KubernetesV2SmiTrafficManagem
 		})
 	}
 	return &smis, nil
+}
+
+func createKubernetesTraffic(tm model.TrafficManagement) (*[]de.KubernetesV2KubernetesTrafficManagementConfig, error) {
+	var kubernetesTraffic []de.KubernetesV2KubernetesTrafficManagementConfig
+	for _, kc := range tm.Kubernetes {
+		trafficConfig := kc
+		kubernetesTraffic = append(kubernetesTraffic, de.KubernetesV2KubernetesTrafficManagementConfig{
+			ActiveService:  &trafficConfig.ActiveService,
+			PreviewService: &trafficConfig.PreviewService,
+		})
+	}
+	return &kubernetesTraffic, nil
 }
