@@ -7,6 +7,7 @@ import (
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/r3labs/diff"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v2"
@@ -180,6 +181,7 @@ func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
 
 func (suite *ServiceTestSuite) TestGetManifestsFromGithubPathSuccess() {
 	skipCI(suite.T())
+	os.Unsetenv("ARMORY_CLI_TEST")
 	dir, err := os.Getwd()
 	if err != nil {
 		suite.T().Fatalf("TestGetManifestsFromGithubPathSuccess failed to get current working dir: %s", err)
@@ -210,6 +212,7 @@ func (suite *ServiceTestSuite) TestGetManifestsFromGithubPathSuccess() {
 	}
 	files, err := GetManifestsFromFile(&manifests, "env-test")
 	os.Unsetenv("GITHUB_WORKSPACE")
+	os.Setenv("ARMORY_CLI_TEST", "true")
 	if err != nil {
 		suite.T().Fatalf("TestGetManifestsFromGithubPathSuccess failed with: %s", err)
 	}
@@ -219,6 +222,7 @@ func (suite *ServiceTestSuite) TestGetManifestsFromGithubPathSuccess() {
 	for _, file := range *files {
 		suite.Equal(testAppYamlStr, file, "TestGetManifestsFromGithubPathSuccess expected files to match")
 	}
+	log.Infof("TestGetManifestsFromGithubPathSuccess complete")
 }
 
 func (suite *ServiceTestSuite) TestGetManifestsEmptyTargets() {
