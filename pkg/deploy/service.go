@@ -6,7 +6,6 @@ import (
 	de "github.com/armory-io/deploy-engine/pkg"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
-	log "github.com/sirupsen/logrus"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -182,7 +181,7 @@ func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]strin
 	var fileNames []string
 	var files []string
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
-	_, isTest := os.LookupEnv("ARMORY_CLI_TEST")
+	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
 	for _, manifestPath := range *manifests {
 		if manifestPath.Targets != nil && len(manifestPath.Targets) == 0 {
 			return nil, fmt.Errorf("please omit targets to include the manifests for all targets or specify the targets")
@@ -193,11 +192,8 @@ func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]strin
 				files = append(files, manifestPath.Inline)
 			}
 			if manifestPath.Path != "" {
-				if present && !isTest {
-					log.Infof("GithubWorkspace: " + gitWorkspace)
-					log.Infof("ManifestPath: " + manifestPath.Path)
+				if present && !isATest {
 					manifestPath.Path = gitWorkspace + "/" + manifestPath.Path
-					log.Infof("Combined ManifestPath: " + manifestPath.Path)
 				}
 				err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
 					if err != nil {
