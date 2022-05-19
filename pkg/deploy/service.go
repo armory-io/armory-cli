@@ -178,50 +178,77 @@ func CreateAnalysisQueries(analysis model.AnalysisConfig, defaultMetricProviderN
 }
 
 func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]string, error) {
-	var fileNames []string
+	var allFileNames []string
 	var files []string
-	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
-	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
 	for _, manifestPath := range *manifests {
 		if manifestPath.Targets != nil && len(manifestPath.Targets) == 0 {
 			return nil, fmt.Errorf("please omit targets to include the manifests for all targets or specify the targets")
 		}
-
 		if util.Contains(manifestPath.Targets, env) || manifestPath.Targets == nil {
 			if manifestPath.Inline != "" {
 				files = append(files, manifestPath.Inline)
 			}
-			if manifestPath.Path != "" {
-				if present && !isATest {
-					manifestPath.Path = gitWorkspace + "/" + manifestPath.Path
-				}
-				err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
-					if err != nil {
-						fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
-						return err
-					}
-					if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml" {
-						fileNames = append(fileNames, path)
-					}
-
-					return nil
-				})
-				if err != nil {
-					return nil, fmt.Errorf("unable to read manifest(s) from file: %s", err)
-				}
+			fileNames, err := getFileNamesFromManifestPath(manifestPath)
+			if err != nil {
+				return nil, err
 			}
+			allFileNames = append(allFileNames, fileNames...)
 		}
 	}
 
-	for _, fileName := range fileNames {
+	dirFiles, err := funcName(allFileNames)
+	if err != nil {
+		return nil, err
+	}
+	files = append(files, dirFiles...)
+
+	return &files, nil
+}
+
+func getFileNamesFromManifestPath(manifestPath model.ManifestPath) ([]string, error) {
+	var allFileNames []string
+	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
+	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
+
+	if manifestPath.Path != "" {
+		if present && !isATest {
+			manifestPath.Path = gitWorkspace + "/" + manifestPath.Path
+		}
+		err, fileNames := getFileNames(manifestPath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read manifest(s) from file: %s", err)
+		}
+		allFileNames = append(allFileNames, fileNames...)
+	}
+	return allFileNames, nil
+}
+
+func funcName(dirFileNames []string) ([]string, error) {
+	var files []string
+	for _, fileName := range dirFileNames {
 		file, err := ioutil.ReadFile(fileName)
 		if err != nil {
 			return nil, fmt.Errorf("error trying to read manifest file '%s': %s", fileName, err)
 		}
 		files = append(files, string(file))
 	}
+	return files, nil
+}
 
-	return &files, nil
+func getFileNames(manifestPath model.ManifestPath) (error, []string) {
+	var fileNames []string
+	err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
+		if err != nil {
+			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return err
+		}
+		if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml" {
+			fileNames = append(fileNames, path)
+		}
+
+		return nil
+	})
+	return err, fileNames
 }
 
 func CreateDeploymentManifests(manifests *[]string) *[]de.KubernetesV2Manifest {
