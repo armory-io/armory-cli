@@ -7,6 +7,7 @@ import (
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/r3labs/diff"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v2"
@@ -17,6 +18,7 @@ import (
 
 const PathToTestManifest1 = "testdata/testManifest1.yaml"
 const PathToTestManifest2 = "testdata/testManifest1.yaml"
+const PathToNestedDir = "testdata/nested"
 
 func TestServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ServiceTestSuite))
@@ -32,6 +34,12 @@ func (suite *ServiceTestSuite) SetupSuite() {
 
 func (suite *ServiceTestSuite) TearDownSuite() {
 	os.Unsetenv("ARMORY_CLI_TEST")
+}
+
+func skipCI(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping testing in CI environment")
+	}
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
@@ -169,6 +177,52 @@ func (suite *ServiceTestSuite) TestGetManifestsFromPathSuccess() {
 	for _, file := range *files {
 		suite.Equal(testAppYamlStr, file, "TestGetManifestsFromPathSuccess expected files to match")
 	}
+}
+
+func (suite *ServiceTestSuite) TestGetManifestsFromGithubPathSuccess() {
+	skipCI(suite.T())
+	os.Unsetenv("ARMORY_CLI_TEST")
+	dir, err := os.Getwd()
+	if err != nil {
+		suite.T().Fatalf("TestGetManifestsFromGithubPathSuccess failed to get current working dir: %s", err)
+	}
+	os.Setenv("GITHUB_WORKSPACE", dir)
+	manifests := []model.ManifestPath{
+		{
+			Path: "/" + PathToTestManifest1,
+			Targets: []string{
+				"env-test",
+			},
+		},
+		{
+			Path: PathToTestManifest2,
+			Targets: []string{
+				"env-test",
+			},
+		},
+		{
+			Path: PathToNestedDir,
+			Targets: []string{
+				"env-test",
+			},
+		},
+		{
+			Inline: testAppYamlStr,
+		},
+	}
+	files, err := GetManifestsFromFile(&manifests, "env-test")
+	os.Unsetenv("GITHUB_WORKSPACE")
+	os.Setenv("ARMORY_CLI_TEST", "true")
+	if err != nil {
+		suite.T().Fatalf("TestGetManifestsFromGithubPathSuccess failed with: %s", err)
+	}
+
+	suite.Equal(5, len(*files))
+
+	for _, file := range *files {
+		suite.Equal(testAppYamlStr, file, "TestGetManifestsFromGithubPathSuccess expected files to match")
+	}
+	log.Infof("TestGetManifestsFromGithubPathSuccess complete")
 }
 
 func (suite *ServiceTestSuite) TestGetManifestsEmptyTargets() {
