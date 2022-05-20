@@ -31,6 +31,7 @@ build: build-dirs Makefile
 ############
 .PHONY: test
 test: build-dirs Makefile
+	@go test -v -cover ./pkg/... ./cmd/...
 	@go test -v -cover ./pkg/... ./cmd/... -json > test-report.json
 .PHONY: coverage
 coverage:
