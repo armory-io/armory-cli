@@ -427,6 +427,11 @@ func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string
 			if err != nil {
 				return nil, err
 			}
+			// missing targets means kubernetes config will be applied to all targets
+			if len(tm.Targets) == 0 {
+				tms.Kubernetes = kubernetesTraffic
+				break
+			}
 			for _, t := range tm.Targets {
 				if t == currentTarget {
 					tms.Kubernetes = kubernetesTraffic
