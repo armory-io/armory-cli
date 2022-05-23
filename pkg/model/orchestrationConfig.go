@@ -140,12 +140,18 @@ type WebhookStep struct {
 }
 
 type TrafficManagement struct {
-	Targets []string `yaml:"targets,omitempty"`
-	SMI     []SMI    `yaml:"smi,omitempty"`
+	Targets    []string            `yaml:"targets,omitempty"`
+	SMI        []SMI               `yaml:"smi,omitempty"`
+	Kubernetes []KubernetesTraffic `yaml:"kubernetes,omitempty"`
 }
 
 type SMI struct {
 	RootServiceName   *string `yaml:"rootServiceName,omitempty"`
 	CanaryServiceName *string `yaml:"canaryServiceName,omitempty"`
 	TrafficSplitName  *string `yaml:"trafficSplitName,omitempty"`
+}
+
+type KubernetesTraffic struct {
+	ActiveService  string `yaml:"activeService,omitempty"`
+	PreviewService string `yaml:"previewService,omitempty"`
 }

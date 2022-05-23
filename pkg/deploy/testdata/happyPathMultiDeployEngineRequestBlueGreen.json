@@ -1,0 +1,62 @@
+{
+  "application": "app",
+  "deployments": [
+    {
+      "constraints": {},
+      "environment": "test1",
+      "manifests": [
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        },
+        {
+          "inline": {
+            "value": "\napiVersion: apps/v1\nkind: Deployment\n"
+          }
+        }
+      ],
+      "strategy": {
+        "blueGreen": {
+          "trafficManagement": {
+            "kubernetes": [
+              {
+                "activeService": "batman-service",
+                "previewService": "batman-preview-service"
+              },
+              {
+                "activeService": "robin-service",
+                "previewService": "robin-preview-service"
+              }
+            ]
+          },
+          "shutDownOldVersionAfter": [
+            {
+              "pause": {
+                "duration": 600,
+                "unit": "SECONDS",
+                "untilApproved": false
+              }
+            }
+          ],
+          "redirectTrafficAfter": [
+            {
+              "pause": {
+                "duration": 0,
+                "unit": "NONE",
+                "untilApproved": true
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "environments": [
+    {
+      "account": "account1",
+      "name": "test1",
+      "namespace": "dev"
+    }
+  ]
+}

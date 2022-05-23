@@ -178,50 +178,77 @@ func CreateAnalysisQueries(analysis model.AnalysisConfig, defaultMetricProviderN
 }
 
 func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]string, error) {
-	var fileNames []string
+	var allFileNames []string
 	var files []string
-	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
-	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
 	for _, manifestPath := range *manifests {
 		if manifestPath.Targets != nil && len(manifestPath.Targets) == 0 {
 			return nil, fmt.Errorf("please omit targets to include the manifests for all targets or specify the targets")
 		}
-
 		if util.Contains(manifestPath.Targets, env) || manifestPath.Targets == nil {
 			if manifestPath.Inline != "" {
 				files = append(files, manifestPath.Inline)
 			}
-			if present && !isATest {
-				manifestPath.Path = gitWorkspace + manifestPath.Path
+			fileNames, err := getFileNamesFromManifestPath(manifestPath)
+			if err != nil {
+				return nil, err
 			}
-			if manifestPath.Path != "" {
-				err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
-					if err != nil {
-						fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
-						return err
-					}
-					if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml" {
-						fileNames = append(fileNames, path)
-					}
-
-					return nil
-				})
-				if err != nil {
-					return nil, fmt.Errorf("unable to read manifest(s) from file: %s", err)
-				}
-			}
+			allFileNames = append(allFileNames, fileNames...)
 		}
 	}
 
-	for _, fileName := range fileNames {
+	dirFiles, err := funcName(allFileNames)
+	if err != nil {
+		return nil, err
+	}
+	files = append(files, dirFiles...)
+
+	return &files, nil
+}
+
+func getFileNamesFromManifestPath(manifestPath model.ManifestPath) ([]string, error) {
+	var allFileNames []string
+	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
+	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
+
+	if manifestPath.Path != "" {
+		if present && !isATest {
+			manifestPath.Path = gitWorkspace + "/" + manifestPath.Path
+		}
+		err, fileNames := getFileNames(manifestPath)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read manifest(s) from file: %s", err)
+		}
+		allFileNames = append(allFileNames, fileNames...)
+	}
+	return allFileNames, nil
+}
+
+func funcName(dirFileNames []string) ([]string, error) {
+	var files []string
+	for _, fileName := range dirFileNames {
 		file, err := ioutil.ReadFile(fileName)
 		if err != nil {
 			return nil, fmt.Errorf("error trying to read manifest file '%s': %s", fileName, err)
 		}
 		files = append(files, string(file))
 	}
+	return files, nil
+}
 
-	return &files, nil
+func getFileNames(manifestPath model.ManifestPath) (error, []string) {
+	var fileNames []string
+	err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
+		if err != nil {
+			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return err
+		}
+		if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml" {
+			fileNames = append(fileNames, path)
+		}
+
+		return nil
+	})
+	return err, fileNames
 }
 
 func CreateDeploymentManifests(manifests *[]string) *[]de.KubernetesV2Manifest {
@@ -309,32 +336,48 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, 
 func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string, context map[string]string) (*de.PipelinePipelineStrategy, error) {
 	configStrategies := *modelStrategy.Strategies
 	strategy := configStrategies[strategyName]
+
+	tm, err := createTrafficManagement(&modelStrategy, target)
+	if err != nil {
+		return nil, fmt.Errorf("invalid traffic management config: %s", err)
+	}
+
 	if strategy.Canary != nil {
 		steps, err := createDeploymentCanarySteps(strategy, modelStrategy.Analysis, context)
 		if err != nil {
 			return nil, err
 		}
-		tm, err := createTrafficManagement(&modelStrategy, target)
-		if err != nil {
-			return nil, fmt.Errorf("invalid traffic management config: %s", err)
+		canary := de.KubernetesV2CanaryStrategy{
+			Steps: steps,
+		}
+		if tm != nil && tm.Smi != nil {
+			canary.TrafficManagement = &de.KubernetesV2TrafficManagementInput{
+				Smi: tm.Smi,
+			}
 		}
 		return &de.PipelinePipelineStrategy{
-			Canary: &de.KubernetesV2CanaryStrategy{
-				Steps:             steps,
-				TrafficManagement: tm,
-			},
+			Canary: &canary,
 		}, nil
 	} else if strategy.BlueGreen != nil {
-		if strategy.BlueGreen.ActiveService == "" {
-			return nil, errors.New("invalid blueGreen config: activeService is required")
+		ps := &de.PipelinePipelineStrategy{
+			BlueGreen: &de.KubernetesV2BlueGreenStrategy{},
 		}
 
-		ps := &de.PipelinePipelineStrategy{
-			BlueGreen: &de.KubernetesV2BlueGreenStrategy{
-				ActiveService:  strategy.BlueGreen.ActiveService,
-				PreviewService: strategy.BlueGreen.PreviewService,
-			},
+		if strategy.BlueGreen.ActiveService != "" {
+			ps.BlueGreen.ActiveService = strategy.BlueGreen.ActiveService
+
 		}
+
+		if strategy.BlueGreen.PreviewService != "" {
+			ps.BlueGreen.PreviewService = strategy.BlueGreen.PreviewService
+		}
+
+		if tm != nil && tm.Kubernetes != nil {
+			ps.BlueGreen.TrafficManagement = &de.KubernetesV2TrafficManagementInput{
+				Kubernetes: tm.Kubernetes,
+			}
+		}
+
 		if strategy.BlueGreen.RedirectTrafficAfter != nil {
 			redirectTrafficAfter, err := createBlueGreenRedirectConditions(strategy.BlueGreen.RedirectTrafficAfter, modelStrategy.Analysis)
 			if err != nil {
@@ -379,8 +422,25 @@ func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string
 				}
 			}
 		}
+		if len(tm.Kubernetes) > 0 {
+			kubernetesTraffic, err := createKubernetesTraffic(tm)
+			if err != nil {
+				return nil, err
+			}
+			// missing targets means kubernetes config will be applied to all targets
+			if len(tm.Targets) == 0 {
+				tms.Kubernetes = kubernetesTraffic
+				break
+			}
+			for _, t := range tm.Targets {
+				if t == currentTarget {
+					tms.Kubernetes = kubernetesTraffic
+					break
+				}
+			}
+		}
 	}
-	if tms.Smi != nil {
+	if tms.Smi != nil || tms.Kubernetes != nil {
 		return &tms, nil
 	}
 	return nil, nil
@@ -703,4 +763,16 @@ func createSMIs(tm model.TrafficManagement) (*[]de.KubernetesV2SmiTrafficManagem
 		})
 	}
 	return &smis, nil
+}
+
+func createKubernetesTraffic(tm model.TrafficManagement) (*[]de.KubernetesV2KubernetesTrafficManagementConfig, error) {
+	var kubernetesTraffic []de.KubernetesV2KubernetesTrafficManagementConfig
+	for _, kc := range tm.Kubernetes {
+		trafficConfig := kc
+		kubernetesTraffic = append(kubernetesTraffic, de.KubernetesV2KubernetesTrafficManagementConfig{
+			ActiveService:  &trafficConfig.ActiveService,
+			PreviewService: &trafficConfig.PreviewService,
+		})
+	}
+	return &kubernetesTraffic, nil
 }
