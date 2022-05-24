@@ -39,11 +39,11 @@ func buildTemplateKubernetesCore(options *templateCanaryOptions) (*yaml.Node, er
 
 	// Target root
 	targetNode, targetValuesNode := util.BuildMapNode("targets", "Map of your deployment target, "+
-		"Borealis supports deploying to one target cluster.")
+		"Armory CD-as-a-Service supports deploying to one target cluster.")
 	devNode, devValuesNode := util.BuildMapNode("<deploymentName>",
 		"Name for your deployment. Use a descriptive value such as the environment name.")
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("account",
-		"<accountName>", "The account name that was assigned to the deployment target when you installed the RNA.")...)
+		"<accountName>", "The name that you assigned to the deployment target cluster when you installed the RNA.")...)
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("namespace",
 		"<namespace>", "(Recommended) Set the namespace that the app gets deployed to. Overrides the namespaces that are in your manifests")...)
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("strategy",
