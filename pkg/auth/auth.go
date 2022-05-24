@@ -20,13 +20,14 @@ const (
 )
 
 type Auth struct {
-	clientId       string `yaml:"clientId,omitempty" json:"clientId,omitempty"`
-	secret         string `yaml:"secret,omitempty" json:"secret,omitempty"`
-	tokenIssuerUrl string `yaml:"tokenIssuerUrl,omitempty" json:"tokenIssuerUrl,omitempty"`
-	audience       string `yaml:"audience,omitempty" json:"audience,omitempty"`
-	verify         bool   `yaml:"verify" json:"verify"`
-	source         string `yaml:"source" json:"source"`
-	token          string `yaml:"token" json:"token"`
+	clientId             string `yaml:"clientId,omitempty" json:"clientId,omitempty"`
+	secret               string `yaml:"secret,omitempty" json:"secret,omitempty"`
+	tokenIssuerUrl       string `yaml:"tokenIssuerUrl,omitempty" json:"tokenIssuerUrl,omitempty"`
+	audience             string `yaml:"audience,omitempty" json:"audience,omitempty"`
+	verify               bool   `yaml:"verify" json:"verify"`
+	source               string `yaml:"source" json:"source"`
+	token                string `yaml:"token" json:"token"`
+	memCachedCredentials *Credentials
 }
 
 func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience, token string) *Auth {
@@ -45,6 +46,36 @@ func (a *Auth) GetToken() (string, error) {
 	if a.token != "" {
 		return a.token, nil
 	}
+
+	if os.Getenv("CI") == "true" {
+		creds, err := a.getTokenForCI()
+		if err != nil {
+			return "", err
+		}
+		return creds.Token, nil
+	}
+
+	return a.getTokenForSystemUser()
+}
+
+func (a *Auth) getTokenForCI() (*Credentials, error) {
+	if a.memCachedCredentials != nil {
+		return a.memCachedCredentials, nil
+	}
+
+	if a.clientId == "" || a.secret == "" {
+		return nil, errors.New("no credentials set or expired, run armory login command or add clientId and clientSecret flags on the command")
+	}
+
+	token, expires, err := a.authentication(nil)
+	if err != nil {
+		return nil, err
+	}
+	a.memCachedCredentials = NewCredentials(a.audience, a.source, a.clientId, expires.Format(time.RFC3339), token, "")
+	return a.memCachedCredentials, nil
+}
+
+func (a *Auth) getTokenForSystemUser() (string, error) {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -77,7 +108,7 @@ func (a *Auth) GetToken() (string, error) {
 	}
 
 	if a.clientId == "" || a.secret == "" {
-		return "", errors.New("no credentials set or expired, run armory login command or add clientId and clientSecret flags on the command")
+		return "", errors.New("no credentials set, add clientId and clientSecret flags on the command")
 	}
 
 	token, expires, err := a.authentication(nil)
@@ -94,9 +125,17 @@ func (a *Auth) GetToken() (string, error) {
 	return credentials.Token, nil
 }
 
-func (a *Auth) GetEnvironment() (string, error) {
+func (a *Auth) GetEnvironmentId() (string, error) {
 	if a.token != "" {
-		return NewCredentials("", "", "", "", a.token, "").GetEnvironment()
+		return NewCredentials("", "", "", "", a.token, "").GetEnvironmentId()
+	}
+
+	if os.Getenv("CI") == "true" {
+		creds, err := a.getTokenForCI()
+		if err != nil {
+			return "", err
+		}
+		return creds.Token, nil
 	}
 
 	dirname, err := os.UserHomeDir()
@@ -108,7 +147,7 @@ func (a *Auth) GetEnvironment() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return currentCreds.GetEnvironment()
+	return currentCreds.GetEnvironmentId()
 }
 
 func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {

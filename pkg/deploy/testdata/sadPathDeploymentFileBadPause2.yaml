@@ -19,12 +19,10 @@ strategies:
   # this is the name for the strategy
   batman:
     # This map key, is the deployment strategy type
-    blue-green:
+    blueGreen:
       activeService: my-app-active
       previewService: my-app-preview
-      activeRootUrl: https://armory.com/
-      previewRootUrl: https://staging.armory.com/
-      shutdownOldVersionAfter:
+      shutDownOldVersionAfter:
       - pause:
           untilApproved: false
           unit: minutes # invalid without duration set

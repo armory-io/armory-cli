@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/armory/armory-cli/pkg/util"
+	"net/url"
 )
 
 type Environment struct {
@@ -28,8 +29,13 @@ const (
 	ENVIRONMENT_URI string = "/environments"
 )
 
-func GetEnvironments(baseUrl string, accessToken *string) ([]Environment, error) {
-	request := util.NewHttpRequest("GET", baseUrl+ENVIRONMENT_URI, nil, accessToken)
+func GetEnvironments(ArmoryCloudAddr *url.URL, accessToken *string) ([]Environment, error) {
+	environmentUrl := &url.URL{
+		Scheme: ArmoryCloudAddr.Scheme,
+		Host:   ArmoryCloudAddr.Host,
+		Path:   ENVIRONMENT_URI,
+	}
+	request := util.NewHttpRequest("GET", environmentUrl.String(), nil, accessToken)
 	request.BearerToken = accessToken
 	resp, err := request.Execute()
 	if err != nil {

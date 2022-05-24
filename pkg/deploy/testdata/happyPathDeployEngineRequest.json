@@ -15,7 +15,19 @@
   "deployments": [
     {
       "environment": "test1",
-      "constraints": {},
+      "constraints": {
+        "afterDeployment": [
+          {
+            "pause": {
+              "duration": 0,
+              "unit": "NONE",
+              "untilApproved": true
+            }
+          }
+        ],
+        "beforeDeployment": [],
+        "dependsOn": []
+      },
       "manifests": [
         {
           "inline": {
@@ -47,6 +59,20 @@
       },
       "strategy": {
         "canary": {
+          "trafficManagement": {
+            "smi": [
+              {
+                "rootServiceName": "qa-service-root",
+                "canaryServiceName": "qa-service-canary",
+                "trafficSplitName": "qa-service-split"
+              },
+              {
+                "rootServiceName": "qa-service-root2",
+                "canaryServiceName": "qa-service-canary2",
+                "trafficSplitName": "qa-service-split2"
+              }
+            ]
+          },
           "steps": [
             {
               "setWeight": {
@@ -93,6 +119,7 @@
     {
       "environment": "test2",
       "constraints": {
+        "afterDeployment": [],
         "beforeDeployment": [
           {
             "pause": {
@@ -108,8 +135,6 @@
       },
       "analysis":{
         "defaultAccount": "newrelic-prod",
-        "AbortOnFailedJudgment": true,
-        "LookbackMethod": "GROWING",
         "queries": [
           {
             "name": "Average http error rate is less than 10%",
@@ -134,6 +159,15 @@
       ],
       "strategy": {
         "canary": {
+          "trafficManagement": {
+            "smi": [
+              {
+                "rootServiceName": "dev-service-root",
+                "canaryServiceName": "dev-service-canary",
+                "trafficSplitName": "dev-service-split"
+              }
+            ]
+          },
           "steps": [
             {
               "setWeight": {

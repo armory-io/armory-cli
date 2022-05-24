@@ -9,6 +9,10 @@ targets:
     account: account1
     namespace: dev
     strategy: strategy1
+    constraints:
+      afterDeployment:
+        - pause:
+            untilApproved: true
   test2:
     account: account2
     namespace: qa
@@ -18,6 +22,20 @@ targets:
       beforeDeployment:
         - pause:
             untilApproved: true
+trafficManagement:
+  - targets: ["test1"]
+    smi:
+      - rootServiceName: "qa-service-root"
+        canaryServiceName: "qa-service-canary"
+        trafficSplitName: "qa-service-split"
+      - rootServiceName: "qa-service-root2"
+        canaryServiceName: "qa-service-canary2"
+        trafficSplitName: "qa-service-split2"
+  - targets: ["test2"]
+    smi:
+      - rootServiceName: "dev-service-root"
+        canaryServiceName: "dev-service-canary"
+        trafficSplitName: "dev-service-split"
 analysis:
   defaultMetricProviderName: newrelic-prod
   queries:

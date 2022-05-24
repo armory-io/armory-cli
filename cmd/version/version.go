@@ -1,6 +1,7 @@
 package version
 
 import (
+	"github.com/armory/armory-cli/pkg/cmdUtils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -19,11 +20,11 @@ func NewCmdVersion() *cobra.Command {
 		Short:   versionShort,
 		Long:    versionLong,
 		Example: versionExample,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			cmdUtils.ExecuteParentHooks(cmd, args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return RunVersion(cmd)
-		},
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			return nil
 		},
 	}
 	return cmd

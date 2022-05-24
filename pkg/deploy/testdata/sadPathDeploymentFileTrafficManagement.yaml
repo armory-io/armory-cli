@@ -1,0 +1,110 @@
+version: v1
+kind: kubernetes
+application: app
+# Map of Deployment Targets, this is set up in a way where
+# we can do multi-target deployments (multi-region or multi-cluster)
+targets:
+  # This in the name of a deployment, underneath it are its configuration
+  test1:
+    account: account1
+    namespace: dev
+    strategy: strategy1
+  test2:
+    account: account2
+    namespace: qa
+    strategy: strategy2
+    constraints:
+      dependsOn: ["test1"]
+      beforeDeployment:
+        - pause:
+            untilApproved: true
+trafficManagement:
+  - targets: ["test1"]
+    smi:
+      - canaryServiceName: "qa-service-canary"
+        trafficSplitName: "qa-service-split"
+        # missing rootServiceName
+analysis:
+  defaultMetricProviderName: newrelic-prod
+  queries:
+    - name: Average http error rate is less than 10%
+      queryTemplate: >-
+        SELECT filter(count(http.server.requests), WHERE outcome != 'SUCCESS' and percentile is null) /
+        filter(count(http.server.requests), WHERE percentile is null) * 100
+        FROM Metric
+        WHERE application_name = '${application-name}'
+        AND environment = '${environment}'
+        AND replica_set = '${replica-set}'
+        TIMESERIES AUTO;
+      aggregationMethod: avg
+      upperLimit: 10
+      # Ensures that canary is receiving traffic
+    - name: Average RPM is greater than 5
+      queryTemplate: >-
+        SELECT rate(count(http.server.requests), 1 minute) / 60
+        FROM Metric
+        WHERE application_name = '${application-name}'
+        AND environment = '${environment}'
+        AND replica_set = '${replica-set}'
+        TIMESERIES AUTO;
+      aggregationMethod: avg
+      lowerLimit: 5
+# This is a list of manifest names that should be included in this deployment
+# The list of manifests sources
+manifests:
+  # This specifies a specific manifest file
+  - path: testdata/testManifest3.yaml
+    targets: ["test1", "test2"]
+  - path: testdata/testManifest2.yaml
+    targets: ["test1"]
+# The map of strategies, a deployment target will reference one of these
+strategies:
+  # this is the name for the strategy
+  strategy1:
+    # This map key, is the deployment strategy type
+    canary:
+      # List of canary steps
+      steps:
+        # The map key is the step type
+        - setWeight:
+            weight: 33
+        - pause:
+            untilApproved: true
+        - analysis:
+            context:
+              foo: bar
+              fizz: baz
+            interval: 5
+            units: MINUTES
+            numberOfJudgmentRuns: 5
+            queries:
+              - Average http error rate is less than 10%
+              - Average RPM is greater than 5
+        - pause:
+            duration: 600
+            unit: SECONDS
+  strategy2:
+    # This map key, is the deployment strategy type
+    canary:
+      # List of canary steps
+      steps:
+        # The map key is the step type
+        - setWeight:
+            weight: 50
+        - analysis:
+            context:
+              foo: bar
+              fizz: baz
+            interval: 5
+            rollBackMode: manual
+            rollForwardMode: manual
+            units: MINUTES
+            numberOfJudgmentRuns: 10
+            abortOnFailedJudgment: true
+            lookbackMethod: GROWING
+            queries:
+              - Average http error rate is less than 10%
+              - Average RPM is greater than 5
+        - pause:
+            duration: 900
+            unit: SECONDS
