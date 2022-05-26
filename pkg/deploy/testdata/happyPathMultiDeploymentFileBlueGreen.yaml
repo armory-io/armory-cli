@@ -14,16 +14,25 @@ manifests:
   # This specifies a specific manifest file
   - path: testdata/testManifest1.yaml
     targets: ["test1"]
+  - path: testdata/testManifest2.yaml
+    targets: ["test1"]
+trafficManagement:
+  - targets: ["test1"]
+    kubernetes:
+      - activeService: "batman-service"
+        previewService: "batman-preview-service"
+      - activeService: "robin-service"
+        previewService: "robin-preview-service"
 # The map of strategies, a deployment target will reference one of these
 strategies:
   # this is the name for the strategy
   batman:
     # This map key, is the deployment strategy type
     blueGreen:
-      # missing activeService
-      previewService: my-app-preview
       shutDownOldVersionAfter:
       - pause:
-          untilApproved: true # invalid with unit & duration
-          unit: minutes # invalid with untilApproved set
-          duration: 5 # invalid with untilApproved set
+          duration: 600
+          unit: SECONDS
+      redirectTrafficAfter:
+      - pause:
+          untilApproved: true

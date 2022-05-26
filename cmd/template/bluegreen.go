@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	templateBlueGreenShort   = "Generate a bluegreen deployment template"
-	templateBlueGreenLong    = "Generate a bluegreen deployment template in YAML format"
+	templateBlueGreenShort   = "Generate a blue/green deployment template"
+	templateBlueGreenLong    = "Generate a blue/green deployment template in YAML format"
 	templateBlueGreenExample = "armory template bluegreen > bluegreen.yaml"
 )
 
@@ -28,17 +28,14 @@ targets:
   # Target name. Use a descriptive value (e.g., prod or staging).
   <target>:
 
-      # An account corresponds to a Kubernetes cluster.
-      # You can create and configure accounts inside Cloud Console
-      # or by installing Armory RNA inside a cluster.
+      # The name that you assigned to the deployment target cluster when you installed the RNA.
       account: <accountName>
 
-      # If provided, namespace overrides the "namespace" value
-      # in all manifests deployed to this target. Recommended.
+      # (Recommended) Set the namespace that the app gets deployed to. 
+      # Overrides the namespaces that are in your manifests.
       namespace: <namespace>
 
-      # A named strategy from the "strategies" block, configured below.
-      # This strategy is used when deploying manifests to this target.
+      # A named strategy from the strategies block.
       strategy: <strategy>
 
 # The list of manifest sources. Each entry can be a directory or file.
@@ -62,20 +59,6 @@ strategies:
   <strategy>:
 
     # Define a blue/green deployment strategy.
-    #
-    # When using a blue/green strategy, only one version of your software
-    # gets exposed to users at a time.
-    #
-    # First, Borealis deploys the new version without
-    # exposing it to the activeService defined below. The new version is
-    # then accessible using the previewService (if defined).
-    #
-    # Second, Borealis executes the "redirectTrafficAfter" steps in parallel.
-    # After each step completes, Borealis exposes the new version
-    # to the activeService.
-    #
-    # Finally, Borealis executes the "shutDownOldVersionAfter" steps in parallel.
-    # After each step completes, Borealis deletes the old version.
     blueGreen:
 
       # The redirectTrafficAfter steps are pre-conditions for exposing the new
