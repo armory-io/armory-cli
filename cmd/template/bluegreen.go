@@ -61,17 +61,6 @@ strategies:
     # Define a blue/green deployment strategy.
     blueGreen:
 
-      # The name of a Kubernetes Service resource.
-      # The activeService must be deployed out-of-band and should be configured
-      # to direct traffic to your application.
-      activeService: active-service
-
-      # The name of a Kubernetes Service resource. Optional.
-      # The previewService must be deployed out-of-band and should be configured
-      # to direct traffic to your application. You can use this service to
-      # preview the new version of your application before it is exposed to users.
-      previewService: preview-service
-
       # The redirectTrafficAfter steps are pre-conditions for exposing the new
       # version to the activeService. The steps are executed
       # in parallel.
@@ -105,6 +94,31 @@ strategies:
       shutDownOldVersionAfter:
         - pause:
             untilApproved: true
+
+trafficManagement:
+
+   # Determines the targets that this configuration should be applied to.
+   # If omitted, this configuration is applied to all targets.
+ - targets: ["<target>"]
+
+   # The Kubernetes traffic management block defines the Kubernetes Service
+   # resources that should be manipulated as part of the deployment.
+   #
+   # You can specify more than one active / preview pair here; pairs are
+   # automatically joined with your Kubernetes Deployment resources according to
+   # their label selectors.
+   kubernetes:
+
+     # The name of a Kubernetes Service resource.
+     # The activeService must be deployed out-of-band and should be configured
+     # to direct traffic to your application.
+   - activeService: active-service
+
+     # The name of a Kubernetes Service resource. Optional.
+     # The previewService must be deployed out-of-band and should be configured
+     # to direct traffic to your application. You can use this service to
+     # preview the new version of your application before it is exposed to users.
+     previewService: preview-service
 `
 
 func NewTemplateBlueGreenCmd() *cobra.Command {
