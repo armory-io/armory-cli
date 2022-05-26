@@ -4,6 +4,7 @@ import (
 	"github.com/armory/armory-cli/cmd/deploy"
 	"github.com/armory/armory-cli/cmd/login"
 	"github.com/armory/armory-cli/cmd/logout"
+	"github.com/armory/armory-cli/cmd/quickStart"
 	"github.com/armory/armory-cli/cmd/template"
 	"github.com/armory/armory-cli/cmd/version"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
@@ -45,6 +46,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 
 	rootCmd.AddCommand(version.NewCmdVersion())
 	rootCmd.AddCommand(deploy.NewDeployCmd(configuration))
+	rootCmd.AddCommand(quickStart.NewQuickStartCmd(configuration))
 	rootCmd.AddCommand(template.NewTemplateCmd())
 	rootCmd.AddCommand(login.NewLoginCmd(configuration))
 	rootCmd.AddCommand(logout.NewLogoutCmd())
