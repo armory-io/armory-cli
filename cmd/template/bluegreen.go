@@ -121,7 +121,7 @@ trafficManagement:
    # The Kubernetes traffic management block defines the Kubernetes Service
    # resources that should be manipulated as part of the deployment.
    #
-   # You can specify more than one active / preview pair here; pairs will be
+   # You can specify more than one active / preview pair here; pairs are
    # automatically joined with your Kubernetes Deployment resources according to
    # their label selectors.
    kubernetes:
