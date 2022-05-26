@@ -115,7 +115,7 @@ strategies:
 trafficManagement:
 
    # Determines the targets that this configuration should be applied to.
-   # If omitted, this configuration will be applied to all targets.
+   # If omitted, this configuration is applied to all targets.
  - targets: ["<target>"]
 
    # The Kubernetes traffic management block defines the Kubernetes Service
