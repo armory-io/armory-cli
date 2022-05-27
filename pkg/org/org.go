@@ -36,7 +36,7 @@ type ApiError struct {
 }
 
 type AppError struct {
-	Code    int    `json:"code"`
+	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
