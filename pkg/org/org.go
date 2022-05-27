@@ -87,7 +87,6 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 		Path:   CONNECTED_AGENTS_URI,
 	}
 	request := util.NewHttpRequest("GET", connectedAgentsUrl.String(), nil, &accessToken)
-	//request.BearerToken = &accessToken
 	resp, err := request.Execute()
 	if err != nil {
 		return nil, errors.New("unable to retrieve agents to connect with; please ensure an agent is connected and try again")

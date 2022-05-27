@@ -8,6 +8,7 @@ import (
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/org"
 	"github.com/armory/armory-cli/pkg/util"
+	"github.com/hashicorp/go-multierror"
 	"github.com/manifoldco/promptui"
 	log "github.com/sirupsen/logrus"
 	"io"
@@ -17,6 +18,51 @@ import (
 	"path/filepath"
 	"strings"
 )
+
+type ProjectRunner struct {
+	Errors        *multierror.Error
+	Configuration *config.Configuration
+}
+
+func NewProjectRunner(configuration *config.Configuration) *ProjectRunner {
+	return &ProjectRunner{
+		Configuration: configuration,
+	}
+}
+
+func (r *ProjectRunner) HasErrors() bool {
+	return r.Errors.ErrorOrNil() != nil
+}
+
+func (r *ProjectRunner) FailOnError() {
+	if r.HasErrors() {
+		log.Fatal(r.Errors)
+	}
+}
+
+func (r *ProjectRunner) AppendError(err error) *ProjectRunner {
+	if err != nil {
+		r.Errors = multierror.Append(r.Errors.ErrorOrNil(), err)
+	}
+	return r
+}
+
+func (r *ProjectRunner) Exec(f func() error) *ProjectRunner {
+	if r.HasErrors() {
+		return r
+	}
+	return r.AppendError(f())
+}
+
+func (r *ProjectRunner) ExecWith(f func(string) error, x string) *ProjectRunner {
+	if r.HasErrors() {
+		return r
+	}
+	return r.AppendError(f(x))
+}
+
+type QuickStartProject interface {
+}
 
 type GithubQuickStartProject struct {
 	ProjectName   string
@@ -110,10 +156,8 @@ func (p GithubQuickStartProject) Unzip() error {
 	return nil
 }
 
-/**
-Returns isCancelled, error
-*/
-func (p GithubQuickStartProject) Download() (bool, error) {
+func (p GithubQuickStartProject) Download() error {
+	defaultErr := errors.New(fmt.Sprintf("Unable to download project from Github. Please download and unzip %s, then execute `%s`", p.GetUrl(), p.GetDeployCommand()))
 	log.Info(fmt.Sprintf("Downloading demo project from `%s`...", p.GetUrl()))
 	if info, _ := os.Stat(p.DirName); info != nil {
 		prompt := promptui.Prompt{
@@ -124,38 +168,41 @@ func (p GithubQuickStartProject) Download() (bool, error) {
 
 		_, err := prompt.Run()
 		if err != nil {
-			return true, nil
+			return errors.New("Cancelled... ")
 		}
 	}
 
 	resp, err := http.Get(p.GetUrl())
 	if err != nil {
-		return false, err
+		log.Debugln(err)
+		return defaultErr
 	}
 	defer resp.Body.Close()
 
 	// Create the file
 	out, err := os.Create(p.GetFileDownloadPath())
 	if err != nil {
-		return false, err
+		log.Debugln(err)
+		return defaultErr
 	}
 	defer out.Close()
 
 	// Write the body to file
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return false, err
+		log.Debugln(err)
+		return defaultErr
 	}
 
-	return false, nil
+	return nil
 }
 
-func (p GithubQuickStartProject) UpdateAgentAccount(config *config.Configuration, selectedAgent string) error {
+func (p GithubQuickStartProject) UpdateAgentAccount(selectedAgent string) error {
 	deployFileName := fmt.Sprintf("%s%s%s", p.DirName, string(os.PathSeparator), p.DeployYmlName)
 	log.Info(fmt.Sprintf("Replacing defaults in %s with agent %s", deployFileName, selectedAgent))
 	yaml, err := ioutil.ReadFile(deployFileName)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	lines := strings.Split(string(yaml), "\n")
@@ -166,17 +213,23 @@ func (p GithubQuickStartProject) UpdateAgentAccount(config *config.Configuration
 	output := strings.Join(lines, "\n")
 	err = ioutil.WriteFile(deployFileName, []byte(output), 0644)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	return nil
 }
 
-func (p GithubQuickStartProject) SelectAgent(config *config.Configuration, namedAgent string) (string, error) {
+func (r *ProjectRunner) SelectAgent(namedAgent string) string {
+	if r.HasErrors() {
+		return ""
+	}
+
 	log.Info("Fetching armory agents that are connected to your k8s cluster...")
-	agents, err := org.GetAgents(config.GetArmoryCloudAddr(), config.GetAuthToken())
+	agents, err := org.GetAgents(r.Configuration.GetArmoryCloudAddr(), r.Configuration.GetAuthToken())
+
 	if err != nil {
-		return "", err
+		r.AppendError(err)
+		return ""
 	}
 	var agentIdentifiers []string
 	linq.From(agents).Select(func(c interface{}) interface{} {
@@ -185,7 +238,8 @@ func (p GithubQuickStartProject) SelectAgent(config *config.Configuration, named
 	}).ToSlice(&agentIdentifiers)
 
 	if len(agentIdentifiers) < 1 {
-		return "", errors.New(fmt.Sprintf("No agents were found. Please ensure you have a connected agent: %s%s", config.GetArmoryCloudEnvironmentConfiguration().CloudConsoleBaseUrl, "/configuration/agents"))
+		r.AppendError(errors.New(fmt.Sprintf("No agents were found. Please ensure you have a connected agent: %s%s", r.Configuration.GetArmoryCloudEnvironmentConfiguration().CloudConsoleBaseUrl, "/configuration/agents")))
+		return ""
 	}
 
 	if len(namedAgent) > 0 && namedAgent != "" {
@@ -196,7 +250,8 @@ func (p GithubQuickStartProject) SelectAgent(config *config.Configuration, named
 			}
 		}
 		if requestedAgent == "" {
-			return "", errors.New(fmt.Sprintf("Specified agent %s not found, please choose a known environment: [%s]", namedAgent, strings.Join(agentIdentifiers[:], ",")))
+			r.AppendError(errors.New(fmt.Sprintf("Specified agent %s not found, please choose a known agent: [%s]", namedAgent, strings.Join(agentIdentifiers[:], ","))))
+			return ""
 		}
 	}
 
@@ -213,10 +268,11 @@ func (p GithubQuickStartProject) SelectAgent(config *config.Configuration, named
 		_, selectedAgent, err = prompt.Run()
 
 		if err != nil || selectedAgent == "" {
-			return "", errors.New(fmt.Sprintf("Failed to select an agent to deploy to; %v\n", err))
+			r.AppendError(errors.New(fmt.Sprintf("Failed to select an agent to deploy to; %v\n", err)))
+			return ""
 		}
 	}
 
 	log.Debugln(fmt.Sprintf("Selected agent %s", selectedAgent))
-	return selectedAgent, nil
+	return selectedAgent
 }
