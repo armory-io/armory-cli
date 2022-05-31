@@ -26,8 +26,9 @@ const (
 )
 
 type quickStartOptions struct {
-	verbose   bool
-	agentName string
+	verbose     bool
+	skipPrompts bool
+	agentName   string
 }
 
 func NewQuickStartCmd(configuration *config.Configuration) *cobra.Command {
@@ -47,6 +48,7 @@ func NewQuickStartCmd(configuration *config.Configuration) *cobra.Command {
 	}
 	command.Flags().StringVarP(&options.agentName, "agent", "", "", "")
 	command.Flags().BoolVarP(&options.verbose, "verbose", "v", false, "")
+	command.Flags().BoolVarP(&options.skipPrompts, "yes", "y", false, "")
 	return command
 }
 
@@ -56,21 +58,23 @@ func quickStart(cmd *cobra.Command, configuration *config.Configuration, options
 	}
 
 	log.Info("Welcome to Armory CLI!\nQuick Start will download a sample project from Github and tell you how to deploy it.\n")
+	if !options.skipPrompts {
+		prompt := promptui.Prompt{
+			Label:     "Ready to get started",
+			IsConfirm: true,
+			Stdout:    &util.BellSkipper{},
+		}
 
-	prompt := promptui.Prompt{
-		Label:     "Ready to get started",
-		IsConfirm: true,
-		Stdout:    &util.BellSkipper{},
-	}
-
-	if _, err := prompt.Run(); err != nil {
-		log.Fatalf("Exiting %s\n", err)
+		if _, err := prompt.Run(); err != nil {
+			log.Fatalf("Exiting %s\n", err)
+		}
 	}
 
 	demo := CdConDemo
 	runner := NewProjectRunner(configuration)
 	selectedAgent := runner.SelectAgent(options.agentName)
 	runner.
+		Exec(demo.OverwritePrompt).
 		Exec(demo.Download).
 		Exec(demo.Unzip).
 		ExecWith(demo.UpdateAgentAccount, selectedAgent).
