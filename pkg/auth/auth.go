@@ -20,13 +20,12 @@ const (
 )
 
 type Auth struct {
-	clientId             string `yaml:"clientId,omitempty" json:"clientId,omitempty"`
-	secret               string `yaml:"secret,omitempty" json:"secret,omitempty"`
-	tokenIssuerUrl       string `yaml:"tokenIssuerUrl,omitempty" json:"tokenIssuerUrl,omitempty"`
-	audience             string `yaml:"audience,omitempty" json:"audience,omitempty"`
-	verify               bool   `yaml:"verify" json:"verify"`
-	source               string `yaml:"source" json:"source"`
-	token                string `yaml:"token" json:"token"`
+	clientId             string
+	secret               string
+	tokenIssuerUrl       string
+	audience             string
+	source               string
+	token                string
 	memCachedCredentials *Credentials
 }
 
@@ -37,7 +36,6 @@ func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience, token str
 		source:         source,
 		tokenIssuerUrl: tokenIssuerUrl,
 		audience:       audience,
-		verify:         true,
 		token:          token,
 	}
 }
@@ -189,20 +187,12 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 		return "", nil, fmt.Errorf("no access_token returned from %s", a.tokenIssuerUrl)
 	}
 
-	t, err := jwt.Parse([]byte(rt.AccessToken), a.parseOptions()...)
+	parsedJwt, err := jwt.Parse([]byte(rt.AccessToken))
 	if err != nil {
 		return "", nil, err
 	}
-	exp := t.Expiration()
+	exp := parsedJwt.Expiration()
 	return rt.AccessToken, &exp, nil
-}
-
-func (a *Auth) parseOptions() []jwt.ParseOption {
-	var opts []jwt.ParseOption
-	if a.verify {
-		opts = append(opts, jwt.WithValidate(true))
-	}
-	return opts
 }
 
 type remoteToken struct {
