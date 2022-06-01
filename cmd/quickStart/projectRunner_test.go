@@ -3,11 +3,36 @@ package quickStart
 import (
 	"errors"
 	"github.com/armory/armory-cli/pkg/config"
+	"github.com/armory/armory-cli/pkg/org"
 	"github.com/hashicorp/go-multierror"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
+	"net/url"
+	"strings"
 	"testing"
 )
+
+type MockConfiguration struct {
+}
+
+func (c *MockConfiguration) GetArmoryCloudEnv() config.ArmoryCloudEnv {
+	return 0
+}
+func (c *MockConfiguration) GetAuthToken() string {
+	return "abc_xyz_token"
+}
+func (c *MockConfiguration) GetCustomerEnvironmentId() string {
+	return ""
+}
+func (c *MockConfiguration) GetArmoryCloudAddr() *url.URL {
+	addr, _ := url.Parse("api.dev.cloud.armory.io")
+	return addr
+}
+func (c *MockConfiguration) GetArmoryCloudEnvironmentConfiguration() *config.ArmoryCloudEnvironmentConfiguration {
+	return &config.ArmoryCloudEnvironmentConfiguration{
+		CloudConsoleBaseUrl: "console.dev.cloud.armory.io",
+	}
+}
 
 func TestProjectRunnerTestSuite(t *testing.T) {
 	suite.Run(t, new(ProjectRunnerSuite))
@@ -61,7 +86,7 @@ func (m *Mock) UpdatesWith(s string) error {
 }
 
 func (suite *ProjectRunnerSuite) TestRunnerHasError() {
-	runner := NewProjectRunner(&config.Configuration{})
+	runner := NewProjectRunner(&MockConfiguration{})
 	suite.False(runner.HasErrors(), "Runner should have no errors")
 	runner.Errors = &multierror.Error{
 		Errors: []error{errors.New("some error")},
@@ -70,14 +95,14 @@ func (suite *ProjectRunnerSuite) TestRunnerHasError() {
 }
 
 func (suite *ProjectRunnerSuite) TestAppendError() {
-	runner := NewProjectRunner(&config.Configuration{})
+	runner := NewProjectRunner(&MockConfiguration{})
 	runner.AppendError(errors.New("some error"))
 
 	suite.True(runner.HasErrors(), "Runner should have errors")
 }
 
 func (suite *ProjectRunnerSuite) TestExec() {
-	runner := NewProjectRunner(&config.Configuration{})
+	runner := NewProjectRunner(&MockConfiguration{})
 	mock := NewMock()
 
 	runner.Exec(mock.Updates)
@@ -92,7 +117,7 @@ func (suite *ProjectRunnerSuite) TestExec() {
 }
 
 func (suite *ProjectRunnerSuite) TestExecWith() {
-	runner := NewProjectRunner(&config.Configuration{})
+	runner := NewProjectRunner(&MockConfiguration{})
 	mock := NewMock()
 
 	runner.ExecWith(mock.UpdatesWith, "update")
@@ -103,12 +128,12 @@ func (suite *ProjectRunnerSuite) TestExecWith() {
 }
 
 func (suite *ProjectRunnerSuite) TestWontFailOnErrorWithoutOne() {
-	runner := NewProjectRunner(&config.Configuration{})
+	runner := NewProjectRunner(&MockConfiguration{})
 	runner.FailOnError()
 }
 
 func (suite *ProjectRunnerSuite) TestFailOnError() {
-	runner := NewProjectRunner(&config.Configuration{})
+	runner := NewProjectRunner(&MockConfiguration{})
 	defer func() {
 		log.StandardLogger().ExitFunc = nil
 	}()
@@ -121,4 +146,62 @@ func (suite *ProjectRunnerSuite) TestFailOnError() {
 	runner.AppendError(errors.New("test error"))
 	runner.FailOnError()
 	suite.True(fatal, "Given there is an error with the runner, a fatal exit is expected")
+}
+
+func (suite *ProjectRunnerSuite) TestPopulateAgentsSkips() {
+	calls := 0
+	og := orgGetAgents
+	defer func() { orgGetAgents = og }()
+
+	orgGetAgents = func(ArmoryCloudAddr *url.URL, accessToken string) ([]org.Agent, error) {
+		calls = calls + 1
+		return []org.Agent{
+			{AgentIdentifier: "abc"},
+			{AgentIdentifier: "xyz"},
+		}, nil
+	}
+
+	runner := NewProjectRunner(&MockConfiguration{})
+	runner.AppendError(NoAgentsFoundError{})
+	runner.PopulateAgents()
+	suite.Equal(0, calls, "Expected no calls to get agents if the runner has an error")
+}
+
+func (suite *ProjectRunnerSuite) TestPopulateAgentsGetAgentsError() {
+	calls := 0
+	og := orgGetAgents
+	defer func() { orgGetAgents = og }()
+
+	orgGetAgents = func(ArmoryCloudAddr *url.URL, accessToken string) ([]org.Agent, error) {
+		calls = calls + 1
+		return []org.Agent{
+			{AgentIdentifier: "abc"},
+			{AgentIdentifier: "xyz"},
+		}, errors.New("some API error")
+	}
+
+	runner := NewProjectRunner(&MockConfiguration{})
+	runner.PopulateAgents()
+	suite.True(runner.HasErrors(), "error expected when returned from org.GetAgents")
+	suite.Equal(1, calls, "Expected a call to orgGetAgents")
+}
+
+func (suite *ProjectRunnerSuite) TestPopulateAgentsSuccess() {
+	calls := 0
+	og := orgGetAgents
+	defer func() { orgGetAgents = og }()
+
+	orgGetAgents = func(ArmoryCloudAddr *url.URL, accessToken string) ([]org.Agent, error) {
+		calls = calls + 1
+		return []org.Agent{
+			{AgentIdentifier: "abc"},
+			{AgentIdentifier: "xyz"},
+		}, nil
+	}
+
+	runner := NewProjectRunner(&MockConfiguration{})
+	runner.PopulateAgents()
+	suite.Equal(1, calls, "Expected a call to orgGetAgents")
+	suite.Equal(2, len(*runner.AgentIdentifiers), "Should have two agent identifiers")
+	suite.Equal("abc;xyz", strings.Join(*runner.AgentIdentifiers, ";"), "Should have two agent identifiers")
 }

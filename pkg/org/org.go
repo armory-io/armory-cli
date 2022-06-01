@@ -77,7 +77,7 @@ func GetEnvironments(ArmoryCloudAddr *url.URL, accessToken *string) ([]Environme
 	if err != nil {
 		return nil, err
 	}
-	return nil, fmt.Errorf("error retrieving environment to login to. ErrorId: %s, Desc: %s", errorResponse.ErrorId, errorResponse.Errors)
+	return nil, fmt.Errorf("error retrieving environment to login to. ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
 }
 
 func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
@@ -111,5 +111,5 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, fmt.Errorf("error retrieving agents to connect with. ErrorId: %s, Desc: %s", errorResponse.ErrorId, errorResponse.Errors)
+	return nil, fmt.Errorf("error retrieving agents to connect with. ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
 }

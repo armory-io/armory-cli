@@ -24,7 +24,7 @@ func tempDir() string {
 var testProject = GithubQuickStartProject{
 	ProjectName:   "cdCon-cdaas-demo",
 	BranchName:    "main",
-	DirName:       tempDir() + "test-project",
+	DirName:       tempDir() + "/test-project",
 	IsZipFile:     true,
 	DeployYmlName: "deploy.yml",
 }

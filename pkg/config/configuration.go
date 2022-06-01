@@ -10,6 +10,14 @@ import (
 	"strings"
 )
 
+type CliConfiguration interface {
+	GetArmoryCloudEnv() ArmoryCloudEnv
+	GetAuthToken() string
+	GetCustomerEnvironmentId() string
+	GetArmoryCloudAddr() *url.URL
+	GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnvironmentConfiguration
+}
+
 type Configuration struct {
 	input *Input
 }

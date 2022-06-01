@@ -1,7 +1,6 @@
 package quickStart
 
 import (
-	"errors"
 	"fmt"
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/armory/armory-cli/pkg/config"
@@ -10,17 +9,42 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/manifoldco/promptui"
 	log "github.com/sirupsen/logrus"
+	"net/url"
 	"strings"
 )
 
+var orgGetAgents = org.GetAgents
+
 type ProjectRunner struct {
-	Errors        *multierror.Error
-	Configuration *config.Configuration
+	Errors              *multierror.Error
+	ArmoryCloudAddr     *url.URL
+	AuthToken           string
+	CloudConsoleBaseUrl string
+	AgentIdentifiers    *[]string
 }
 
-func NewProjectRunner(configuration *config.Configuration) *ProjectRunner {
+type NoAgentsFoundError struct {
+	msg string
+}
+
+func (n NoAgentsFoundError) Error() string {
+	return fmt.Sprintf("No armory agents found. %s", n.msg)
+}
+
+type SelectedAgentError struct {
+	msg string
+}
+
+func (n SelectedAgentError) Error() string {
+	return fmt.Sprintf("Unable to continue. An agent must be selected. %s", n.msg)
+}
+
+func NewProjectRunner(configuration config.CliConfiguration) *ProjectRunner {
 	return &ProjectRunner{
-		Configuration: configuration,
+		ArmoryCloudAddr:     configuration.GetArmoryCloudAddr(),
+		AuthToken:           configuration.GetAuthToken(),
+		CloudConsoleBaseUrl: configuration.GetArmoryCloudEnvironmentConfiguration().CloudConsoleBaseUrl,
+		AgentIdentifiers:    &[]string{},
 	}
 }
 
@@ -56,59 +80,62 @@ func (r *ProjectRunner) ExecWith(f func(string) error, x string) *ProjectRunner 
 }
 
 func (r *ProjectRunner) SelectAgent(namedAgent string) string {
-	if r.HasErrors() {
-		return ""
+	if r.AgentIdentifiers == nil || len(*r.AgentIdentifiers) < 1 {
+		r.AppendError(NoAgentsFoundError{msg: "Ensure the running process has populated the agent list"})
 	}
-
-	log.Info("Fetching armory agents that are connected to your k8s cluster...")
-	agents, err := org.GetAgents(r.Configuration.GetArmoryCloudAddr(), r.Configuration.GetAuthToken())
-
-	if err != nil {
-		r.AppendError(err)
-		return ""
-	}
-	var agentIdentifiers []string
-	linq.From(agents).Select(func(c interface{}) interface{} {
-		log.Debugln(fmt.Sprintf("Found agent %s", c.(org.Agent).AgentIdentifier))
-		return c.(org.Agent).AgentIdentifier
-	}).ToSlice(&agentIdentifiers)
-
-	if len(agentIdentifiers) < 1 {
-		r.AppendError(errors.New(fmt.Sprintf("No agents were found. Please ensure you have a connected agent: %s%s", r.Configuration.GetArmoryCloudEnvironmentConfiguration().CloudConsoleBaseUrl, "/configuration/agents")))
-		return ""
-	}
-
 	if len(namedAgent) > 0 && namedAgent != "" {
-		requestedAgent := ""
-		for _, agentName := range agentIdentifiers {
+		for _, agentName := range *r.AgentIdentifiers {
 			if agentName == namedAgent {
-				requestedAgent = agentName
+				return namedAgent
 			}
 		}
-		if requestedAgent == "" {
-			r.AppendError(errors.New(fmt.Sprintf("Specified agent %s not found, please choose a known agent: [%s]", namedAgent, strings.Join(agentIdentifiers[:], ","))))
-			return ""
-		}
+
+		r.AppendError(SelectedAgentError{msg: fmt.Sprintf("Specified agent %s not found, please choose a known agent: [%s]", namedAgent, strings.Join(*r.AgentIdentifiers, ","))})
+		return ""
 	}
 
 	selectedAgent := ""
-	if len(agentIdentifiers) == 1 {
-		selectedAgent = agentIdentifiers[0]
+	if len(*r.AgentIdentifiers) == 1 {
+		selectedAgent = (*r.AgentIdentifiers)[0]
 	} else {
 		prompt := promptui.Select{
 			Label:  "Select one of your connected agents",
-			Items:  agentIdentifiers,
+			Items:  r.AgentIdentifiers,
 			Stdout: &util.BellSkipper{},
 		}
 
-		_, selectedAgent, err = prompt.Run()
+		_, selectedAgent, err := prompt.Run()
 
 		if err != nil || selectedAgent == "" {
-			r.AppendError(errors.New(fmt.Sprintf("Failed to select an agent to deploy to; %v\n", err)))
+			r.AppendError(SelectedAgentError{msg: fmt.Sprintf("Failed to select an agent to deploy to; %s", err.Error())})
 			return ""
 		}
 	}
 
 	log.Debugln(fmt.Sprintf("Selected agent %s", selectedAgent))
 	return selectedAgent
+}
+
+func (r *ProjectRunner) PopulateAgents() {
+	if r.HasErrors() {
+		return
+	}
+
+	log.Info("Fetching armory agents that are connected to your k8s cluster...")
+	agents, err := orgGetAgents(r.ArmoryCloudAddr, r.AuthToken)
+
+	if err != nil {
+		r.AppendError(err)
+		return
+	}
+	foundIdentifiers := []string{}
+	linq.From(agents).Select(func(c interface{}) interface{} {
+		log.Debugln(fmt.Sprintf("Found agent %s", c.(org.Agent).AgentIdentifier))
+		return c.(org.Agent).AgentIdentifier
+	}).ToSlice(&foundIdentifiers)
+	r.AgentIdentifiers = &foundIdentifiers
+	if len(*r.AgentIdentifiers) < 1 {
+		r.AppendError(NoAgentsFoundError{msg: fmt.Sprintf("No agents were found. Please ensure you have a connected agent: %s%s", r.CloudConsoleBaseUrl, "/configuration/agents")})
+		return
+	}
 }
