@@ -127,7 +127,7 @@ func (p GithubQuickStartProject) OverwritePrompt() error {
 }
 
 func (p GithubQuickStartProject) Download() error {
-	log.Info(fmt.Sprintf("Downloading demo project from `%s`...", p.GetUrl()))
+	log.Info(fmt.Sprintf("Downloading sample application from `%s`...", p.GetUrl()))
 	defaultErr := errors.New(fmt.Sprintf("Unable to download project from Github. Please download and unzip %s, then execute `%s`", p.GetUrl(), p.GetDeployCommand()))
 	resp, err := http.Get(p.GetUrl())
 	if err != nil {
@@ -156,7 +156,7 @@ func (p GithubQuickStartProject) Download() error {
 
 func (p GithubQuickStartProject) UpdateAgentAccount(selectedAgent string) error {
 	deployFileName := fmt.Sprintf("%s%s%s", p.DirName, string(os.PathSeparator), p.DeployYmlName)
-	log.Info(fmt.Sprintf("Replacing defaults in %s with agent %s", deployFileName, selectedAgent))
+	log.Info(fmt.Sprintf("Replacing defaults in %s with Remote Network Agent %s", deployFileName, selectedAgent))
 	yaml, err := ioutil.ReadFile(deployFileName)
 	if err != nil {
 		return err

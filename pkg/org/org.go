@@ -89,7 +89,7 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	request := util.NewHttpRequest("GET", connectedAgentsUrl.String(), nil, &accessToken)
 	resp, err := request.Execute()
 	if err != nil {
-		return nil, errors.New("unable to retrieve agents to connect with; please ensure an agent is connected and try again")
+		return nil, errors.New("Unable to retrieve Remote Network Agents to connect with. Please ensure a Remote Network Agent is connected and try again")
 	}
 	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)
@@ -103,7 +103,7 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	}
 
 	if resp.StatusCode == 401 {
-		return nil, fmt.Errorf("error: Unauthorized. Try `armory login` to ensure you're using the proper environment")
+		return nil, fmt.Errorf("Error: Unauthorized. Run `armory login` to ensure you're using the correct tenant.")
 	}
 
 	var errorResponse *ApiError
@@ -111,5 +111,5 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, fmt.Errorf("error retrieving agents to connect with. ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
+	return nil, fmt.Errorf("Error retrieving Remote Network Agents to connect with. ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
 }

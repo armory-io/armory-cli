@@ -94,7 +94,7 @@ func (r *ProjectRunner) SelectAgent(namedAgent string) string {
 			}
 		}
 
-		r.AppendError(SelectedAgentError{msg: fmt.Sprintf("Specified agent %s not found, please choose a known agent: [%s]", namedAgent, strings.Join(*r.AgentIdentifiers, ","))})
+		r.AppendError(SelectedAgentError{msg: fmt.Sprintf("Specified Remote Network Agent %s not found. Choose a connected Remote Network Agent: [%s]", namedAgent, strings.Join(*r.AgentIdentifiers, ","))})
 		return ""
 	}
 
@@ -111,7 +111,7 @@ func (r *ProjectRunner) SelectAgent(namedAgent string) string {
 		_, selectedAgent, err := prompt.Run()
 
 		if err != nil || selectedAgent == "" {
-			r.AppendError(SelectedAgentError{msg: fmt.Sprintf("Failed to select an agent to deploy to; %s", err.Error())})
+			r.AppendError(SelectedAgentError{msg: fmt.Sprintf("Failed to select a Remote Network Agent to deploy to; %s", err.Error())})
 			return ""
 		}
 	}
@@ -125,7 +125,7 @@ func (r *ProjectRunner) PopulateAgents() {
 		return
 	}
 
-	log.Info("Fetching armory agents that are connected to your k8s cluster...")
+	log.Info("Fetching Remote Network Agents that are connected to your Kubernetes cluster...")
 	agents, err := orgGetAgents(r.ArmoryCloudAddr, r.AuthToken)
 
 	if err != nil {
@@ -139,7 +139,7 @@ func (r *ProjectRunner) PopulateAgents() {
 	}).ToSlice(&foundIdentifiers)
 	r.AgentIdentifiers = &foundIdentifiers
 	if len(*r.AgentIdentifiers) < 1 {
-		r.AppendError(NoAgentsFoundError{msg: fmt.Sprintf("No agents were found. Please ensure you have a connected agent: %s%s", r.CloudConsoleBaseUrl, "/configuration/agents")})
+		r.AppendError(NoAgentsFoundError{msg: fmt.Sprintf("No Remote Network Agents were found. Please ensure you have a connected Remote Network Agent: %s%s", r.CloudConsoleBaseUrl, "/configuration/agents")})
 		return
 	}
 }
