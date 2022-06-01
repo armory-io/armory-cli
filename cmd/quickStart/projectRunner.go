@@ -107,8 +107,8 @@ func (r *ProjectRunner) SelectAgent(namedAgent string) string {
 			Items:  *r.AgentIdentifiers,
 			Stdout: &util.BellSkipper{},
 		}
-
-		_, selectedAgent, err := prompt.Run()
+		var err error
+		_, selectedAgent, err = prompt.Run()
 
 		if err != nil || selectedAgent == "" {
 			r.AppendError(SelectedAgentError{msg: fmt.Sprintf("Failed to select a Remote Network Agent to deploy to; %s", err.Error())})
