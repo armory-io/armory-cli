@@ -114,6 +114,7 @@ func (p GithubQuickStartProject) OverwritePrompt() error {
 		prompt := promptui.Prompt{
 			Label:     fmt.Sprintf("`%s` directory will be overwritten. Proceed", p.DirName),
 			IsConfirm: true,
+			Default:   "Y",
 			Stdout:    &util.BellSkipper{},
 		}
 
@@ -156,7 +157,7 @@ func (p GithubQuickStartProject) Download() error {
 
 func (p GithubQuickStartProject) UpdateAgentAccount(selectedAgent string) error {
 	deployFileName := fmt.Sprintf("%s%s%s", p.DirName, string(os.PathSeparator), p.DeployYmlName)
-	log.Info(fmt.Sprintf("Replacing defaults in %s with Remote Network Agent %s", deployFileName, selectedAgent))
+	log.Info(fmt.Sprintf("Replacing defaults in %s with Remote Network Agent '%s'", deployFileName, selectedAgent))
 	yaml, err := ioutil.ReadFile(deployFileName)
 	if err != nil {
 		return err

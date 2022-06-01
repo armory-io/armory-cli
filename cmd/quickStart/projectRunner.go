@@ -120,9 +120,9 @@ func (r *ProjectRunner) SelectAgent(namedAgent string) string {
 	return selectedAgent
 }
 
-func (r *ProjectRunner) PopulateAgents() {
+func (r *ProjectRunner) PopulateAgents() *ProjectRunner {
 	if r.HasErrors() {
-		return
+		return r
 	}
 
 	log.Info("Fetching Remote Network Agents that are connected to your Kubernetes cluster...")
@@ -130,7 +130,7 @@ func (r *ProjectRunner) PopulateAgents() {
 
 	if err != nil {
 		r.AppendError(err)
-		return
+		return r
 	}
 	foundIdentifiers := []string{}
 	linq.From(agents).Select(func(c interface{}) interface{} {
@@ -140,6 +140,7 @@ func (r *ProjectRunner) PopulateAgents() {
 	r.AgentIdentifiers = &foundIdentifiers
 	if len(*r.AgentIdentifiers) < 1 {
 		r.AppendError(NoAgentsFoundError{msg: fmt.Sprintf("No Remote Network Agents were found. Please ensure you have a connected Remote Network Agent: %s%s", r.CloudConsoleBaseUrl, "/configuration/agents")})
-		return
 	}
+
+	return r
 }
