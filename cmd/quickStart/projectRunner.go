@@ -104,7 +104,7 @@ func (r *ProjectRunner) SelectAgent(namedAgent string) string {
 	} else {
 		prompt := promptui.Select{
 			Label:  "Select one of your connected agents",
-			Items:  r.AgentIdentifiers,
+			Items:  *r.AgentIdentifiers,
 			Stdout: &util.BellSkipper{},
 		}
 
@@ -134,9 +134,9 @@ func (r *ProjectRunner) PopulateAgents() *ProjectRunner {
 	}
 	foundIdentifiers := []string{}
 	linq.From(agents).Select(func(c interface{}) interface{} {
-		log.Debugln(fmt.Sprintf("Found agent %s", c.(org.Agent).AgentIdentifier))
+		log.Debugln(fmt.Sprintf("Found Remote Network Agent '%s'", c.(org.Agent).AgentIdentifier))
 		return c.(org.Agent).AgentIdentifier
-	}).ToSlice(&foundIdentifiers)
+	}).Distinct().ToSlice(&foundIdentifiers)
 	r.AgentIdentifiers = &foundIdentifiers
 	if len(*r.AgentIdentifiers) < 1 {
 		r.AppendError(NoAgentsFoundError{msg: fmt.Sprintf("No Remote Network Agents were found. Please ensure you have a connected Remote Network Agent: %s%s", r.CloudConsoleBaseUrl, "/configuration/agents")})

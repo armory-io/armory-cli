@@ -20,6 +20,8 @@ func TestProjectRunnerTestSuite(t *testing.T) {
 
 var mockAgents = []org.Agent{
 	{AgentIdentifier: "abc"},
+	{AgentIdentifier: "abc"},
+	{AgentIdentifier: "xyz"},
 	{AgentIdentifier: "xyz"},
 }
 
