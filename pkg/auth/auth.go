@@ -106,7 +106,7 @@ func (a *Auth) getTokenForSystemUser() (string, error) {
 	}
 
 	if a.clientId == "" || a.secret == "" {
-		return "", errors.New("no credentials set, add clientId and clientSecret flags on the command")
+		return "", errors.New("no credentials set; please login or add clientId and clientSecret flags to the command")
 	}
 
 	token, expires, err := a.authentication(nil)

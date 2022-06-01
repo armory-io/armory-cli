@@ -6,12 +6,27 @@ import (
 	"fmt"
 	"github.com/armory/armory-cli/pkg/util"
 	"net/url"
+	"time"
 )
 
 type Environment struct {
 	Id    string `json:"id"`
 	Name  string `json:"name"`
 	OrgId string `json:"orgId"`
+}
+
+type Agent struct {
+	AgentIdentifier       string    `json:"agentIdentifier"`
+	OrgId                 string    `json:"orgId"`
+	EnvId                 string    `json:"envId"`
+	AgentInstanceUuid     string    `json:"agentInstanceUuid"`
+	StreamId              string    `json:"streamId"`
+	IpAddress             string    `json:"ipAddress"`
+	NodeIp                string    `json:"nodeIp"`
+	AgentVersion          string    `json:"agentVersion"`
+	K8SClusterRoleSupport bool      `json:"k8sClusterRoleSupport"`
+	ClientId              string    `json:"clientId"`
+	ConnectedAtIso8601    time.Time `json:"connectedAtIso8601"`
 }
 
 type ApiError struct {
@@ -21,12 +36,17 @@ type ApiError struct {
 }
 
 type AppError struct {
-	Code    int    `json:"code"`
+	Code    int32  `json:"code"`
 	Message string `json:"message"`
 }
 
+func (e *AppError) String() string {
+	return fmt.Sprintf("[%v] %s", e.Code, e.Message)
+}
+
 const (
-	ENVIRONMENT_URI string = "/environments"
+	ENVIRONMENT_URI      string = "/environments"
+	CONNECTED_AGENTS_URI string = "/identity/connected-agents"
 )
 
 func GetEnvironments(ArmoryCloudAddr *url.URL, accessToken *string) ([]Environment, error) {
@@ -57,5 +77,40 @@ func GetEnvironments(ArmoryCloudAddr *url.URL, accessToken *string) ([]Environme
 	if err != nil {
 		return nil, err
 	}
-	return nil, fmt.Errorf("error retrieving environment to login to. ErrorId: %s, Desc: %s", errorResponse.ErrorId, (*errorResponse.Errors)[0].Message)
+  
+	return nil, fmt.Errorf("error retrieving environment to login to. ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
+}
+
+func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
+	connectedAgentsUrl := &url.URL{
+		Scheme: ArmoryCloudAddr.Scheme,
+		Host:   ArmoryCloudAddr.Host,
+		Path:   CONNECTED_AGENTS_URI,
+	}
+	request := util.NewHttpRequest("GET", connectedAgentsUrl.String(), nil, &accessToken)
+	resp, err := request.Execute()
+	if err != nil {
+		return nil, errors.New("Unable to retrieve Remote Network Agents to connect with. Please ensure a Remote Network Agent is connected and try again")
+	}
+	defer resp.Body.Close()
+	dec := json.NewDecoder(resp.Body)
+	if resp.StatusCode == 200 {
+		var connectedAgents []Agent
+		err = dec.Decode(&connectedAgents)
+		if err != nil {
+			return nil, err
+		}
+		return connectedAgents, nil
+	}
+
+	if resp.StatusCode == 401 {
+		return nil, fmt.Errorf("Error: Unauthorized. Run `armory login` to ensure you're using the correct tenant.")
+	}
+
+	var errorResponse *ApiError
+	err = dec.Decode(&errorResponse)
+	if err != nil {
+		return nil, err
+	}
+	return nil, fmt.Errorf("Error retrieving Remote Network Agents to connect with. ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
 }
