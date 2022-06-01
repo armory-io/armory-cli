@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	loginShort   = "Login as User to Armory Cloud"
+	loginShort   = "Log in as User to Armory CD-as-a-Service"
 	loginLong    = ""
 	loginExample = ""
 )

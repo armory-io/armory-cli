@@ -17,14 +17,14 @@ import (
 func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "armory",
-		Short: "A CLI for using Armory Cloud",
+		Short: "A CLI for using Armory CD-as-a-Service",
 	}
 
 	addr := rootCmd.PersistentFlags().StringP("addr", "", "https://api.cloud.armory.io", "")
 	rootCmd.PersistentFlags().MarkHidden("addr")
 
-	clientId := rootCmd.PersistentFlags().StringP("clientId", "c", "", "configure oidc client credentials for Armory Cloud API")
-	clientSecret := rootCmd.PersistentFlags().StringP("clientSecret", "s", "", "configure oidc client credentials for Armory Cloud API")
+	clientId := rootCmd.PersistentFlags().StringP("clientId", "c", "", "configure oidc client credentials for Armory CD-as-a-Service API")
+	clientSecret := rootCmd.PersistentFlags().StringP("clientSecret", "s", "", "configure oidc client credentials for Armory CD-as-a-Service API")
 	accessToken := rootCmd.PersistentFlags().StringP("authToken", "a", "", "use an existing access token, rather than client id and secret or user login")
 	verbose := rootCmd.PersistentFlags().BoolP("verbose", "v", false, "show more details")
 	outFormat := rootCmd.PersistentFlags().StringP("output", "o", "text", "Set the output type. Available options: [json, yaml, text].")
