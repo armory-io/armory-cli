@@ -79,7 +79,7 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	if err != nil {
 		return fmt.Errorf("error at polling auth server for response. Err: %s", err)
 	}
-	jwt, err := auth.ValidateJwt(response.AccessToken)
+	parsedJwt, err := auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
 		return fmt.Errorf("error at decoding jwt. Err: %s", err)
 	}
@@ -93,18 +93,18 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	if err != nil {
 		return err
 	}
-	jwt, err = auth.ValidateJwt(response.AccessToken)
+	parsedJwt, err = auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
 		return fmt.Errorf("error at decoding jwt. Err: %s", err)
 	}
 
-	err = writeCredentialToFile(err, configuration, jwt, response)
+	err = writeCredentialToFile(err, configuration, parsedJwt, response)
 	if err != nil {
 		return err
 	}
 
-	claims := jwt.PrivateClaims()["https://cloud.armory.io/principal"].(map[string]interface{})
-	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s to environment %s your token expires at: %s\n", claims["orgName"], claims["name"], selectedEnv.Name, jwt.Expiration().Format(time.RFC1123))
+	claims := parsedJwt.PrivateClaims()["https://cloud.armory.io/principal"].(map[string]interface{})
+	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s to environment %s your token expires at: %s\n", claims["orgName"], claims["name"], selectedEnv.Name, parsedJwt.Expiration().Format(time.RFC1123))
 	return nil
 }
 
