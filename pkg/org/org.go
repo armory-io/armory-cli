@@ -21,8 +21,8 @@ type ApiError struct {
 }
 
 type AppError struct {
-	Code    string `json:"code"`
-	Message string `json:"errors"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
 const (
@@ -57,5 +57,5 @@ func GetEnvironments(ArmoryCloudAddr *url.URL, accessToken *string) ([]Environme
 	if err != nil {
 		return nil, err
 	}
-	return nil, fmt.Errorf("error retrieving environment to login to. ErrorId: %s, Desc: %s", errorResponse.ErrorId, errorResponse.Errors)
+	return nil, fmt.Errorf("error retrieving environment to login to. ErrorId: %s, Desc: %s", errorResponse.ErrorId, (*errorResponse.Errors)[0].Message)
 }
