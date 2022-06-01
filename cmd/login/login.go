@@ -145,15 +145,15 @@ func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnviro
 		return c.(org.Environment).Name
 	}).ToSlice(&environmentNames)
 
+	// If there is only 1 environment for the org, we will auto-select it
+	if len(environments) == 1 {
+		return &environments[0], nil
+	}
+
 	if len(namedEnvironment) > 0 && namedEnvironment[0] != "" {
-		requestedEnv := linq.From(environments).Where(func(c interface{}) bool {
-			return c.(org.Environment).Name == namedEnvironment[0]
-		}).Select(func(c interface{}) interface{} {
-			return c.(org.Environment)
-		}).First()
+		requestedEnv := getEnvForEnvName(environments, namedEnvironment[0])
 		if requestedEnv != nil {
-			sel := requestedEnv.(org.Environment)
-			return &sel, nil
+			return requestedEnv, nil
 		}
 		return nil, errors.New(fmt.Sprintf("Environment %s not found, please choose a known environment: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ",")))
 	}
@@ -169,16 +169,24 @@ func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnviro
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("failed to select an environment to login to; %v\n", err))
 	}
-	selectedEnv := linq.From(environments).Where(func(c interface{}) bool {
-		return c.(org.Environment).Name == requestedEnv
-	}).Select(func(c interface{}) interface{} {
-		return c.(org.Environment)
-	}).First()
-
+	selectedEnv := getEnvForEnvName(environments, requestedEnv)
 	if selectedEnv == nil {
 		return nil, errors.New("unable to select chosen environment")
 	}
-	sel := selectedEnv.(org.Environment)
 
-	return &sel, nil
+	return selectedEnv, nil
+}
+
+func getEnvForEnvName(environments []org.Environment, envName string) *org.Environment {
+	env := linq.
+		From(environments).
+		Where(func(c interface{}) bool {
+			return c.(org.Environment).Name == envName
+		}).
+		Select(func(c interface{}) interface{} {
+			return c.(org.Environment)
+		}).
+		First()
+	sel := env.(org.Environment)
+	return &sel
 }
