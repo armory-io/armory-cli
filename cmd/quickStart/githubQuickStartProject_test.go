@@ -48,6 +48,15 @@ func (suite *QuickStartSuite) TearDownSuite() {
 	os.RemoveAll(testProject.DirName)
 }
 
+func (suite *QuickStartSuite) TestSkipUnzip() {
+	project := GithubQuickStartProject{
+		IsZipFile: false,
+	}
+
+	suite.Equal(nil, project.Unzip(), "Should exit without error when project is not a zip")
+
+}
+
 func (suite *QuickStartSuite) TestGithubQuickStartProject() {
 	log.SetLevel(log.DebugLevel)
 	if err := testProject.Download(); err != nil {
@@ -87,6 +96,11 @@ func (suite *QuickStartSuite) TestGithubQuickStartProject() {
 	}
 
 	suite.Equal(2, foundAgentLines, "Expected two agent lines to be updated")
+}
+
+func (suite *QuickStartSuite) TestSuffix() {
+	suite.Equal("/archive/refs/heads/main.zip", GithubQuickStartProject{IsZipFile: true}.GetUrlSuffix(), "testProject should be a zip")
+	suite.Equal("", GithubQuickStartProject{IsZipFile: false}.GetUrlSuffix(), "testProject should be a zip")
 }
 
 func (suite *QuickStartSuite) testExists(fileName string) {

@@ -26,7 +26,7 @@ type GithubQuickStartProject struct {
 	DeployYmlName string
 }
 
-func (p GithubQuickStartProject) GetSuffix() string {
+func (p GithubQuickStartProject) GetUrlSuffix() string {
 	if p.IsZipFile {
 		return githubZipSuffix
 	} else {
@@ -35,7 +35,7 @@ func (p GithubQuickStartProject) GetSuffix() string {
 }
 
 func (p GithubQuickStartProject) GetUrl() string {
-	return fmt.Sprintf("%s%s%s", githubBaseUrl, p.ProjectName, p.GetSuffix())
+	return fmt.Sprintf("%s%s%s", githubBaseUrl, p.ProjectName, p.GetUrlSuffix())
 }
 
 func (p GithubQuickStartProject) GetProjectFolder() string {

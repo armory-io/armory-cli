@@ -80,8 +80,12 @@ func (r *ProjectRunner) ExecWith(f func(string) error, x string) *ProjectRunner 
 }
 
 func (r *ProjectRunner) SelectAgent(namedAgent string) string {
+	if r.HasErrors() {
+		return ""
+	}
 	if r.AgentIdentifiers == nil || len(*r.AgentIdentifiers) < 1 {
 		r.AppendError(NoAgentsFoundError{msg: "Ensure the running process has populated the agent list"})
+		return ""
 	}
 	if len(namedAgent) > 0 && namedAgent != "" {
 		for _, agentName := range *r.AgentIdentifiers {
