@@ -56,7 +56,7 @@ func buildTemplateKubernetesCore(options *templateCanaryOptions) (*yaml.Node, er
 	pauseNode, pauseValuesNode := util.BuildMapNode("pause", "The map key is the step type")
 	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildIntNode("duration", "1", "The duration of the pause before the deployment continues. If duration is not zero, set untilApproved to false.")...)
 	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildStringNode("unit", "SECONDS", "")...)
-	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildBoolNode("untilApproved", "false",
+	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildBoolNode("untilApproved", "true",
 		"If set to true, the deployment waits until a manual approval to continue. Only set this to true if duration and unit are not set.")...)
 	pause.Content = append(pause.Content, pauseNode, pauseValuesNode)
 	afterNode, afterValuesNode := util.BuildSequenceNode("afterDeployment", "A set of steps that are executed in parallel, after the deployment is run")
