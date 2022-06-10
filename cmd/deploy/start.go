@@ -132,7 +132,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	// format response
 	dataFormat, err := configuration.GetOutputFormatter()(deploy)
 	if err != nil {
-		return fmt.Errorf("error trying to parse response: %s", err)
+		return err
 	}
 	cmd.SetContext(context.WithValue(ctx, "deploymentId", deploy.DeploymentId))
 	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
