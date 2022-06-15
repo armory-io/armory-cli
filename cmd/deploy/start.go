@@ -3,7 +3,7 @@ package deploy
 import (
 	"context"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/pkg"
+	de "github.com/armory-io/deploy-engine/api"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	deployment "github.com/armory/armory-cli/pkg/deploy"
@@ -35,9 +35,14 @@ type FormattableDeployStartResponse struct {
 	err          error
 }
 
-func newDeployStartResponse(raw *de.PipelineStartPipelineResponse, response *_nethttp.Response, err error) FormattableDeployStartResponse {
+func newDeployStartResponse(raw *de.StartPipelineResponse, response *_nethttp.Response, err error) FormattableDeployStartResponse {
+	var pipelineID string
+	if raw != nil {
+		pipelineID = raw.PipelineID
+	}
+
 	deployment := FormattableDeployStartResponse{
-		DeploymentId: raw.GetPipelineId(),
+		DeploymentId: pipelineID,
 		httpResponse: response,
 		err:          err,
 	}
@@ -122,13 +127,10 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 
 	ctx, cancel := context.WithTimeout(deployClient.Context, time.Minute)
 	defer cancel()
-	// prepare request
-	request := deployClient.DeploymentServiceApi.
-		DeploymentServiceStartKubernetesPipeline(ctx).Body(*dep)
 	// execute request
-	raw, response, err := request.Execute()
+	raw, response, err := deployClient.StartPipeline(ctx, dep)
 	// create response object
-	deploy := newDeployStartResponse(&raw, response, err)
+	deploy := newDeployStartResponse(raw, response, err)
 	// format response
 	dataFormat, err := configuration.GetOutputFormatter()(deploy)
 	if err != nil {
