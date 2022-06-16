@@ -104,7 +104,7 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	}
 
 	claims := parsedJwt.PrivateClaims()["https://cloud.armory.io/principal"].(map[string]interface{})
-	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s to environment %s your token expires at: %s\n", claims["orgName"], claims["name"], selectedEnv.Name, parsedJwt.Expiration().Format(time.RFC1123))
+	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s to tenant %s your token expires at: %s\n", claims["orgName"], claims["name"], selectedEnv.Name, parsedJwt.Expiration().Format(time.RFC1123))
 	return nil
 }
 
@@ -155,11 +155,11 @@ func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnviro
 		if requestedEnv != nil {
 			return requestedEnv, nil
 		}
-		return nil, errors.New(fmt.Sprintf("Environment %s not found, please choose a known environment: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ",")))
+		return nil, errors.New(fmt.Sprintf("Tenant %s not found, please choose a known tenant: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ",")))
 	}
 
 	prompt := promptui.Select{
-		Label:  "Select environment",
+		Label:  "Select tenant",
 		Items:  environmentNames,
 		Stdout: &util.BellSkipper{},
 	}
@@ -167,11 +167,11 @@ func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnviro
 	_, requestedEnv, err := prompt.Run()
 
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("failed to select an environment to login to; %v\n", err))
+		return nil, errors.New(fmt.Sprintf("failed to select an tenant to login to; %v\n", err))
 	}
 	selectedEnv := getEnvForEnvName(environments, requestedEnv)
 	if selectedEnv == nil {
-		return nil, errors.New("unable to select chosen environment")
+		return nil, errors.New("unable to select chosen tenant")
 	}
 
 	return selectedEnv, nil
