@@ -60,7 +60,7 @@ type AnalysisStep struct {
 	Interval              int32             `yaml:"interval,omitempty"`
 	Units                 string            `yaml:"units,omitempty"`
 	NumberOfJudgmentRuns  int32             `yaml:"numberOfJudgmentRuns,omitempty"`
-	Queries               *[]string         `yaml:"queries,omitempty"`
+	Queries               []string          `yaml:"queries,omitempty"`
 	LookbackMethod        string            `yaml:"lookbackMethod,omitempty"`
 	AbortOnFailedJudgment bool              `yaml:"abortOnFailedJudgment,omitempty"`
 	MetricProviderName    string            `yaml:"metricProviderName,omitempty"`
@@ -77,14 +77,14 @@ type DeploymentTarget struct {
 }
 
 type AnalysisConfig struct {
-	DefaultMetricProviderName string   `yaml:"defaultMetricProviderName,omitempty"`
-	Queries                   *[]Query `yaml:"queries,omitempty"`
+	DefaultMetricProviderName string  `yaml:"defaultMetricProviderName,omitempty"`
+	Queries                   []Query `yaml:"queries,omitempty"`
 }
 
 type Query struct {
-	Name               *string `yaml:"name,omitempty"`
-	QueryTemplate      *string `yaml:"queryTemplate,omitempty"`
-	AggregationMethod  *string `yaml:"aggregationMethod,omitempty"`
+	Name               string  `yaml:"name,omitempty"`
+	QueryTemplate      string  `yaml:"queryTemplate,omitempty"`
+	AggregationMethod  string  `yaml:"aggregationMethod,omitempty"`
 	UpperLimit         *int32  `yaml:"upperLimit,omitempty"`
 	LowerLimit         *int32  `yaml:"lowerLimit,omitempty"`
 	MetricProviderName *string `yaml:"metricProviderName,omitempty"`
@@ -114,19 +114,19 @@ type AfterDeployment struct {
 }
 
 type WebhookConfig struct {
-	Name            *string   `yaml:"name,omitempty"`
-	Method          *string   `yaml:"method,omitempty"`
-	UriTemplate     *string   `yaml:"uriTemplate,omitempty"`
-	NetworkMode     *string   `yaml:"networkMode,omitempty"`
-	AgentIdentifier *string   `yaml:"agentIdentifier,omitempty"`
+	Name            string    `yaml:"name,omitempty"`
+	Method          string    `yaml:"method,omitempty"`
+	UriTemplate     string    `yaml:"uriTemplate,omitempty"`
+	NetworkMode     string    `yaml:"networkMode,omitempty"`
+	AgentIdentifier string    `yaml:"agentIdentifier,omitempty"`
 	Headers         *[]Header `yaml:"headers,omitempty"`
 	BodyTemplate    *Body     `yaml:"bodyTemplate,omitempty"`
-	RetryCount      *int32    `yaml:"retryCount,omitempty"`
+	RetryCount      int32     `yaml:"retryCount,omitempty"`
 }
 
 type Header struct {
-	Key   *string `yaml:"key,omitempty"`
-	Value *string `yaml:"value,omitempty"`
+	Key   string `yaml:"key,omitempty"`
+	Value string `yaml:"value,omitempty"`
 }
 
 type Body struct {
@@ -135,8 +135,8 @@ type Body struct {
 }
 
 type WebhookStep struct {
-	Name    *string            `yaml:"name,omitempty"`
-	Context *map[string]string `yaml:"context,omitempty"`
+	Name    string            `yaml:"name,omitempty"`
+	Context map[string]string `yaml:"context,omitempty"`
 }
 
 type TrafficManagement struct {
@@ -146,9 +146,9 @@ type TrafficManagement struct {
 }
 
 type SMI struct {
-	RootServiceName   *string `yaml:"rootServiceName,omitempty"`
-	CanaryServiceName *string `yaml:"canaryServiceName,omitempty"`
-	TrafficSplitName  *string `yaml:"trafficSplitName,omitempty"`
+	RootServiceName   string `yaml:"rootServiceName,omitempty"`
+	CanaryServiceName string `yaml:"canaryServiceName,omitempty"`
+	TrafficSplitName  string `yaml:"trafficSplitName,omitempty"`
 }
 
 type KubernetesTraffic struct {

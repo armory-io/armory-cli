@@ -3,7 +3,7 @@ package deploy
 import (
 	"bytes"
 	"encoding/json"
-	de "github.com/armory-io/deploy-engine/pkg"
+	de "github.com/armory-io/deploy-engine/api"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/jarcoal/httpmock"
@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -40,9 +41,10 @@ func (suite *DeployStartTestSuite) TearDownSuite() {
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
-	expected := de.NewPipelineStartPipelineResponse()
-	expected.SetPipelineId("12345")
-	err := registerResponder(expected, 200)
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
+	err := registerResponder(expected, http.StatusAccepted)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
@@ -63,13 +65,14 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
 	}
 	var received = FormattableDeployStartResponse{}
 	json.Unmarshal(output, &received)
-	suite.Equal(received.DeploymentId, expected.GetPipelineId(), "they should be equal")
+	suite.Equal(received.DeploymentId, expected.PipelineID, "they should be equal")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
-	expected := de.NewPipelineStartPipelineResponse()
-	expected.SetPipelineId("12345")
-	err := registerResponder(expected, 200)
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
+	err := registerResponder(expected, http.StatusAccepted)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -90,7 +93,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	}
 	var received = FormattableDeployStartResponse{}
 	yaml.Unmarshal(output, &received)
-	suite.Equal(received.DeploymentId, expected.GetPipelineId(), "they should be equal")
+	suite.Equal(received.DeploymentId, expected.PipelineID, "they should be equal")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
@@ -152,8 +155,9 @@ func (suite *DeployStartTestSuite) TestDeployStartBadPath() {
 }
 
 func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnErrorIsRaised() {
-	expected := de.NewPipelineStartPipelineResponse()
-	expected.SetPipelineId("12345")
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
 	err := registerResponder(expected, 200)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
@@ -173,8 +177,9 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnE
 }
 
 func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameButFlagIsSuppliedAnErrorIsNotRaised() {
-	expected := de.NewPipelineStartPipelineResponse()
-	expected.SetPipelineId("12345")
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
 	err := registerResponder(expected, 200)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
