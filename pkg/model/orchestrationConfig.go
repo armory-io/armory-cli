@@ -3,6 +3,7 @@ package model
 type OrchestrationConfig struct {
 	Version           string                       `yaml:"version,omitempty"`
 	Kind              string                       `yaml:"kind,omitempty"`
+	DeploymentConfig  *DeploymentConfig            `yaml:"deploymentConfig,omitempty"`
 	Application       string                       `yaml:"application,omitempty"`
 	Targets           *map[string]DeploymentTarget `yaml:"targets,omitempty"`
 	Manifests         *[]ManifestPath              `yaml:"manifests,omitempty"`
@@ -10,6 +11,15 @@ type OrchestrationConfig struct {
 	Analysis          *AnalysisConfig              `yaml:"analysis,omitempty"`
 	Webhooks          *[]WebhookConfig             `yaml:"webhooks,omitempty"`
 	TrafficManagement *[]TrafficManagement         `yaml:"trafficManagement,omitempty"`
+}
+
+type DeploymentConfig struct {
+	Timeout *TimeoutConfig `yaml:"timeout,omitempty"`
+}
+
+type TimeoutConfig struct {
+	Duration int32  `yaml:"duration,omitempty"`
+	Unit     string `yaml:"unit,omitempty"`
 }
 
 type Strategy struct {

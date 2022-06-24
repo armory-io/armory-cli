@@ -37,6 +37,15 @@ func buildTemplateKubernetesCore(options *templateCanaryOptions) (*yaml.Node, er
 	root.Content = append(root.Content, util.BuildStringNode("kind", "kubernetes", "")...)
 	root.Content = append(root.Content, util.BuildStringNode("application", "<AppName>", "The name of the application to deploy.")...)
 
+	deployConfigNode, deployConfigValuesNode := util.BuildMapNode("deploymentConfig",
+		"")
+	timeoutNode, timeoutValuesNode := util.BuildMapNode("timeout",
+		"Optional setting sets a timeout for the deployments in this file to succeed before failing")
+	timeoutValuesNode.Content = append(timeoutValuesNode.Content, util.BuildIntNode("duration", "1800", "")...)
+	timeoutValuesNode.Content = append(timeoutValuesNode.Content, util.BuildStringNode("unit", "SECONDS", "")...)
+	deployConfigValuesNode.Content = append(deployConfigValuesNode.Content, timeoutNode, timeoutValuesNode)
+	root.Content = append(root.Content, deployConfigNode, deployConfigValuesNode)
+
 	// Target root
 	targetNode, targetValuesNode := util.BuildMapNode("targets", "Map of your deployment target, "+
 		"Armory CD-as-a-Service supports deploying to one target cluster.")

@@ -1,5 +1,11 @@
 {
   "application": "app",
+  "deploymentConfig": {
+    "timeout": {
+      "duration": 6000,
+      "unit": "SECONDS"
+    }
+  },
   "environments": [
     {
       "account": "account1",
