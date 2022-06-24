@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
-	github.com/armory-io/deploy-engine v0.65.1
+	github.com/armory-io/deploy-engine v0.68.0
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/iancoleman/strcase v0.2.0
