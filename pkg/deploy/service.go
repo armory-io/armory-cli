@@ -92,6 +92,14 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		Environments: environments,
 		Deployments:  deployments,
 	}
+	if config.DeploymentConfig != nil && config.DeploymentConfig.Timeout != nil {
+		req.DeploymentConfig = &de.DeploymentConfig{
+			Timeout: &de.Timeout{
+				Duration: config.DeploymentConfig.Timeout.Duration,
+				Unit:     de.TimeUnit(strings.ToUpper(config.DeploymentConfig.Timeout.Unit)),
+			},
+		}
+	}
 	return &req, nil
 }
 

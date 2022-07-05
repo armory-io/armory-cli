@@ -2,6 +2,8 @@ github.com/ahmetb/go-linq/v3 v3.2.0 h1:BEuMfp+b59io8g5wYzNoFe9pWPalRklhlhbiU3hYZ
 github.com/ahmetb/go-linq/v3 v3.2.0/go.mod h1:haQ3JfOeWK8HpVxMtHHEMPVgBKiYyQ+f1/kLZh/cj9U=
 github.com/armory-io/deploy-engine v0.65.1 h1:d6Jmsd9d12uJtAz02x3RrvK1oiQ+iAzfGxThWQslS5E=
 github.com/armory-io/deploy-engine v0.65.1/go.mod h1:NuN0Xa4K/1N9h7ap9D88Tl/h37S6fNWC1xUkUC5qI+w=
+github.com/armory-io/deploy-engine v0.68.0 h1:G182goeoZkNXGyXo/t+gcCDN8hJRXU9xkdQaWRO7JZE=
+github.com/armory-io/deploy-engine v0.68.0/go.mod h1:YPp/uyj3fHlRWHwR6w5gCtwP54/DkMpsLopHkeTpgow=
 github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e h1:fY5BOSpyZCqRo5OhCuC+XN+r/bBCmeuuJtjz+bCNIf8=
