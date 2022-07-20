@@ -13,6 +13,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+)
+
+var (
+	ErrMinDeployConfigTimeout = errors.New("invalid deployment config: timeout must be equal to or greater than 1 minute")
+	TimeUnitSeconds           = "SECONDS"
+	TimeUnitMinutes           = "MINUTES"
+	TimeUnitHours             = "HOURS"
 )
 
 var ErrorNoStrategyDeployment = errors.New("invalid deployment: strategy required for Deployment kind manifests")
@@ -107,6 +115,11 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		Deployments:  deployments,
 	}
 	if config.DeploymentConfig != nil && config.DeploymentConfig.Timeout != nil {
+		deployTimeout := APIToDuration(config.DeploymentConfig.Timeout.Duration, config.DeploymentConfig.Timeout.Unit)
+		minTimeout := 1 * time.Minute
+		if deployTimeout < minTimeout {
+			return nil, ErrMinDeployConfigTimeout
+		}
 		req.DeploymentConfig = &de.DeploymentConfig{
 			Timeout: &de.Timeout{
 				Duration: config.DeploymentConfig.Timeout.Duration,
@@ -741,4 +754,19 @@ func createKubernetesTraffic(tm model.TrafficManagement) ([]*de.KubernetesTraffi
 		})
 	}
 	return kubernetesTraffic, nil
+}
+
+func APIToDuration(scalar int32, unit string) time.Duration {
+	switch unit {
+	case TimeUnitSeconds:
+		d, _ := time.ParseDuration(fmt.Sprintf("%ds", scalar))
+		return d
+	case TimeUnitMinutes:
+		d, _ := time.ParseDuration(fmt.Sprintf("%dm", scalar))
+		return d
+	case TimeUnitHours:
+		d, _ := time.ParseDuration(fmt.Sprintf("%dh", scalar))
+		return d
+	}
+	return time.Duration(0)
 }
