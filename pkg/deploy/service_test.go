@@ -69,6 +69,10 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 			"testdata/happyPathEmptyTrafficManagementTargets.yaml",
 			"testdata/happyPathEmptyTrafficManagementTargets.json",
 		},
+		{
+			"testdata/happyPathZeroDeploymentFile.yaml",
+			"testdata/happyPathDeployEngineRequestZeroDeployment.json",
+		},
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%s -> %s", c.input, c.output), func(t *testing.T) {
@@ -125,11 +129,19 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() 
 			"testdata/sadPathDeploymentFileTrafficManagement.yaml",
 			"invalid traffic management config: rootServiceName required in smi",
 		},
+		{
+			"testdata/sadPathNoStrategyWithDeploymentFile.yaml",
+			"invalid deployment: strategy required for Deployment kind manifests",
+		},
+		{
+			"testdata/sadPathBadManifest.yaml",
+			"invalid deployment: manifest is not valid Kubernetes object",
+		},
 	}
 
 	for _, c := range cases {
 		received, err := createDeploymentForTests(suite, c.file)
-		suite.Nilf(received, "Expected deployment to not be created for an invalid pause step")
+		suite.Nilf(received, "Expected deployment to not be created")
 		suite.EqualErrorf(err, c.expectErr, "Error messages do not match. Want: '%s', got: '%s'", c.expectErr, err)
 	}
 }
@@ -244,7 +256,12 @@ func (suite *ServiceTestSuite) TestCreateDeploymentManifestsSuccess() {
 	manifests := make([]string, 2)
 	manifests[0] = testAppYamlStr
 	manifests[1] = testAppYamlStr
-	received := CreateDeploymentManifests(&manifests)
+	received, err := CreateDeploymentManifests(&manifests, &map[string]model.Strategy{
+		"dev": {
+			Canary: &model.CanaryStrategy{Steps: &[]model.CanaryStep{}},
+		},
+	})
+	suite.NoError(err)
 	suite.Equal(len(received), 2)
 }
 

@@ -1,0 +1,27 @@
+version: v1
+kind: kubernetes
+application: app
+targets:
+  test1:
+    account: account1
+    namespace: dev
+    strategy: strategy1
+    constraints:
+      afterDeployment:
+        - pause:
+            untilApproved: true
+  test2:
+    account: account2
+    namespace: qa
+    strategy: strategy2
+    constraints:
+      dependsOn: ["test1"]
+      beforeDeployment:
+        - pause:
+            untilApproved: true
+manifests:
+  # Non-deployment manifests
+  - path: testdata/testManifestConfigMap1.yaml
+    targets: ["test1"]
+  - path: testdata/testManifestConfigMap2.yaml
+    targets: ["test2"]

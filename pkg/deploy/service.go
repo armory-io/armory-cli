@@ -4,14 +4,19 @@ import (
 	"errors"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/api"
+	cyclopsutils "github.com/armory-io/deploy-engine/cyclops/utils"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
 	"io/fs"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+var ErrorNoStrategyDeployment = errors.New("invalid deployment: strategy required for Deployment kind manifests")
+var ErrorBadObject = errors.New("invalid deployment: manifest is not valid Kubernetes object")
 
 func CreateDeploymentRequest(application string, config *model.OrchestrationConfig, contextOverrides map[string]string) (*de.StartPipelineRequest, error) {
 	environments := make([]de.PipelineEnvironment, 0, len(*config.Targets))
@@ -43,15 +48,28 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			Account:   target.Account,
 		})
 
-		strategy, err := buildStrategy(*config, element.Strategy, key, contextOverrides)
-		if err != nil {
-			return nil, err
+		deploymentToAdd := de.PipelineDeployment{
+			Environment: envName,
+		}
+
+		if config.Strategies != nil {
+			strategy, err := buildStrategy(*config, element.Strategy, key, contextOverrides)
+			if err != nil {
+				return nil, err
+			}
+			deploymentToAdd.Strategy = *strategy
 		}
 
 		files, err := GetManifestsFromFile(config.Manifests, envName)
 		if err != nil {
 			return nil, err
 		}
+
+		manifests, err := CreateDeploymentManifests(files, config.Strategies)
+		if err != nil {
+			return nil, err
+		}
+		deploymentToAdd.Manifests = manifests
 
 		pipelineConstraint := de.ConstraintConfiguration{}
 		if target.Constraints != nil {
@@ -73,12 +91,8 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			}
 			pipelineConstraint.AfterDeployment = afterDeployment
 		}
-		deploymentToAdd := de.PipelineDeployment{
-			Environment: envName,
-			Manifests:   CreateDeploymentManifests(files),
-			Strategy:    *strategy,
-			Constraints: &pipelineConstraint,
-		}
+		deploymentToAdd.Constraints = &pipelineConstraint
+
 		if config.Analysis != nil {
 			deploymentToAdd.Analysis = &analysis
 		}
@@ -253,9 +267,18 @@ func getFileNames(manifestPath model.ManifestPath) (error, []string) {
 	return err, fileNames
 }
 
-func CreateDeploymentManifests(manifests *[]string) []de.Manifest {
+func CreateDeploymentManifests(manifests *[]string, strategy *map[string]model.Strategy) ([]de.Manifest, error) {
 	deManifests := make([]de.Manifest, 0, len(*manifests))
 	for _, manifest := range *manifests {
+		var un unstructured.Unstructured
+		if strategy == nil {
+			if err := cyclopsutils.DeserializeKubernetes([]byte(manifest), &un); err != nil {
+				return nil, ErrorBadObject
+			}
+			if un.GetKind() == "Deployment" {
+				return nil, ErrorNoStrategyDeployment
+			}
+		}
 		deManifests = append(
 			deManifests,
 			de.Manifest{
@@ -264,7 +287,7 @@ func CreateDeploymentManifests(manifests *[]string) []de.Manifest {
 				},
 			})
 	}
-	return deManifests
+	return deManifests, nil
 }
 
 func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeployment, contextOverrides map[string]string) ([]de.Constraint, error) {
