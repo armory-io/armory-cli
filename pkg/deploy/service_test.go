@@ -104,7 +104,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestInvalidYaml() {
 	suite.Error(err)
 }
 
-func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() {
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadValidation() {
 	cases := []struct {
 		file      string
 		expectErr string
@@ -124,6 +124,10 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() 
 		{
 			"testdata/sadPathDeploymentFileTrafficManagement.yaml",
 			"invalid traffic management config: rootServiceName required in smi",
+		},
+		{
+			"testdata/sadPathDeploymenConfigTimeout.yaml",
+			"invalid deployment config: timeout must be equal to or greater than 1 minute",
 		},
 	}
 
