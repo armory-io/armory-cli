@@ -408,7 +408,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisErrors() {
 func TestBuildStrategy(t *testing.T) {
 	_, err := buildStrategy(model.OrchestrationConfig{
 		Strategies: &map[string]model.Strategy{},
-	}, "fakeStrategy", "fakeTarget", map[string]string{})
+	}, "fakeStrategy", "fakeTarget", map[string]string{}, []string{})
 	assert.Errorf(t, err, "fakeStrategy is not a valid strategy; define canary or blueGreen strategy")
 }
 

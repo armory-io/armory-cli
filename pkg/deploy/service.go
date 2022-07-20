@@ -60,14 +60,6 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			Environment: envName,
 		}
 
-		if config.Strategies != nil {
-			strategy, err := buildStrategy(*config, element.Strategy, key, contextOverrides)
-			if err != nil {
-				return nil, err
-			}
-			deploymentToAdd.Strategy = *strategy
-		}
-
 		files, err := GetManifestsFromFile(config.Manifests, envName)
 		if err != nil {
 			return nil, err
@@ -78,6 +70,14 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			return nil, err
 		}
 		deploymentToAdd.Manifests = manifests
+
+		strategy, err := buildStrategy(*config, element.Strategy, key, contextOverrides, *files)
+		if err != nil {
+			return nil, err
+		}
+		if strategy != nil {
+			deploymentToAdd.Strategy = *strategy
+		}
 
 		pipelineConstraint := de.ConstraintConfiguration{}
 		if target.Constraints != nil {
@@ -280,18 +280,20 @@ func getFileNames(manifestPath model.ManifestPath) (error, []string) {
 	return err, fileNames
 }
 
+func isDeployment(manifest string) (bool, error) {
+	var un unstructured.Unstructured
+	if err := cyclopsutils.DeserializeKubernetes([]byte(manifest), &un); err != nil {
+		return false, ErrorBadObject
+	}
+	if un.GetKind() == "Deployment" {
+		return true, nil
+	}
+	return false, nil
+}
+
 func CreateDeploymentManifests(manifests *[]string, strategy *map[string]model.Strategy) ([]de.Manifest, error) {
 	deManifests := make([]de.Manifest, 0, len(*manifests))
 	for _, manifest := range *manifests {
-		var un unstructured.Unstructured
-		if strategy == nil {
-			if err := cyclopsutils.DeserializeKubernetes([]byte(manifest), &un); err != nil {
-				return nil, ErrorBadObject
-			}
-			if un.GetKind() == "Deployment" {
-				return nil, ErrorNoStrategyDeployment
-			}
-		}
 		deManifests = append(
 			deManifests,
 			de.Manifest{
@@ -371,7 +373,22 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, 
 	return pipelineConstraints, nil
 }
 
-func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string, context map[string]string) (*de.PipelineStrategy, error) {
+func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string, context map[string]string, manifests []string) (*de.PipelineStrategy, error) {
+	for _, f := range manifests {
+		hasDeployment, err := isDeployment(f)
+		if err != nil {
+			return nil, err
+		}
+		// ignore strategies for non-deployment objects
+		if !hasDeployment && modelStrategy.Strategies != nil {
+			return nil, nil
+		}
+		// don't allow deployment objects to be deployed without a strategy
+		if hasDeployment && modelStrategy.Strategies == nil {
+			return nil, ErrorNoStrategyDeployment
+		}
+	}
+
 	configStrategies := *modelStrategy.Strategies
 	strategy := configStrategies[strategyName]
 

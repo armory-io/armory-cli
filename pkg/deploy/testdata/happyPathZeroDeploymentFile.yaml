@@ -19,6 +19,25 @@ targets:
       beforeDeployment:
         - pause:
             untilApproved: true
+strategies:
+  strategy1:
+    canary:
+      steps:
+        - setWeight:
+            weight: 50
+        - pause:
+            unit: SECONDS
+            duration: 10
+        - setWeight:
+            weight: 100
+  strategy2:
+    canary:
+      steps:
+        - pause:
+            unit: SECONDS
+            duration: 10
+        - setWeight:
+            weight: 100
 manifests:
   # Non-deployment manifests
   - path: testdata/testManifestConfigMap1.yaml
