@@ -127,7 +127,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadValidation() {
 		},
 		{
 			"testdata/sadPathDeploymenConfigTimeout.yaml",
-			"invalid deployment config: timeout must be greater than 1 minute",
+			"invalid deployment config: timeout must be equal to or greater than 1 minute",
 		},
 	}
 

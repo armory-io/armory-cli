@@ -39,7 +39,7 @@ func buildTemplateKubernetesCore(options *templateCanaryOptions) (*yaml.Node, er
 
 	deployConfigNode, deployConfigValuesNode := util.BuildMapNode("deploymentConfig", "")
 	timeoutNode, timeoutValuesNode := util.BuildMapNode("timeout",
-		"Optional. Sets a timeout for rolling back deployments that do not reach a READY state. Applies to all deployments in this file. Must be greater than 1 minute")
+		"Optional. Sets a timeout for rolling back deployments that do not reach a READY state. Applies to all deployments in this file. Must be equal to or greater than 1 minute")
 	timeoutValuesNode.Content = append(timeoutValuesNode.Content, util.BuildIntNode("duration", "1800", "")...)
 	timeoutValuesNode.Content = append(timeoutValuesNode.Content, util.BuildStringNode("unit", "SECONDS", "")...)
 	deployConfigValuesNode.Content = append(deployConfigValuesNode.Content, timeoutNode, timeoutValuesNode)

@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	ErrMinDeployConfigTimeout = errors.New("invalid deployment config: timeout must be greater than 1 minute")
+	ErrMinDeployConfigTimeout = errors.New("invalid deployment config: timeout must be equal to or greater than 1 minute")
 	TimeUnitSeconds           = "SECONDS"
 	TimeUnitMinutes           = "MINUTES"
 	TimeUnitHours             = "HOURS"
