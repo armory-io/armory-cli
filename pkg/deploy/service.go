@@ -20,6 +20,7 @@ import (
 
 var (
 	ErrMinDeployConfigTimeout = errors.New("invalid deployment config: timeout must be equal to or greater than 1 minute")
+	ErrInvalidStrategy        = errors.New("invalid strategy; define canary or blueGreen strategy")
 	TimeUnitSeconds           = "SECONDS"
 	TimeUnitMinutes           = "MINUTES"
 	TimeUnitHours             = "HOURS"
@@ -376,23 +377,29 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, 
 }
 
 func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string, context map[string]string, manifests []string) (*de.PipelineStrategy, error) {
+	var hasDeployment bool
+	var err error
 	for _, f := range manifests {
-		hasDeployment, err := isDeployment(f)
+		hasDeployment, err = isDeployment(f)
 		if err != nil {
 			return nil, err
 		}
-		// ignore strategies for non-deployment objects
-		if !hasDeployment && modelStrategy.Strategies != nil {
-			return nil, nil
-		}
-		// don't allow deployment objects to be deployed without a strategy
-		if hasDeployment && modelStrategy.Strategies == nil {
-			return nil, ErrorNoStrategyDeployment
+		if hasDeployment {
+			break
 		}
 	}
 
+	// ignore strategies for non-deployment objects
+	if !hasDeployment && modelStrategy.Strategies != nil {
+		return nil, nil
+	}
+	// don't allow deployment objects to be deployed without a strategy
+	if hasDeployment && modelStrategy.Strategies == nil {
+		return nil, ErrorNoStrategyDeployment
+	}
+
 	if modelStrategy.Strategies == nil {
-		return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
+		return nil, fmt.Errorf("%s for %s", ErrInvalidStrategy.Error(), strategyName)
 	}
 
 	configStrategies := *modelStrategy.Strategies
@@ -456,7 +463,7 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 		return ps, nil
 	}
 
-	return nil, nil
+	return nil, fmt.Errorf("%s for %s", ErrInvalidStrategy.Error(), strategyName)
 }
 
 func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.TrafficManagementRequest, error) {
