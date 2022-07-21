@@ -8,10 +8,6 @@ import (
 	"github.com/armory/armory-cli/pkg/util"
 	"io/fs"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/client-go/kubernetes/scheme"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,14 +16,10 @@ import (
 
 var (
 	ErrMinDeployConfigTimeout = errors.New("invalid deployment config: timeout must be equal to or greater than 1 minute")
-	ErrInvalidStrategy        = errors.New("invalid strategy; define canary or blueGreen strategy")
 	TimeUnitSeconds           = "SECONDS"
 	TimeUnitMinutes           = "MINUTES"
 	TimeUnitHours             = "HOURS"
 )
-
-var ErrorNoStrategyDeployment = errors.New("invalid deployment: strategy required for Deployment kind manifests")
-var ErrorBadObject = errors.New("invalid deployment: manifest is not valid Kubernetes object")
 
 func CreateDeploymentRequest(application string, config *model.OrchestrationConfig, contextOverrides map[string]string) (*de.StartPipelineRequest, error) {
 	environments := make([]de.PipelineEnvironment, 0, len(*config.Targets))
@@ -59,27 +51,14 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			Account:   target.Account,
 		})
 
-		deploymentToAdd := de.PipelineDeployment{
-			Environment: envName,
+		strategy, err := buildStrategy(*config, element.Strategy, key, contextOverrides)
+		if err != nil {
+			return nil, err
 		}
 
 		files, err := GetManifestsFromFile(config.Manifests, envName)
 		if err != nil {
 			return nil, err
-		}
-
-		manifests, err := CreateDeploymentManifests(files, config.Strategies)
-		if err != nil {
-			return nil, err
-		}
-		deploymentToAdd.Manifests = manifests
-
-		strategy, err := buildStrategy(*config, element.Strategy, key, contextOverrides, *files)
-		if err != nil {
-			return nil, err
-		}
-		if strategy != nil {
-			deploymentToAdd.Strategy = *strategy
 		}
 
 		pipelineConstraint := de.ConstraintConfiguration{}
@@ -102,8 +81,12 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			}
 			pipelineConstraint.AfterDeployment = afterDeployment
 		}
-		deploymentToAdd.Constraints = &pipelineConstraint
-
+		deploymentToAdd := de.PipelineDeployment{
+			Environment: envName,
+			Manifests:   CreateDeploymentManifests(files),
+			Strategy:    *strategy,
+			Constraints: &pipelineConstraint,
+		}
 		if config.Analysis != nil {
 			deploymentToAdd.Analysis = &analysis
 		}
@@ -283,18 +266,7 @@ func getFileNames(manifestPath model.ManifestPath) (error, []string) {
 	return err, fileNames
 }
 
-func isDeployment(manifest string) (bool, error) {
-	var un unstructured.Unstructured
-	if err := DeserializeKubernetes([]byte(manifest), &un); err != nil {
-		return false, ErrorBadObject
-	}
-	if un.GetKind() == "Deployment" {
-		return true, nil
-	}
-	return false, nil
-}
-
-func CreateDeploymentManifests(manifests *[]string, strategy *map[string]model.Strategy) ([]de.Manifest, error) {
+func CreateDeploymentManifests(manifests *[]string) []de.Manifest {
 	deManifests := make([]de.Manifest, 0, len(*manifests))
 	for _, manifest := range *manifests {
 		deManifests = append(
@@ -305,7 +277,7 @@ func CreateDeploymentManifests(manifests *[]string, strategy *map[string]model.S
 				},
 			})
 	}
-	return deManifests, nil
+	return deManifests
 }
 
 func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeployment, contextOverrides map[string]string) ([]de.Constraint, error) {
@@ -376,32 +348,7 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, 
 	return pipelineConstraints, nil
 }
 
-func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string, context map[string]string, manifests []string) (*de.PipelineStrategy, error) {
-	var hasDeployment bool
-	var err error
-	for _, f := range manifests {
-		hasDeployment, err = isDeployment(f)
-		if err != nil {
-			return nil, err
-		}
-		if hasDeployment {
-			break
-		}
-	}
-
-	// ignore strategies for non-deployment objects
-	if !hasDeployment && modelStrategy.Strategies != nil {
-		return nil, nil
-	}
-	// don't allow deployment objects to be deployed without a strategy
-	if hasDeployment && modelStrategy.Strategies == nil {
-		return nil, ErrorNoStrategyDeployment
-	}
-
-	if modelStrategy.Strategies == nil {
-		return nil, fmt.Errorf("%s for %s", ErrInvalidStrategy.Error(), strategyName)
-	}
-
+func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string, context map[string]string) (*de.PipelineStrategy, error) {
 	configStrategies := *modelStrategy.Strategies
 	strategy := configStrategies[strategyName]
 
@@ -463,7 +410,7 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 		return ps, nil
 	}
 
-	return nil, fmt.Errorf("%s for %s", ErrInvalidStrategy.Error(), strategyName)
+	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
 }
 
 func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.TrafficManagementRequest, error) {
@@ -799,10 +746,4 @@ func APIToDuration(scalar int32, unit string) time.Duration {
 		return d
 	}
 	return time.Duration(0)
-}
-
-func DeserializeKubernetes(input []byte, objPtr runtime.Object) error {
-	decoder := serializer.NewCodecFactory(scheme.Scheme).UniversalDecoder()
-	_, _, err := decoder.Decode(input, nil, objPtr)
-	return err
 }
