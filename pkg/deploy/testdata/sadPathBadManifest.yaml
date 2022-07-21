@@ -10,6 +10,25 @@ targets:
     account: account2
     namespace: qa
     strategy: strategy2
+strategies:
+  strategy1:
+    canary:
+      steps:
+        - setWeight:
+            weight: 50
+        - pause:
+            unit: SECONDS
+            duration: 10
+        - setWeight:
+            weight: 100
+  strategy2:
+    canary:
+      steps:
+        - pause:
+            unit: SECONDS
+            duration: 10
+        - setWeight:
+            weight: 100
 manifests:
   - path: testdata/testManifestBadObject.yaml
     targets: [ "test1" ]
