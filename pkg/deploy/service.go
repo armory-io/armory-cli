@@ -391,6 +391,10 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 		}
 	}
 
+	if modelStrategy.Strategies == nil {
+		return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
+	}
+
 	configStrategies := *modelStrategy.Strategies
 	strategy := configStrategies[strategyName]
 
@@ -452,7 +456,7 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 		return ps, nil
 	}
 
-	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
+	return nil, nil
 }
 
 func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.TrafficManagementRequest, error) {
