@@ -1,0 +1,18 @@
+version: v1
+kind: kubernetes
+application: app
+targets:
+  test1:
+    account: account1
+    namespace: dev
+    strategy: strategy1
+  test2:
+    account: account2
+    namespace: qa
+    strategy: strategy2
+manifests:
+  # Non-deployment manifests
+  - path: testdata/testManifest1.yaml
+    targets: ["test1"]
+  - path: testdata/testManifestConfigMap2.yaml
+    targets: ["test2"]

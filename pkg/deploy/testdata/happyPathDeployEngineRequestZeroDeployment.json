@@ -1,0 +1,72 @@
+{
+  "application": "app",
+  "deployments": [
+    {
+      "constraints": {
+        "afterDeployment": [
+          {
+            "pause": {
+              "duration": 0,
+              "unit": "NONE",
+              "untilApproved": true
+            }
+          }
+        ],
+        "beforeDeployment": []
+      },
+      "environment": "test1",
+      "manifests": [
+        {
+          "inline": {
+            "value": "apiVersion: apps/v1\nkind: ConfigMap"
+          }
+        }
+      ],
+      "strategy": {
+        "blueGreen": null,
+        "canary": null
+      }
+    },
+    {
+      "constraints": {
+        "afterDeployment": [],
+        "beforeDeployment": [
+          {
+            "pause": {
+              "duration": 0,
+              "unit": "NONE",
+              "untilApproved": true
+            }
+          }
+        ],
+        "dependsOn": [
+          "test1"
+        ]
+      },
+      "environment": "test2",
+      "manifests": [
+        {
+          "inline": {
+            "value": "apiVersion: apps/v1\nkind: ConfigMap"
+          }
+        }
+      ],
+      "strategy": {
+        "blueGreen": null,
+        "canary": null
+      }
+    }
+  ],
+  "environments": [
+    {
+      "account": "account1",
+      "name": "test1",
+      "namespace": "dev"
+    },
+    {
+      "account": "account2",
+      "name": "test2",
+      "namespace": "qa"
+    }
+  ]
+}
