@@ -1,0 +1,36 @@
+version: v1
+kind: kubernetes
+application: test-app
+targets:
+  staging:
+    account: dev
+    namespace: staging
+    strategy: staging-canary
+  prod:
+    account: dev
+    namespace: prod
+    strategy: prod-canary
+    constraints:
+      dependsOn: [ "staging" ]
+manifests:
+  - path: testdata/testMultiManifest1.yaml
+    targets: [ "staging" ]
+  - path:  testdata/testMultiManifest1.yaml
+    targets: [ "prod" ]
+strategies:
+  staging-canary:
+    canary:
+      steps:
+        - setWeight:
+            weight: 100
+  prod-canary:
+    canary:
+      steps:
+        - pause:
+            untilApproved: true
+        - setWeight:
+            weight: 33
+        - pause:
+            untilApproved: true
+        - setWeight:
+            weight: 100
