@@ -1,17 +1,17 @@
 package deploy
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/api"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,7 +20,7 @@ import (
 
 var (
 	ErrMinDeployConfigTimeout = errors.New("invalid deployment config: timeout must be equal to or greater than 1 minute")
-	ErrInvalidStrategy        = errors.New("invalid strategy; define canary or blueGreen strategy")
+	ErrInvalidStrategy        = errors.New("invalid strategy: define canary or blueGreen strategy")
 	TimeUnitSeconds           = "SECONDS"
 	TimeUnitMinutes           = "MINUTES"
 	TimeUnitHours             = "HOURS"
@@ -283,13 +283,28 @@ func getFileNames(manifestPath model.ManifestPath) (error, []string) {
 	return err, fileNames
 }
 
-func isDeployment(manifest string) (bool, error) {
-	var un unstructured.Unstructured
-	if err := DeserializeKubernetes([]byte(manifest), &un); err != nil {
-		return false, ErrorBadObject
+func containsDeployment(manifest string) (bool, error) {
+	var manifests []unstructured.Unstructured
+	decoder := yaml.NewYAMLToJSONDecoder(bytes.NewReader([]byte(manifest)))
+	for {
+		obj := unstructured.Unstructured{}
+		if err := decoder.Decode(&obj); errors.Is(err, io.EOF) {
+			break
+		} else if err != nil {
+			return false, ErrorBadObject
+		}
+
+		if obj.Object == nil {
+			continue
+		}
+
+		manifests = append(manifests, obj)
 	}
-	if un.GetKind() == "Deployment" {
-		return true, nil
+
+	for _, manifest := range manifests {
+		if manifest.GetKind() == "Deployment" {
+			return true, nil
+		}
 	}
 	return false, nil
 }
@@ -380,7 +395,7 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 	var hasDeployment bool
 	var err error
 	for _, f := range manifests {
-		hasDeployment, err = isDeployment(f)
+		hasDeployment, err = containsDeployment(f)
 		if err != nil {
 			return nil, err
 		}
@@ -799,10 +814,4 @@ func APIToDuration(scalar int32, unit string) time.Duration {
 		return d
 	}
 	return time.Duration(0)
-}
-
-func DeserializeKubernetes(input []byte, objPtr runtime.Object) error {
-	decoder := serializer.NewCodecFactory(scheme.Scheme).UniversalDecoder()
-	_, _, err := decoder.Decode(input, nil, objPtr)
-	return err
 }

@@ -73,6 +73,10 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 			"testdata/happyPathZeroDeploymentFile.yaml",
 			"testdata/happyPathDeployEngineRequestZeroDeployment.json",
 		},
+		{
+			"testdata/happyPathMultiManifest.yaml",
+			"testdata/happyPathDeployEngineRequestMultiManifest.json",
+		},
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%s -> %s", c.input, c.output), func(t *testing.T) {
