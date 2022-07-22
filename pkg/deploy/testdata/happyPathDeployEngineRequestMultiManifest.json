@@ -1,0 +1,90 @@
+{
+  "application": "test-app",
+  "environments": [
+    {
+      "name": "staging",
+      "account": "dev",
+      "namespace": "staging"
+    },
+    {
+      "name": "prod",
+      "account": "dev",
+      "namespace": "prod"
+    }
+  ],
+  "deployments": [
+    {
+      "environment": "staging",
+      "manifests": [
+        {
+          "inline": {
+            "value": "apiVersion: v1\nkind: ConfigMap\n---\napiVersion: apps/v1\nkind: Deployment\n---\napiVersion: cert-manager.io/v1\nkind: Certificate\n"
+          }
+        }
+      ],
+      "strategy": {
+        "canary": {
+          "steps": [
+            {
+              "setWeight": {
+                "weight": 100
+              }
+            }
+          ]
+        }
+      },
+      "constraints": {
+        "dependsOn": null,
+        "beforeDeployment": null,
+        "afterDeployment": null
+      }
+    },
+    {
+      "environment": "prod",
+      "manifests": [
+        {
+          "inline": {
+            "value": "apiVersion: v1\nkind: ConfigMap\n---\napiVersion: apps/v1\nkind: Deployment\n---\napiVersion: cert-manager.io/v1\nkind: Certificate\n"
+          }
+        }
+      ],
+      "strategy": {
+        "canary": {
+          "steps": [
+            {
+              "pause": {
+                "duration": 0,
+                "unit": "NONE",
+                "untilApproved": true
+              }
+            },
+            {
+              "setWeight": {
+                "weight": 33
+              }
+            },
+            {
+              "pause": {
+                "duration": 0,
+                "unit": "NONE",
+                "untilApproved": true
+              }
+            },
+            {
+              "setWeight": {
+                "weight": 100
+              }
+            }
+          ]
+        }
+      },
+      "constraints": {
+        "dependsOn": [
+          "staging"
+        ],
+        "beforeDeployment": [],
+        "afterDeployment": []
+      }
+    }
+  ]
+}
