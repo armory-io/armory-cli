@@ -408,8 +408,13 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 		return nil, ErrorNoStrategyDeployment
 	}
 
-	// Skip the rest for rolling deploy
-	if !hasDeployment || modelStrategy.Strategies == nil {
+	// Rolling deploys - no deployment objects = ignored strategy
+	if !hasDeployment {
+		return nil, nil
+	}
+
+	// No strategy is allowed for rolling deploys
+	if modelStrategy.Strategies == nil {
 		return nil, nil
 	}
 
