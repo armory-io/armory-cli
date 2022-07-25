@@ -8,7 +8,6 @@ import (
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/r3labs/diff"
 	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -417,15 +416,6 @@ const testAppYamlStr = `
 apiVersion: apps/v1
 kind: Deployment
 `
-
-func TestBuildStrategy(t *testing.T) {
-	_, err := buildStrategy(model.OrchestrationConfig{
-		Strategies: &map[string]model.Strategy{},
-	}, "fakeStrategy", "fakeTarget", map[string]string{}, []string{
-		testAppYamlStr,
-	})
-	assert.Errorf(t, err, "fakeStrategy is not a valid strategy; define canary or blueGreen strategy")
-}
 
 func (suite *ServiceTestSuite) TestCreateDeploymentWebhookRequestSuccess() {
 	received, err := createDeploymentForTests(suite, "testdata/happyPathDeploymentFileAfterDeploymentWebhook.yaml")
