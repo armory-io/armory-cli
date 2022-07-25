@@ -404,17 +404,14 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 		}
 	}
 
-	// ignore strategies for non-deployment objects
-	if !hasDeployment && modelStrategy.Strategies != nil {
-		return nil, nil
-	}
-	// don't allow deployment objects to be deployed without a strategy
+	// don't allow deployment objects to be deployed without a strategy (should be blue-green or canary)
 	if hasDeployment && modelStrategy.Strategies == nil {
 		return nil, ErrorNoStrategyDeployment
 	}
 
-	if modelStrategy.Strategies == nil {
-		return nil, fmt.Errorf("%s for %s", ErrInvalidStrategy.Error(), strategyName)
+	// Skip the rest for rolling deploy
+	if !hasDeployment || modelStrategy.Strategies == nil {
+		return nil, nil
 	}
 
 	configStrategies := *modelStrategy.Strategies
@@ -478,7 +475,7 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 		return ps, nil
 	}
 
-	return nil, fmt.Errorf("%s for %s", ErrInvalidStrategy.Error(), strategyName)
+	return nil, nil
 }
 
 func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.TrafficManagementRequest, error) {

@@ -74,6 +74,10 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 			"testdata/happyPathDeployEngineRequestZeroDeployment.json",
 		},
 		{
+			"testdata/happyPathStrategyLessDeploys.yaml",
+			"testdata/happyPathStrategyLessDeploys.json",
+		},
+		{
 			"testdata/happyPathMultiManifest.yaml",
 			"testdata/happyPathDeployEngineRequestMultiManifest.json",
 		},
