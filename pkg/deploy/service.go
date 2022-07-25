@@ -443,40 +443,11 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 			Canary: &canary,
 		}, nil
 	} else if strategy.BlueGreen != nil {
-		ps := &de.PipelineStrategy{
-			BlueGreen: &de.BlueGreenStrategy{},
+		blueGreenStrategy, err := createBlueGreenStrategy(strategy, modelStrategy.Analysis, tm)
+		if err != nil {
+			return nil, err
 		}
-
-		if strategy.BlueGreen.ActiveService != "" {
-			ps.BlueGreen.ActiveService = strategy.BlueGreen.ActiveService
-
-		}
-
-		if strategy.BlueGreen.PreviewService != "" {
-			ps.BlueGreen.PreviewService = strategy.BlueGreen.PreviewService
-		}
-
-		if tm != nil && tm.Kubernetes != nil {
-			ps.BlueGreen.TrafficManagement = &de.TrafficManagementRequest{
-				Kubernetes: tm.Kubernetes,
-			}
-		}
-
-		if strategy.BlueGreen.RedirectTrafficAfter != nil {
-			redirectTrafficAfter, err := createBlueGreenRedirectConditions(strategy.BlueGreen.RedirectTrafficAfter, modelStrategy.Analysis)
-			if err != nil {
-				return nil, err
-			}
-			ps.BlueGreen.RedirectTrafficAfter = redirectTrafficAfter
-		}
-		if strategy.BlueGreen.ShutDownOldVersionAfter != nil {
-			shutDownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutDownOldVersionAfter, modelStrategy.Analysis)
-			if err != nil {
-				return nil, err
-			}
-			ps.BlueGreen.ShutDownOldVersionAfter = shutDownOldVersionAfter
-		}
-		return ps, nil
+		return blueGreenStrategy, nil
 	}
 
 	return nil, nil
@@ -528,6 +499,43 @@ func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string
 		return &tms, nil
 	}
 	return nil, nil
+}
+
+func createBlueGreenStrategy(strategy model.Strategy, analysisConfig *model.AnalysisConfig, tm *de.TrafficManagementRequest) (*de.PipelineStrategy, error) {
+	ps := &de.PipelineStrategy{
+		BlueGreen: &de.BlueGreenStrategy{},
+	}
+
+	if strategy.BlueGreen.ActiveService != "" {
+		ps.BlueGreen.ActiveService = strategy.BlueGreen.ActiveService
+
+	}
+
+	if strategy.BlueGreen.PreviewService != "" {
+		ps.BlueGreen.PreviewService = strategy.BlueGreen.PreviewService
+	}
+
+	if tm != nil && tm.Kubernetes != nil {
+		ps.BlueGreen.TrafficManagement = &de.TrafficManagementRequest{
+			Kubernetes: tm.Kubernetes,
+		}
+	}
+
+	if strategy.BlueGreen.RedirectTrafficAfter != nil {
+		redirectTrafficAfter, err := createBlueGreenRedirectConditions(strategy.BlueGreen.RedirectTrafficAfter, analysisConfig)
+		if err != nil {
+			return nil, err
+		}
+		ps.BlueGreen.RedirectTrafficAfter = redirectTrafficAfter
+	}
+	if strategy.BlueGreen.ShutDownOldVersionAfter != nil {
+		shutDownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutDownOldVersionAfter, analysisConfig)
+		if err != nil {
+			return nil, err
+		}
+		ps.BlueGreen.ShutDownOldVersionAfter = shutDownOldVersionAfter
+	}
+	return ps, nil
 }
 
 func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisConfig *model.AnalysisConfig, context map[string]string) (*de.AnalysisStepRequest, error) {
