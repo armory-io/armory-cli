@@ -20,7 +20,6 @@ import (
 
 var (
 	ErrMinDeployConfigTimeout = errors.New("invalid deployment config: timeout must be equal to or greater than 1 minute")
-	ErrInvalidStrategy        = errors.New("invalid strategy: define canary or blueGreen strategy")
 	TimeUnitSeconds           = "SECONDS"
 	TimeUnitMinutes           = "MINUTES"
 	TimeUnitHours             = "HOURS"
