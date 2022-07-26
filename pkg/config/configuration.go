@@ -10,6 +10,14 @@ import (
 	"strings"
 )
 
+type CliConfiguration interface {
+	GetArmoryCloudEnv() ArmoryCloudEnv
+	GetAuthToken() string
+	GetCustomerEnvironmentId() string
+	GetArmoryCloudAddr() *url.URL
+	GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnvironmentConfiguration
+}
+
 type Configuration struct {
 	input *Input
 }
@@ -175,7 +183,7 @@ func (c *Configuration) GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnv
 		break
 	case dev:
 		armoryCloudEnvironmentConfiguration = &ArmoryCloudEnvironmentConfiguration{
-			CloudConsoleBaseUrl: "https://localhost:9000",
+			CloudConsoleBaseUrl: "https://console.dev.cloud.armory.io:3000",
 			CliClientId:         "o2QghLMwgT1t1glzGaAOqEiIbbiHqUpc",
 			TokenIssuerUrl:      "https://auth.dev.cloud.armory.io/oauth",
 			Audience:            "https://api.dev.cloud.armory.io",

@@ -79,7 +79,7 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	if err != nil {
 		return fmt.Errorf("error at polling auth server for response. Err: %s", err)
 	}
-	jwt, err := auth.ValidateJwt(response.AccessToken)
+	parsedJwt, err := auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
 		return fmt.Errorf("error at decoding jwt. Err: %s", err)
 	}
@@ -93,18 +93,18 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	if err != nil {
 		return err
 	}
-	jwt, err = auth.ValidateJwt(response.AccessToken)
+	parsedJwt, err = auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
 		return fmt.Errorf("error at decoding jwt. Err: %s", err)
 	}
 
-	err = writeCredentialToFile(err, configuration, jwt, response)
+	err = writeCredentialToFile(err, configuration, parsedJwt, response)
 	if err != nil {
 		return err
 	}
 
-	claims := jwt.PrivateClaims()["https://cloud.armory.io/principal"].(map[string]interface{})
-	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s to environment %s your token expires at: %s\n", claims["orgName"], claims["name"], selectedEnv.Name, jwt.Expiration().Format(time.RFC1123))
+	claims := parsedJwt.PrivateClaims()["https://cloud.armory.io/principal"].(map[string]interface{})
+	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s to tenant %s your token expires at: %s\n", claims["orgName"], claims["name"], selectedEnv.Name, parsedJwt.Expiration().Format(time.RFC1123))
 	return nil
 }
 
@@ -145,21 +145,21 @@ func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnviro
 		return c.(org.Environment).Name
 	}).ToSlice(&environmentNames)
 
+	// If there is only 1 environment for the org, we will auto-select it
+	if len(environments) == 1 {
+		return &environments[0], nil
+	}
+
 	if len(namedEnvironment) > 0 && namedEnvironment[0] != "" {
-		requestedEnv := linq.From(environments).Where(func(c interface{}) bool {
-			return c.(org.Environment).Name == namedEnvironment[0]
-		}).Select(func(c interface{}) interface{} {
-			return c.(org.Environment)
-		}).First()
+		requestedEnv := getEnvForEnvName(environments, namedEnvironment[0])
 		if requestedEnv != nil {
-			sel := requestedEnv.(org.Environment)
-			return &sel, nil
+			return requestedEnv, nil
 		}
-		return nil, errors.New(fmt.Sprintf("Environment %s not found, please choose a known environment: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ",")))
+		return nil, errors.New(fmt.Sprintf("Tenant %s not found, please choose a known tenant: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ",")))
 	}
 
 	prompt := promptui.Select{
-		Label:  "Select environment",
+		Label:  "Select tenant",
 		Items:  environmentNames,
 		Stdout: &util.BellSkipper{},
 	}
@@ -167,18 +167,26 @@ func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnviro
 	_, requestedEnv, err := prompt.Run()
 
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("failed to select an environment to login to; %v\n", err))
+		return nil, errors.New(fmt.Sprintf("failed to select an tenant to login to; %v\n", err))
 	}
-	selectedEnv := linq.From(environments).Where(func(c interface{}) bool {
-		return c.(org.Environment).Name == requestedEnv
-	}).Select(func(c interface{}) interface{} {
-		return c.(org.Environment)
-	}).First()
-
+	selectedEnv := getEnvForEnvName(environments, requestedEnv)
 	if selectedEnv == nil {
-		return nil, errors.New("unable to select chosen environment")
+		return nil, errors.New("unable to select chosen tenant")
 	}
-	sel := selectedEnv.(org.Environment)
 
-	return &sel, nil
+	return selectedEnv, nil
+}
+
+func getEnvForEnvName(environments []org.Environment, envName string) *org.Environment {
+	env := linq.
+		From(environments).
+		Where(func(c interface{}) bool {
+			return c.(org.Environment).Name == envName
+		}).
+		Select(func(c interface{}) interface{} {
+			return c.(org.Environment)
+		}).
+		First()
+	sel := env.(org.Environment)
+	return &sel
 }

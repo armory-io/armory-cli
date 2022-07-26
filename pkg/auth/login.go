@@ -161,8 +161,8 @@ func getAuthToken(authUrl string, body map[string]string) (*ErrorResponse, *Succ
 	return errorResponse, nil, nil
 }
 
-func ValidateJwt(encodedJwt string) (jwt.Token, error) {
-	token, err := jwt.Parse([]byte(encodedJwt), jwt.WithValidate(true))
+func ParseJwtWithoutValidation(encodedJwt string) (jwt.Token, error) {
+	token, err := jwt.Parse([]byte(encodedJwt), jwt.WithValidate(false))
 	if err != nil {
 		return nil, err
 	}

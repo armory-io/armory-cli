@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - master
+      - main
 
 name: Build and Release
 jobs:
@@ -27,7 +27,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           default_bump: patch
-          release_branches: master
+          release_branches: main
           create_annotated_tag: false
           append_to_pre_release_tag: rc
 

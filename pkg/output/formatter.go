@@ -3,7 +3,6 @@ package output
 import (
 	"encoding/json"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/pkg"
 	"gopkg.in/yaml.v3"
 	_nethttp "net/http"
 )
@@ -79,9 +78,8 @@ func getRequestError(input Formattable) error {
 	if err != nil {
 		// don't override the received error unless we have an unexpected http response status
 		if input.GetHttpResponse() != nil && input.GetHttpResponse().StatusCode >= 300 {
-			openAPIErr := err.(de.GenericOpenAPIError)
 			err = fmt.Errorf("request returned an error: status code(%d) %s",
-				input.GetHttpResponse().StatusCode, string(openAPIErr.Body()))
+				input.GetHttpResponse().StatusCode, err)
 		}
 	}
 

@@ -3,12 +3,11 @@ package deploy
 import (
 	"encoding/json"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/pkg"
+	de "github.com/armory-io/deploy-engine/api"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/r3labs/diff"
 	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
@@ -69,6 +68,18 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 			"testdata/happyPathEmptyTrafficManagementTargets.yaml",
 			"testdata/happyPathEmptyTrafficManagementTargets.json",
 		},
+		{
+			"testdata/happyPathZeroDeploymentFile.yaml",
+			"testdata/happyPathDeployEngineRequestZeroDeployment.json",
+		},
+		{
+			"testdata/happyPathStrategyLessDeploys.yaml",
+			"testdata/happyPathStrategyLessDeploys.json",
+		},
+		{
+			"testdata/happyPathMultiManifest.yaml",
+			"testdata/happyPathDeployEngineRequestMultiManifest.json",
+		},
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%s -> %s", c.input, c.output), func(t *testing.T) {
@@ -82,7 +93,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestSuccess() {
 				t.Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 			}
 
-			expectedReq := de.PipelineStartPipelineRequest{}
+			expectedReq := de.StartPipelineRequest{}
 			err = json.Unmarshal(expectedJsonStr, &expectedReq)
 			if err != nil {
 				t.Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
@@ -104,7 +115,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestInvalidYaml() {
 	suite.Error(err)
 }
 
-func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() {
+func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadValidation() {
 	cases := []struct {
 		file      string
 		expectErr string
@@ -125,11 +136,23 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadStrategyPath() 
 			"testdata/sadPathDeploymentFileTrafficManagement.yaml",
 			"invalid traffic management config: rootServiceName required in smi",
 		},
+		{
+			"testdata/sadPathNoStrategyWithDeploymentFile.yaml",
+			"invalid deployment: strategy required for Deployment kind manifests",
+		},
+		{
+			"testdata/sadPathBadManifest.yaml",
+			"invalid deployment: manifest is not valid Kubernetes object",
+		},
+		{
+			"testdata/sadPathDeploymenConfigTimeout.yaml",
+			"invalid deployment config: timeout must be equal to or greater than 1 minute",
+		},
 	}
 
 	for _, c := range cases {
 		received, err := createDeploymentForTests(suite, c.file)
-		suite.Nilf(received, "Expected deployment to not be created for an invalid pause step")
+		suite.Nilf(received, "Expected deployment to not be created")
 		suite.EqualErrorf(err, c.expectErr, "Error messages do not match. Want: '%s', got: '%s'", c.expectErr, err)
 	}
 }
@@ -244,8 +267,13 @@ func (suite *ServiceTestSuite) TestCreateDeploymentManifestsSuccess() {
 	manifests := make([]string, 2)
 	manifests[0] = testAppYamlStr
 	manifests[1] = testAppYamlStr
-	received := CreateDeploymentManifests(&manifests)
-	suite.Equal(len(*received), 2)
+	received, err := CreateDeploymentManifests(&manifests, &map[string]model.Strategy{
+		"dev": {
+			Canary: &model.CanaryStrategy{Steps: &[]model.CanaryStep{}},
+		},
+	})
+	suite.NoError(err)
+	suite.Equal(len(received), 2)
 }
 
 func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess() {
@@ -274,8 +302,8 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess() {
 				},
 				{
 					RunWebhook: &model.WebhookStep{
-						Name: &webhookName,
-						Context: &map[string]string{
+						Name: webhookName,
+						Context: map[string]string{
 							"a1": "test1", "b2": "test2",
 						},
 					},
@@ -288,13 +316,13 @@ func (suite *ServiceTestSuite) TestCreateDeploymentCanaryStepSuccess() {
 		suite.T().Fatalf("TestCreateDeploymentCanaryStepSuccess failed with: %s", err)
 	}
 	suite.Equal(len(received), len(*strategy.Canary.Steps))
-	suite.EqualValues(received[0].SetWeight.GetWeight(), (*strategy.Canary.Steps)[0].SetWeight.Weight)
-	suite.EqualValues(received[1].Pause.GetUntilApproved(), (*strategy.Canary.Steps)[1].Pause.UntilApproved)
-	suite.EqualValues(received[2].Pause.GetDuration(), (*strategy.Canary.Steps)[2].Pause.Duration)
-	suite.EqualValues(received[3].WebhookRun.GetName(), *(*strategy.Canary.Steps)[3].RunWebhook.Name)
-	suite.EqualValues(received[3].WebhookRun.GetContext()["a1"], "test1")
-	suite.EqualValues(received[3].WebhookRun.GetContext()["b2"], "test2")
-	suite.EqualValues(received[3].WebhookRun.GetContext()["c1"], "test3")
+	suite.EqualValues(received[0].SetWeight.Weight, (*strategy.Canary.Steps)[0].SetWeight.Weight)
+	suite.EqualValues(received[1].Pause.UntilApproved, (*strategy.Canary.Steps)[1].Pause.UntilApproved)
+	suite.EqualValues(received[2].Pause.Duration, (*strategy.Canary.Steps)[2].Pause.Duration)
+	suite.EqualValues(received[3].WebhookRun.Name, (*strategy.Canary.Steps)[3].RunWebhook.Name)
+	suite.EqualValues(received[3].WebhookRun.Context["a1"], "test1")
+	suite.EqualValues(received[3].WebhookRun.Context["b2"], "test2")
+	suite.EqualValues(received[3].WebhookRun.Context["c1"], "test3")
 }
 
 func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess() {
@@ -320,11 +348,11 @@ func (suite *ServiceTestSuite) TestCreateBeforeDeploymentConstraintsSuccess() {
 	suite.Equal(len(received), len(beforeDeployment))
 }
 
-func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) (*de.PipelineStartPipelineRequest, error) {
+func createDeploymentForTests(suite *ServiceTestSuite, pathToInput string) (*de.StartPipelineRequest, error) {
 	return createDeploymentForTestsWithContext(suite, pathToInput, map[string]string{})
 }
 
-func createDeploymentForTestsWithContext(suite *ServiceTestSuite, pathToInput string, context map[string]string) (*de.PipelineStartPipelineRequest, error) {
+func createDeploymentForTestsWithContext(suite *ServiceTestSuite, pathToInput string, context map[string]string) (*de.StartPipelineRequest, error) {
 	inputYamlStr, err := ioutil.ReadFile(pathToInput)
 	if err != nil {
 		suite.T().Logf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
@@ -384,13 +412,6 @@ func (suite *ServiceTestSuite) TestCreateDeploymentAnalysisErrors() {
 	}
 }
 
-func TestBuildStrategy(t *testing.T) {
-	_, err := buildStrategy(model.OrchestrationConfig{
-		Strategies: &map[string]model.Strategy{},
-	}, "fakeStrategy", "fakeTarget", map[string]string{})
-	assert.Errorf(t, err, "fakeStrategy is not a valid strategy; define canary or blueGreen strategy")
-}
-
 const testAppYamlStr = `
 apiVersion: apps/v1
 kind: Deployment
@@ -406,7 +427,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentWebhookRequestSuccess() {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
 
-	expectedReq := de.PipelineStartPipelineRequest{}
+	expectedReq := de.StartPipelineRequest{}
 	err = json.Unmarshal(expectedJsonStr, &expectedReq)
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
@@ -434,7 +455,7 @@ func (suite *ServiceTestSuite) TestContextOverridesSuccessfully() {
 		suite.T().Fatalf("TestContextOverridesSuccessfully failed with: Error loading tesdata file %s", err)
 	}
 
-	expectedReq := de.PipelineStartPipelineRequest{}
+	expectedReq := de.StartPipelineRequest{}
 	err = json.Unmarshal(expectedJsonStr, &expectedReq)
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
@@ -460,7 +481,7 @@ func (suite *ServiceTestSuite) TestAnalysisAfterDeployementRequestSuccess() {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
 
-	expectedReq := de.PipelineStartPipelineRequest{}
+	expectedReq := de.StartPipelineRequest{}
 	err = json.Unmarshal(expectedJsonStr, &expectedReq)
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
@@ -486,7 +507,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentWebhookBeforeDeploymentReques
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error loading tesdata file %s", err)
 	}
 
-	expectedReq := de.PipelineStartPipelineRequest{}
+	expectedReq := de.StartPipelineRequest{}
 	err = json.Unmarshal(expectedJsonStr, &expectedReq)
 	if err != nil {
 		suite.T().Fatalf("TestCreateDeploymentRequestSuccess failed with: Error Unmarshalling JSON string to Request obj %s", err)
@@ -514,14 +535,14 @@ func (suite *ServiceTestSuite) TestBuildWebhooksSuccess() {
 	}
 	received, err := buildWebhooks(*webhooks)
 
-	suite.Equal(len(*received), len(*webhooks))
-	suite.EqualValues((*received)[0].Name, (*webhooks)[0].Name)
-	suite.EqualValues((*received)[0].Method, (*webhooks)[0].Method)
-	suite.EqualValues((*received)[0].UriTemplate, (*webhooks)[0].UriTemplate)
-	suite.EqualValues((*received)[0].NetworkMode, (*webhooks)[0].NetworkMode)
-	suite.EqualValues((*received)[0].AgentIdentifier, (*webhooks)[0].AgentIdentifier)
-	suite.EqualValues((*received)[0].RetryCount, (*webhooks)[0].RetryCount)
-	suite.EqualValues((*received)[0].BodyTemplate, (*webhooks)[0].BodyTemplate.Inline)
+	suite.Equal(len(received), len(*webhooks))
+	suite.EqualValues(received[0].Name, (*webhooks)[0].Name)
+	suite.EqualValues(received[0].Method, (*webhooks)[0].Method)
+	suite.EqualValues(received[0].URITemplate, (*webhooks)[0].UriTemplate)
+	suite.EqualValues(received[0].NetworkMode, (*webhooks)[0].NetworkMode)
+	suite.EqualValues(received[0].AgentIdentifier, (*webhooks)[0].AgentIdentifier)
+	suite.EqualValues(received[0].RetryCount, (*webhooks)[0].RetryCount)
+	suite.EqualValues(received[0].BodyTemplate, *(*webhooks)[0].BodyTemplate.Inline)
 }
 
 const headersYamlStr = `
@@ -538,9 +559,9 @@ func (suite *ServiceTestSuite) TestBuildHeadersSuccess() {
 		suite.T().Fatalf("TestBuildHeadersSuccess failed with: Error Unmarshalling Headers YAML string to obj %s", err)
 	}
 	received := buildHeaders(headers)
-	suite.Equal(len(*received), len(*headers))
-	suite.EqualValues((*received)[0], (*headers)[0])
-	suite.EqualValues((*received)[1], (*headers)[1])
+	suite.Equal(len(received), len(*headers))
+	suite.EqualValues((received)[0], (*headers)[0])
+	suite.EqualValues((received)[1], (*headers)[1])
 }
 
 func (suite *ServiceTestSuite) TestBuildBodyInlineSuccess() {
