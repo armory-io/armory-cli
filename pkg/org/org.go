@@ -77,7 +77,7 @@ func GetEnvironments(ArmoryCloudAddr *url.URL, accessToken *string) ([]Environme
 	if err != nil {
 		return nil, err
 	}
-  
+
 	return nil, fmt.Errorf("error retrieving environment to login to. ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
 }
 

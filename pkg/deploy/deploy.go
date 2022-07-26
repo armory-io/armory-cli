@@ -21,7 +21,7 @@ type (
 	}
 
 	Configuration struct {
-		Host          string
+		Host           string
 		Scheme         string
 		DefaultHeaders map[string]string
 		UserAgent      string
