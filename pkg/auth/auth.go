@@ -64,7 +64,7 @@ func (a *Auth) getTokenForCI() (*Credentials, error) {
 	}
 
 	if a.clientId == "" || a.secret == "" {
-		return nil, errors.New("no credentials set or expired, run armory login command or add clientId and clientSecret flags on the command")
+		return nil, errors.New("no credentials set or expired. Either run armory login command to interactively login, or add clientId and clientSecret flags to specify service account credentials")
 	}
 
 	token, expires, err := a.authentication(nil)
@@ -108,7 +108,7 @@ func (a *Auth) getTokenForSystemUser() (string, error) {
 	}
 
 	if a.clientId == "" || a.secret == "" {
-		return "", errors.New("no credentials set, add clientId and clientSecret flags on the command")
+		return "", errors.New("no credentials set. Either run armory login to interactively login, or add clientId and clientSecret flags to specify service account credentials")
 	}
 
 	token, expires, err := a.authentication(nil)
