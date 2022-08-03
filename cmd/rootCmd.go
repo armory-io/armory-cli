@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	configCmd "github.com/armory/armory-cli/cmd/config"
 	"github.com/armory/armory-cli/cmd/deploy"
 	"github.com/armory/armory-cli/cmd/login"
 	"github.com/armory/armory-cli/cmd/logout"
@@ -22,7 +23,10 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 	}
 
 	addr := rootCmd.PersistentFlags().StringP("addr", "", "https://api.cloud.armory.io", "")
-	rootCmd.PersistentFlags().MarkHidden("addr")
+	err := rootCmd.PersistentFlags().MarkHidden("addr")
+	if err != nil {
+		return nil
+	}
 
 	clientId := rootCmd.PersistentFlags().StringP("clientId", "c", "", "configure oidc client credentials for Armory CD-as-a-Service API")
 	clientSecret := rootCmd.PersistentFlags().StringP("clientSecret", "s", "", "configure oidc client credentials for Armory CD-as-a-Service API")
@@ -50,6 +54,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 	rootCmd.AddCommand(template.NewTemplateCmd())
 	rootCmd.AddCommand(login.NewLoginCmd(configuration))
 	rootCmd.AddCommand(logout.NewLogoutCmd())
+	rootCmd.AddCommand(configCmd.NewConfigCmd())
 	cmdUtils.SetPersistentFlagsFromEnvVariables(rootCmd.Commands())
 	cmdUtils.SetPersistentFlagsFromEnvVariables([]*cobra.Command{rootCmd})
 	return rootCmd
