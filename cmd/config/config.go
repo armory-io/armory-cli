@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/armory/armory-cli/pkg/cmdUtils"
+	"github.com/armory/armory-cli/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -11,7 +12,7 @@ const (
 	configExample = ""
 )
 
-func NewConfigCmd() *cobra.Command {
+func NewConfigCmd(configuration *config.Configuration) *cobra.Command {
 	command := &cobra.Command{
 		Use:     "config",
 		Aliases: []string{"config"},
@@ -24,7 +25,7 @@ func NewConfigCmd() *cobra.Command {
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {},
 	}
 	// create subcommands
-	command.AddCommand(NewConfigApplyCmd())
+	command.AddCommand(NewConfigApplyCmd(configuration))
 
 	cmdUtils.SetPersistentFlagsFromEnvVariables(command.Commands())
 

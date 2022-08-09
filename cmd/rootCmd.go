@@ -54,7 +54,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 	rootCmd.AddCommand(template.NewTemplateCmd())
 	rootCmd.AddCommand(login.NewLoginCmd(configuration))
 	rootCmd.AddCommand(logout.NewLogoutCmd())
-	rootCmd.AddCommand(configCmd.NewConfigCmd())
+	rootCmd.AddCommand(configCmd.NewConfigCmd(configuration))
 	cmdUtils.SetPersistentFlagsFromEnvVariables(rootCmd.Commands())
 	cmdUtils.SetPersistentFlagsFromEnvVariables([]*cobra.Command{rootCmd})
 	return rootCmd

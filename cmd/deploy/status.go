@@ -6,6 +6,7 @@ import (
 	deploy "github.com/armory-io/deploy-engine/api"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
+	deployment "github.com/armory/armory-cli/pkg/deploy"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/output"
 	"github.com/spf13/cobra"
@@ -88,8 +89,8 @@ func NewDeployStatusCmd(configuration *config.Configuration) *cobra.Command {
 
 func status(cmd *cobra.Command, configuration *config.Configuration, deploymentId string) error {
 	cmd.SetContext(context.WithValue(cmd.Context(), "deploymentId", deploymentId))
-	deployClient := configuration.GetDeployEngineClient()
-	ctx, cancel := context.WithTimeout(deployClient.Context, time.Second*5)
+	deployClient := deployment.GetDeployClient(configuration)
+	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Second*5)
 	defer cancel()
 	pipelineResp, response, err := deployClient.PipelineStatus(ctx, deploymentId)
 	var steps []model.Step

@@ -1,13 +1,17 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
+	"github.com/armory/armory-cli/pkg/config"
+	"github.com/armory/armory-cli/pkg/configCmd"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 const (
@@ -20,7 +24,7 @@ type configApplyOptions struct {
 	configFile string
 }
 
-func NewConfigApplyCmd() *cobra.Command {
+func NewConfigApplyCmd(configuration *config.Configuration) *cobra.Command {
 	options := &configApplyOptions{}
 	cmd := &cobra.Command{
 		Use:     "apply --file [<path to file>]",
@@ -32,7 +36,7 @@ func NewConfigApplyCmd() *cobra.Command {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return apply(cmd, options)
+			return apply(cmd, options, configuration)
 		},
 	}
 	cmd.Flags().StringVarP(&options.configFile, "file", "f", "", "path to the configuration file")
@@ -43,9 +47,10 @@ func NewConfigApplyCmd() *cobra.Command {
 	return cmd
 }
 
-func apply(cmd *cobra.Command, options *configApplyOptions) error {
-	payload := model.OrchestrationConfig{}
-	//in case this is running on a github instance
+func apply(cmd *cobra.Command, options *configApplyOptions, configuration *config.Configuration) error {
+	orgId := configuration.GetCustomerOrganizationId()
+	payload := model.ConfigurationConfig{}
+	//in case this is running on a GitHub instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
 	if present && !isATest {
@@ -60,7 +65,44 @@ func apply(cmd *cobra.Command, options *configApplyOptions) error {
 	// unmarshall data into struct
 	err = yaml.UnmarshalStrict(file, &payload)
 	if err != nil {
-		return fmt.Errorf("error invalid deployment object: %s", err)
+		return fmt.Errorf("error invalid configuration object: %s", err)
+	}
+	configClient := configCmd.GetConfigClient(configuration)
+	if payload.Roles != nil {
+		//get existing rolls
+		ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
+		defer cancel()
+		// execute request
+		roles, _, err := configClient.GetRoles(ctx, orgId)
+		if err != nil {
+			return fmt.Errorf("error getting existing roles: %s", err)
+		}
+		//check to see if roll in config file exists already, if so perform a PUT, if not perform a POST to create
+		for _, roleInConfig := range payload.Roles {
+			for _, roleInExisting := range roles.Roles {
+				if roleInConfig.Name == roleInExisting.Name {
+					//update existing role
+					ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
+					defer cancel()
+					req, err := configCmd.UpdateRolesRequest(&roleInConfig)
+					_, _, err = configClient.UpdateRole(ctx, req, orgId)
+					if err != nil {
+						return fmt.Errorf("error trying to update role: %s", err)
+					}
+					break
+				} else {
+					//update existing role
+					ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
+					defer cancel()
+					req, err := configCmd.CreateRoleRequest(&roleInConfig)
+					_, _, err = configClient.CreateRole(ctx, req, orgId)
+					if err != nil {
+						return fmt.Errorf("error trying to update role: %s", err)
+					}
+					break
+				}
+			}
+		}
 	}
 	return err
 }
