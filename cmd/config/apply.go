@@ -78,9 +78,11 @@ func apply(cmd *cobra.Command, options *configApplyOptions, configuration *confi
 			return fmt.Errorf("error getting existing roles: %s", err)
 		}
 		//check to see if roll in config file exists already, if so perform a PUT, if not perform a POST to create
+		exists := false
 		for _, roleInConfig := range payload.Roles {
-			for _, roleInExisting := range roles.Roles {
+			for _, roleInExisting := range roles {
 				if roleInConfig.Name == roleInExisting.Name {
+					exists = true
 					//update existing role
 					ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 					defer cancel()
@@ -90,18 +92,19 @@ func apply(cmd *cobra.Command, options *configApplyOptions, configuration *confi
 						return fmt.Errorf("error trying to update role: %s", err)
 					}
 					break
-				} else {
-					//update existing role
-					ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
-					defer cancel()
-					req, err := configCmd.CreateRoleRequest(&roleInConfig)
-					_, _, err = configClient.CreateRole(ctx, req, orgId)
-					if err != nil {
-						return fmt.Errorf("error trying to update role: %s", err)
-					}
-					break
 				}
 			}
+			if !exists {
+				//create new role
+				ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
+				defer cancel()
+				req, err := configCmd.CreateRoleRequest(&roleInConfig)
+				_, _, err = configClient.CreateRole(ctx, req, orgId)
+				if err != nil {
+					return fmt.Errorf("error trying to update role: %s", err)
+				}
+			}
+			exists = false
 		}
 	}
 	return err

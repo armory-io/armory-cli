@@ -11,7 +11,7 @@ type RoleConfig struct {
 }
 
 type GrantConfig struct {
-	Type        string   `yaml:"type,omitempty"`
-	Resource    string   `yaml:"resource,omitempty"`
-	Permissions []string `yaml:"permissions,omitempty"`
+	Type       string `yaml:"type,omitempty"`
+	Resource   string `yaml:"resource,omitempty"`
+	Permission string `yaml:"permission,omitempty"`
 }

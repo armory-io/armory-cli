@@ -27,5 +27,5 @@ type UpdateRoleResponse struct {
 }
 
 type GetRolesResponse struct {
-	Roles []model.RoleConfig `yaml:"roles,omitempty"`
+	Roles []model.RoleConfig
 }
