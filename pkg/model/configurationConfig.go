@@ -1,7 +1,8 @@
 package model
 
 type ConfigurationConfig struct {
-	Roles []RoleConfig `yaml:"roles,omitempty"`
+	AllowAutoDelete bool         `yaml:"allowAutoDelete"`
+	Roles           []RoleConfig `yaml:"roles,omitempty"`
 }
 
 type ConfiguationOutput struct {

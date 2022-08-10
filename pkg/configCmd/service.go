@@ -14,6 +14,13 @@ func UpdateRolesRequest(config *model.RoleConfig) (*configClient.UpdateRoleReque
 	return &req, nil
 }
 
+func DeleteRolesRequest(roleName string) (*configClient.DeleteRoleRequest, error) {
+	req := configClient.DeleteRoleRequest{
+		Name: roleName,
+	}
+	return &req, nil
+}
+
 func CreateRoleRequest(config *model.RoleConfig) (*configClient.CreateRoleRequest, error) {
 	req := configClient.CreateRoleRequest{
 		Name:   config.Name,

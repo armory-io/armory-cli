@@ -120,3 +120,22 @@ func (d *configError) Error() string {
 	}
 	return string(responseBytes)
 }
+
+func (c *ConfigClient) DeleteRole(ctx context.Context, request *configClient.DeleteRoleRequest) (*http.Response, error) {
+	reqBytes, err := json.Marshal(request)
+	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodDelete, fmt.Sprintf("/roles/%s", request.Name), bytes.NewReader(reqBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.ArmoryCloudClient.Http.Do(req)
+	if err != nil {
+		return resp, err
+	}
+
+	if resp.StatusCode != http.StatusNoContent {
+		return resp, &configError{response: resp}
+	}
+
+	return resp, nil
+}

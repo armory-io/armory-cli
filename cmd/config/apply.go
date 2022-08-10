@@ -90,6 +90,7 @@ func apply(cmd *cobra.Command, options *configApplyOptions, configuration *confi
 					if err != nil {
 						return fmt.Errorf("error trying to update role: %s", err)
 					}
+					_, err = fmt.Fprintln(cmd.OutOrStdout(), "Updated role: "+roleInConfig.Name)
 					break
 				}
 			}
@@ -102,9 +103,44 @@ func apply(cmd *cobra.Command, options *configApplyOptions, configuration *confi
 				if err != nil {
 					return fmt.Errorf("error trying to update role: %s", err)
 				}
+				_, err = fmt.Fprintln(cmd.OutOrStdout(), "Created role: "+roleInConfig.Name)
 			}
 			exists = false
 		}
+		//Check to see if any existing roles are no longer in the config file, if so delete them
+		deletedRoles := findDeletedRoles(payload.Roles, roles)
+		if !payload.AllowAutoDelete {
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), "Detected the following roles that should be deleted. Doing so may be destructive.")
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), "You can enable deletes by setting 'allowAutoDelete' to 'true' in the configuration file.")
+		}
+		for _, deletedRole := range deletedRoles {
+			if !payload.AllowAutoDelete {
+				_, err = fmt.Fprintln(cmd.OutOrStdout(), deletedRole)
+			} else {
+				ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
+				defer cancel()
+				req, err := configCmd.DeleteRolesRequest(deletedRole)
+				_, err = configClient.DeleteRole(ctx, req)
+				if err != nil {
+					return fmt.Errorf("error trying to delete role: %s", err)
+				}
+				_, err = fmt.Fprintln(cmd.OutOrStdout(), "Deleted role: "+deletedRole)
+			}
+		}
 	}
 	return err
+}
+
+func findDeletedRoles(rolesInConfigFile, existingRoles []model.RoleConfig) []string {
+	ma := make(map[string]bool, len(rolesInConfigFile))
+	var deletedRoles []string
+	for _, configRole := range rolesInConfigFile {
+		ma[configRole.Name] = true
+	}
+	for _, existinRole := range existingRoles {
+		if !ma[existinRole.Name] {
+			deletedRoles = append(deletedRoles, existinRole.Name)
+		}
+	}
+	return deletedRoles
 }
