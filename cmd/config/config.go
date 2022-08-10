@@ -26,6 +26,7 @@ func NewConfigCmd(configuration *config.Configuration) *cobra.Command {
 	}
 	// create subcommands
 	command.AddCommand(NewConfigApplyCmd(configuration))
+	command.AddCommand(NewConfigGetCmd(configuration))
 
 	cmdUtils.SetPersistentFlagsFromEnvVariables(command.Commands())
 

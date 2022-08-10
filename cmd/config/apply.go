@@ -48,7 +48,6 @@ func NewConfigApplyCmd(configuration *config.Configuration) *cobra.Command {
 }
 
 func apply(cmd *cobra.Command, options *configApplyOptions, configuration *config.Configuration) error {
-	orgId := configuration.GetCustomerOrganizationId()
 	payload := model.ConfigurationConfig{}
 	//in case this is running on a GitHub instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
@@ -73,7 +72,7 @@ func apply(cmd *cobra.Command, options *configApplyOptions, configuration *confi
 		ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 		defer cancel()
 		// execute request
-		roles, _, err := configClient.GetRoles(ctx, orgId)
+		roles, _, err := configClient.GetRoles(ctx)
 		if err != nil {
 			return fmt.Errorf("error getting existing roles: %s", err)
 		}
@@ -87,7 +86,7 @@ func apply(cmd *cobra.Command, options *configApplyOptions, configuration *confi
 					ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 					defer cancel()
 					req, err := configCmd.UpdateRolesRequest(&roleInConfig)
-					_, _, err = configClient.UpdateRole(ctx, req, orgId)
+					_, _, err = configClient.UpdateRole(ctx, req)
 					if err != nil {
 						return fmt.Errorf("error trying to update role: %s", err)
 					}
@@ -99,7 +98,7 @@ func apply(cmd *cobra.Command, options *configApplyOptions, configuration *confi
 				ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 				defer cancel()
 				req, err := configCmd.CreateRoleRequest(&roleInConfig)
-				_, _, err = configClient.CreateRole(ctx, req, orgId)
+				_, _, err = configClient.CreateRole(ctx, req)
 				if err != nil {
 					return fmt.Errorf("error trying to update role: %s", err)
 				}

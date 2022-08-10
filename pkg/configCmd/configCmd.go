@@ -26,7 +26,7 @@ func GetConfigClient(configuration *config.Configuration) *ConfigClient {
 	}
 }
 
-func (c *ConfigClient) CreateRole(ctx context.Context, request *configClient.CreateRoleRequest, organizationID string) (*configClient.CreateRoleResponse, *http.Response, error) {
+func (c *ConfigClient) CreateRole(ctx context.Context, request *configClient.CreateRoleRequest) (*configClient.CreateRoleResponse, *http.Response, error) {
 	reqBytes, err := json.Marshal(request)
 	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodPost, fmt.Sprintf("/roles"), bytes.NewReader(reqBytes))
 	if err != nil {
@@ -54,7 +54,7 @@ func (c *ConfigClient) CreateRole(ctx context.Context, request *configClient.Cre
 	return &role, resp, nil
 }
 
-func (c *ConfigClient) UpdateRole(ctx context.Context, request *configClient.UpdateRoleRequest, organizationID string) (*configClient.UpdateRoleResponse, *http.Response, error) {
+func (c *ConfigClient) UpdateRole(ctx context.Context, request *configClient.UpdateRoleRequest) (*configClient.UpdateRoleResponse, *http.Response, error) {
 	reqBytes, err := json.Marshal(request)
 	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodPut, fmt.Sprintf("/roles/%s", request.Name), bytes.NewReader(reqBytes))
 	if err != nil {
@@ -82,7 +82,7 @@ func (c *ConfigClient) UpdateRole(ctx context.Context, request *configClient.Upd
 	return &role, resp, nil
 }
 
-func (c *ConfigClient) GetRoles(ctx context.Context, organizationID string) ([]model.RoleConfig, *http.Response, error) {
+func (c *ConfigClient) GetRoles(ctx context.Context) ([]model.RoleConfig, *http.Response, error) {
 	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodGet, fmt.Sprintf("/roles"), nil)
 	if err != nil {
 		return nil, nil, err
