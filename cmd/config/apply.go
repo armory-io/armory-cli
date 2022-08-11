@@ -124,7 +124,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 			req, err := configCmd.CreateRoleRequest(&roleInConfig)
 			_, _, err = configClient.CreateRole(ctx, req)
 			if err != nil {
-				return fmt.Errorf("error trying to update role: %s", err)
+				return fmt.Errorf("error trying to create role: %s", err)
 			}
 			_, err = fmt.Fprintln(cmd.OutOrStdout(), "Created role: "+roleInConfig.Name)
 		}
