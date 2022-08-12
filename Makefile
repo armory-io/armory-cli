@@ -48,8 +48,8 @@ clean:
 
 .PHONY: integration
 integration: build-dirs Makefile
-	@go test -v -cover ./integration/... -json > integration-test-report.json
-	@go test -v -coverprofile=integration.cov ./integration/...
+	@go test -v -cover ./integration/... -json > ${BUILD_DIR}/reports/integration-test-report.json
+	@go test -v -coverprofile=${BUILD_DIR}/reports/integration.cov ./integration/...
 
 .PHONY: format
 format:
