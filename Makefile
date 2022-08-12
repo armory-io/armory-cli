@@ -47,9 +47,13 @@ clean:
 	rm -rf build
 
 .PHONY: integration
+integration: export APP_NAME:=$(APP_NAME)
+integration: export BUILD_DIR:=$(BUILD_DIR)
 integration: build-dirs Makefile
+	@go install github.com/vakenbolt/go-test-report@v0.9.3
 	@go test -v -cover ./integration/... -json > ${BUILD_DIR}/reports/integration-test-report.json
 	@go test -v -coverprofile=${BUILD_DIR}/reports/integration.cov ./integration/...
+	go-test-report --title ${APP_NAME}-integration-test -v --output ${BUILD_DIR}/reports/integration_test_report.html
 
 .PHONY: format
 format:
