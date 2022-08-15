@@ -261,7 +261,7 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleDontAllowAutoDelete(
 	suite.Equal(1, callCount["PUT /roles/test"])
 }
 
-func registerResponder(body interface{}, status int, url, method string) error {
+func registerResponder(body any, status int, url, method string) error {
 	responder, err := httpmock.NewJsonResponder(status, body)
 	if err != nil {
 		return err
