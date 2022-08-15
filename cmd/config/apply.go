@@ -131,7 +131,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 	}
 	//Check to see if any existing roles are no longer in the config file, if so delete them
 	deletedRoles := findDeletedRoles(rolesFromConfig, existingRoles)
-	if !allowAutoDelete {
+	if len(deletedRoles) > 0 && !allowAutoDelete {
 		_, err = fmt.Fprintln(cmd.OutOrStdout(), "Detected the following roles that should be deleted. Doing so may be destructive.")
 		_, err = fmt.Fprintln(cmd.OutOrStdout(), "You can enable deletes by setting 'allowAutoDelete' to 'true' in the configuration file.")
 	}
