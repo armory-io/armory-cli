@@ -82,9 +82,9 @@ func findDeletedRoles(rolesInConfigFile, existingRoles []model.RoleConfig) []str
 	for _, configRole := range rolesInConfigFile {
 		ma[configRole.Name] = true
 	}
-	for _, existinRole := range existingRoles {
-		if !ma[existinRole.Name] {
-			deletedRoles = append(deletedRoles, existinRole.Name)
+	for _, existingRole := range existingRoles {
+		if !ma[existingRole.Name] {
+			deletedRoles = append(deletedRoles, existingRole.Name)
 		}
 	}
 	return deletedRoles
