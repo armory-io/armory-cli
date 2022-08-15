@@ -148,6 +148,31 @@ func (a *Auth) GetEnvironmentId() (string, error) {
 	return currentCreds.GetEnvironmentId()
 }
 
+func (a *Auth) GetOrganizationId() (string, error) {
+	if a.token != "" {
+		return NewCredentials("", "", "", "", a.token, "").GetOrganizationId()
+	}
+
+	if os.Getenv("CI") == "true" {
+		creds, err := a.getTokenForCI()
+		if err != nil {
+			return "", err
+		}
+		return creds.Token, nil
+	}
+
+	dirname, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	currentCreds, err := LoadCredentials(dirname + "/.armory/credentials")
+
+	if err != nil {
+		return "", err
+	}
+	return currentCreds.GetOrganizationId()
+}
+
 func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 	if a.token != "" {
 		return "", nil, errors.New("do not try to execute remote authentication when a Token has been provided to the command")

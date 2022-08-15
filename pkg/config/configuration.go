@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
+	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/auth"
-	"github.com/armory/armory-cli/pkg/deploy"
 	"github.com/armory/armory-cli/pkg/output"
 	log "github.com/sirupsen/logrus"
 	"net/url"
@@ -89,6 +89,14 @@ func (c *Configuration) GetCustomerEnvironmentId() string {
 	return environment
 }
 
+func (c *Configuration) GetCustomerOrganizationId() string {
+	organization, err := c.getAuth().GetOrganizationId()
+	if err != nil {
+		log.Fatalf("failed to fetch organization, err: %s", err.Error())
+	}
+	return organization
+}
+
 func (c *Configuration) GetArmoryCloudAddr() *url.URL {
 	parsedAddr, err := c.getArmoryCloudAdder()
 	if err != nil {
@@ -122,15 +130,15 @@ func (c *Configuration) getArmoryCloudAdder() (*url.URL, error) {
 	}, nil
 }
 
-func (c *Configuration) GetDeployEngineClient() *deploy.Client {
-	deployClient, err := deploy.NewDeployClient(
+func (c *Configuration) GetArmoryCloudClient() *armoryCloud.Client {
+	armoryCloudClient, err := armoryCloud.NewArmoryCloudClient(
 		c.GetArmoryCloudAddr(),
 		c.GetAuthToken(),
 	)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	return deployClient
+	return armoryCloudClient
 }
 
 func (c *Configuration) GetOutputType() output.Type {

@@ -64,3 +64,13 @@ func (c *Credentials) GetEnvironmentId() (string, error) {
 	}
 	return claims[armoryClaims].(map[string]interface{})["envId"].(string), nil
 }
+
+func (c *Credentials) GetOrganizationId() (string, error) {
+	tok, _ := jwt.ParseSigned(c.Token)
+	var claims map[string]interface{}
+	err := tok.UnsafeClaimsWithoutVerification(&claims) //we've already obtained what we know to be a valid token from Auth0
+	if err != nil {
+		return "", err
+	}
+	return claims[armoryClaims].(map[string]interface{})["orgId"].(string), nil
+}

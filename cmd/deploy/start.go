@@ -123,9 +123,9 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 		return fmt.Errorf("error converting deployment object: %s", err)
 	}
 
-	deployClient := configuration.GetDeployEngineClient()
+	deployClient := deployment.GetDeployClient(configuration)
 
-	ctx, cancel := context.WithTimeout(deployClient.Context, time.Minute)
+	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Minute)
 	defer cancel()
 	// execute request
 	raw, response, err := deployClient.StartPipeline(ctx, dep)
