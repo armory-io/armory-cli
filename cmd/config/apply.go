@@ -100,8 +100,8 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 		return fmt.Errorf("error getting existing roles: %s", err)
 	}
 	//check to see if role in config file exists already, if so perform a PUT, if not perform a POST to create
-	exists := false
 	for _, roleInConfig := range rolesFromConfig {
+		exists := false
 		for _, roleInExisting := range existingRoles {
 			if roleInConfig.Name == roleInExisting.Name {
 				exists = true
@@ -128,7 +128,6 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 			}
 			_, err = fmt.Fprintln(cmd.OutOrStdout(), "Created role: "+roleInConfig.Name)
 		}
-		exists = false
 	}
 	//Check to see if any existing roles are no longer in the config file, if so delete them
 	deletedRoles := findDeletedRoles(rolesFromConfig, existingRoles)
