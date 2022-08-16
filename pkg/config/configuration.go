@@ -163,6 +163,10 @@ func (c *Configuration) GetOutputFormatter() output.Formatter {
 	return output.GetFormatterForOutputType(c.GetOutputType())
 }
 
+func (c *Configuration) SetOutputFormatter(formatter string) {
+	c.input.OutFormat = &formatter
+}
+
 type ArmoryCloudEnvironmentConfiguration struct {
 	CloudConsoleBaseUrl string
 	CliClientId         string

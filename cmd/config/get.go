@@ -7,6 +7,7 @@ import (
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configCmd"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/armory/armory-cli/pkg/output"
 	"github.com/spf13/cobra"
 	_nethttp "net/http"
 	"os"
@@ -43,6 +44,10 @@ func get(cmd *cobra.Command, options *configApplyOptions, configuration *config.
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
 	if present && !isATest {
 		options.configFile = gitWorkspace + options.configFile
+	}
+	// since we use text as the global default we need to override that for config get
+	if configuration.GetOutputType() == output.Text {
+		configuration.SetOutputFormatter("yaml")
 	}
 	configClient := configCmd.GetConfigClient(configuration)
 	ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)

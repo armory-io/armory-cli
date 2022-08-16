@@ -15,7 +15,7 @@ const (
 func NewConfigCmd(configuration *config.Configuration) *cobra.Command {
 	command := &cobra.Command{
 		Use:     "config",
-		Aliases: []string{"config"},
+		Aliases: []string{},
 		Short:   configShort,
 		Long:    configLong,
 		Example: configExample,
