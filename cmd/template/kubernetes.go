@@ -1,7 +1,6 @@
 package template
 
 import (
-	"fmt"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/spf13/cobra"
@@ -100,7 +99,7 @@ func buildTemplateKubernetesCore(options *templateCanaryOptions) (*yaml.Node, er
 				buildWebhookDefinitionNode("run integration test", "POST", "http://example.com/myurl/{{armory.deploymentId}}", "direct", "agent-rna", "2", "{ \"callbackUri\": \"{{armory.callbackUri}}\" }"))
 			root.Content = append(root.Content, webhooksNode, webhooksValuesNode)
 		default:
-			return nil, fmt.Errorf("unknown feature specified for template: %s", feature)
+			return nil, newUnknownFeatureError(feature)
 		}
 	}
 

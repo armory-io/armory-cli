@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/lestrrat-go/jwx/jwt"
 	"io/ioutil"
@@ -196,7 +195,7 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 		return "", nil, err
 	}
 	if res.StatusCode < 200 || res.StatusCode > 299 {
-		return "", nil, fmt.Errorf("unexpected status code while getting token %d", res.StatusCode)
+		return "", nil, newUnexpectedStatusCodeError(res.StatusCode)
 	}
 	defer res.Body.Close()
 	tk, err := ioutil.ReadAll(res.Body)
@@ -206,10 +205,10 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 
 	rt := &remoteToken{}
 	if err := json.Unmarshal(tk, rt); err != nil {
-		return "", nil, fmt.Errorf("unable to parse response from %s: %w", a.tokenIssuerUrl, err)
+		return "", nil, newErrorParsingTokenIssuerResponse(a.tokenIssuerUrl, err)
 	}
 	if rt.AccessToken == "" {
-		return "", nil, fmt.Errorf("no access_token returned from %s", a.tokenIssuerUrl)
+		return "", nil, newNoAccessTokenReturnedError(a.tokenIssuerUrl)
 	}
 
 	parsedJwt, err := jwt.Parse([]byte(rt.AccessToken))

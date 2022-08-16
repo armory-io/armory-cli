@@ -47,7 +47,7 @@ func MarshalToJson(input Formattable) (string, error) {
 
 	pretty, err := json.MarshalIndent(input.Get(), "", " ")
 	if err != nil {
-		return getErrorAsJson(err), fmt.Errorf("failed to marshal response to json: %v", err)
+		return getErrorAsJson(err), newJsonMarshalError(err)
 	}
 	return string(pretty), nil
 }
@@ -64,7 +64,7 @@ func MarshalToYaml(input Formattable) (string, error) {
 
 	pretty, err := yaml.Marshal(input.Get())
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal response to yaml: %v", err)
+		return "", newYamlMarshalError(err)
 	}
 	return string(pretty), nil
 }
@@ -78,8 +78,7 @@ func getRequestError(input Formattable) error {
 	if err != nil {
 		// don't override the received error unless we have an unexpected http response status
 		if input.GetHttpResponse() != nil && input.GetHttpResponse().StatusCode >= 300 {
-			err = fmt.Errorf("request returned an error: status code(%d) %s",
-				input.GetHttpResponse().StatusCode, err)
+			err = newHttpRequestError(input.GetHttpResponse().StatusCode, err)
 		}
 	}
 

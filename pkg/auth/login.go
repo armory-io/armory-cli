@@ -105,7 +105,7 @@ func PollAuthorizationServerForResponse(cliClientId string, authUrl string, devi
 		}
 
 		if errorResponse.Error != "authorization_pending" {
-			return nil, fmt.Errorf("there was an error polling for user auth. Err: %s, Desc: %s", errorResponse.Error, errorResponse.Description)
+			return nil, newUserAuthPollingError(errorResponse.Error, errorResponse.Description)
 		}
 	}
 }
@@ -128,7 +128,7 @@ func RefreshAuthToken(cliClientId string, authUrl string, refreshToken string, e
 		return response, nil
 	}
 
-	return nil, fmt.Errorf("there was an error authorizing for the requested environment. Err: %s, Desc: %s", errorResponse.Error, errorResponse.Description)
+	return nil, newEnvironmentAuthError(errorResponse.Error, errorResponse.Description)
 }
 
 func getAuthToken(authUrl string, body map[string]string) (*ErrorResponse, *SuccessfulResponse, error) {

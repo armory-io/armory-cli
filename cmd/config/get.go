@@ -58,7 +58,7 @@ func get(cmd *cobra.Command, options *configApplyOptions, configuration *config.
 
 	cmd.SilenceUsage = true
 	if err != nil {
-		return fmt.Errorf("error trying to parse respone: %s", err)
+		return newErrorParsingGetConfigResponse(err)
 	}
 	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
 	return nil

@@ -98,13 +98,13 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	// read yaml file
 	file, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
-		return fmt.Errorf("error trying to read the YAML file: %s", err)
+		return newYamlFileReadError(err)
 	}
 	cmd.SilenceUsage = true
 	// unmarshall data into struct
 	err = yaml.UnmarshalStrict(file, &payload)
 	if err != nil {
-		return fmt.Errorf("error invalid deployment object: %s", err)
+		return newInvalidDeploymentObjectError(err)
 	}
 	applicationOpt := options.application
 	var application string
@@ -115,12 +115,12 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	}
 
 	if len(application) < 1 {
-		return fmt.Errorf("application name must be defined in deployment file or by application opt")
+		return ErrNoApplicationNameDefined
 	}
 
 	dep, err := deployment.CreateDeploymentRequest(application, &payload, options.context)
 	if err != nil {
-		return fmt.Errorf("error converting deployment object: %s", err)
+		return newDeploymentObjectConversionError(err)
 	}
 
 	deployClient := deployment.GetDeployClient(configuration)

@@ -193,7 +193,7 @@ func CreateAnalysisQueries(analysis model.AnalysisConfig, defaultMetricProviderN
 	for _, query := range queries {
 		if query.MetricProviderName == nil {
 			if defaultMetricProviderName == "" {
-				return nil, fmt.Errorf("metric provider must be provided either in the analysis config, as defaultMetricProviderName, or in the query as metricProviderName")
+				return nil, ErrMissingMetricsProvider
 			}
 			query.MetricProviderName = &defaultMetricProviderName
 		}
@@ -213,7 +213,7 @@ func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]strin
 	var files []string
 	for _, manifestPath := range *manifests {
 		if manifestPath.Targets != nil && len(manifestPath.Targets) == 0 {
-			return nil, fmt.Errorf("please omit targets to include the manifests for all targets or specify the targets")
+			return nil, ErrTargetsNotSpecified
 		}
 		if util.Contains(manifestPath.Targets, env) || manifestPath.Targets == nil {
 			if manifestPath.Inline != "" {
@@ -247,7 +247,7 @@ func getFileNamesFromManifestPath(manifestPath model.ManifestPath) ([]string, er
 		}
 		err, fileNames := getFileNames(manifestPath)
 		if err != nil {
-			return nil, fmt.Errorf("unable to read manifest(s) from file: %s", err)
+			return nil, newErrorReadingManifestsFromFile(err)
 		}
 		allFileNames = append(allFileNames, fileNames...)
 	}
@@ -259,7 +259,7 @@ func funcName(dirFileNames []string) ([]string, error) {
 	for _, fileName := range dirFileNames {
 		file, err := ioutil.ReadFile(fileName)
 		if err != nil {
-			return nil, fmt.Errorf("error trying to read manifest file '%s': %s", fileName, err)
+			return nil, newManifestFileReadError(fileName, err)
 		}
 		files = append(files, string(file))
 	}
@@ -423,7 +423,7 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 
 	tm, err := createTrafficManagement(&modelStrategy, target)
 	if err != nil {
-		return nil, fmt.Errorf("invalid traffic management config: %s", err)
+		return nil, newInvalidTrafficManagementConfigError(err)
 	}
 
 	if strategy.Canary != nil {
@@ -550,7 +550,7 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisCo
 	for _, query := range analysis.Queries {
 		queryConfig := findByName(analysisConfig.Queries, query)
 		if queryConfig == nil {
-			return nil, fmt.Errorf("query in step does not exist in top-level analysis config: %q", query)
+			return nil, newMissingQueryConfigError(query)
 		}
 	}
 

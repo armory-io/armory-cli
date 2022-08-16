@@ -116,7 +116,7 @@ func status(cmd *cobra.Command, configuration *config.Configuration, deploymentI
 	// if we've made it this far, the command is valid. if an error occurs it isn't a usage error
 	cmd.SilenceUsage = true
 	if err != nil {
-		return fmt.Errorf("error trying to parse respone: %s", err)
+		return newDeploymentStatusResponseParseError(err)
 	}
 	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
 	return err
@@ -126,8 +126,7 @@ func getRequestError(response *_nethttp.Response, err error) error {
 	if err != nil {
 		// don't override the received error unless we have an unexpected http response status
 		if response != nil && response.StatusCode >= 300 {
-			err = fmt.Errorf("request returned an error: status code(%d) %s",
-				response.StatusCode, err)
+			err = newDeploymentStatusRequestError(response.StatusCode, err)
 		}
 	}
 	return err

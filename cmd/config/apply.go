@@ -58,13 +58,13 @@ func apply(cmd *cobra.Command, options *configApplyOptions, configuration *confi
 	// read yaml file
 	file, err := ioutil.ReadFile(options.configFile)
 	if err != nil {
-		return fmt.Errorf("error trying to read the YAML file: %s", err)
+		return newErrorReadingYamlFile(err)
 	}
 	cmd.SilenceUsage = true
 	// unmarshall data into struct
 	err = yaml.UnmarshalStrict(file, &payload)
 	if err != nil {
-		return fmt.Errorf("error invalid configuration object: %s", err)
+		return newErrorInvalidConfigurationObject(err)
 	}
 	configClient := configCmd.GetConfigClient(configuration)
 	if payload.Roles != nil {
@@ -97,7 +97,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 	// execute request
 	existingRoles, _, err := configClient.GetRoles(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting existing roles: %s", err)
+		return newErrorGettingRoles(err)
 	}
 	//check to see if role in config file exists already, if so perform a PUT, if not perform a POST to create
 	for _, roleInConfig := range rolesFromConfig {
@@ -111,7 +111,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 				req, err := configCmd.UpdateRolesRequest(&roleInConfig)
 				_, _, err = configClient.UpdateRole(ctx, req)
 				if err != nil {
-					return fmt.Errorf("error trying to update role: %s", err)
+					return newErrorUpdateRole(err)
 				}
 				_, err = fmt.Fprintln(cmd.OutOrStdout(), "Updated role: "+roleInConfig.Name)
 				break
@@ -124,7 +124,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 			req, err := configCmd.CreateRoleRequest(&roleInConfig)
 			_, _, err = configClient.CreateRole(ctx, req)
 			if err != nil {
-				return fmt.Errorf("error trying to create role: %s", err)
+				return newErrorCreatingRole(err)
 			}
 			_, err = fmt.Fprintln(cmd.OutOrStdout(), "Created role: "+roleInConfig.Name)
 		}
@@ -144,7 +144,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 			req, err := configCmd.DeleteRolesRequest(deletedRole)
 			_, err = configClient.DeleteRole(ctx, req)
 			if err != nil {
-				return fmt.Errorf("error trying to delete role: %s", err)
+				return newErrorDeletingRole(err)
 			}
 			_, err = fmt.Fprintln(cmd.OutOrStdout(), "Deleted role: "+deletedRole)
 		}

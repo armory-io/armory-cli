@@ -56,7 +56,7 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 
 	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(clientId, scope, audience, TokenIssuerUrl)
 	if err != nil {
-		return fmt.Errorf("error at getting device code: %s", err)
+		return newErrorGettingDeviceCode(err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "You are about to be prompted to verify the following code in your default browser.")
 	fmt.Fprintf(cmd.OutOrStdout(), "Device Code: %s\n", deviceTokenResponse.UserCode)
@@ -77,11 +77,11 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 
 	response, err := auth.PollAuthorizationServerForResponse(clientId, TokenIssuerUrl, deviceTokenResponse, authStartedAt)
 	if err != nil {
-		return fmt.Errorf("error at polling auth server for response. Err: %s", err)
+		return newErrorPollingServerResponse(err)
 	}
 	parsedJwt, err := auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
-		return fmt.Errorf("error at decoding jwt. Err: %s", err)
+		return newErrorDecodingJwt(err)
 	}
 
 	selectedEnv, err := selectEnvironment(configuration.GetArmoryCloudAddr(), response.AccessToken, envName)
@@ -95,7 +95,7 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	}
 	parsedJwt, err = auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
-		return fmt.Errorf("error at decoding jwt. Err: %s", err)
+		return newErrorDecodingJwt(err)
 	}
 
 	err = writeCredentialToFile(err, configuration, parsedJwt, response)
@@ -119,7 +119,7 @@ func createArmoryDirectoryIfNotExists(dir string) {
 func writeCredentialToFile(err error, configuration *config.Configuration, jwt jwt.Token, response *auth.SuccessfulResponse) error {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("there was an error getting the home directory. Err: %s", err)
+		return newErrorGettingHomeDirectory(err)
 	}
 
 	armoryCloudEnvironmentConfiguration := configuration.GetArmoryCloudEnvironmentConfiguration()
@@ -130,7 +130,7 @@ func writeCredentialToFile(err error, configuration *config.Configuration, jwt j
 	createArmoryDirectoryIfNotExists(dirname + "/.armory/")
 	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
 	if err != nil {
-		return fmt.Errorf("there was an error writing the credentials file. Err: %s", err)
+		return newErrorWritingCredentialsFile(err)
 	}
 	return nil
 }

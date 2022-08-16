@@ -78,7 +78,7 @@ func GetEnvironments(ArmoryCloudAddr *url.URL, accessToken *string) ([]Environme
 		return nil, err
 	}
 
-	return nil, fmt.Errorf("error retrieving environment to login to. ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
+	return nil, newEnvironmentRetrievalError(errorResponse.ErrorId, errorResponse.Errors)
 }
 
 func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
@@ -104,7 +104,7 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	}
 
 	if resp.StatusCode == 401 {
-		return nil, fmt.Errorf("Error: Unauthorized. Run `armory login` to ensure you're using the correct tenant.")
+		return nil, ErrUnauthorized
 	}
 
 	var errorResponse *ApiError
@@ -112,5 +112,5 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, fmt.Errorf("Error retrieving Remote Network Agents to connect with. ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
+	return nil, newRNARetrievalError(errorResponse.ErrorId, errorResponse.Errors)
 }
