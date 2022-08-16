@@ -23,6 +23,7 @@ func NewConfigCmd(configuration *config.Configuration) *cobra.Command {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {},
+		Hidden:            true,
 	}
 	// create subcommands
 	command.AddCommand(NewConfigApplyCmd(configuration))
