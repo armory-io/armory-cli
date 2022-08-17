@@ -5,25 +5,28 @@ import (
 	"fmt"
 )
 
-const canaryTemplateBuildErrorText = "error trying to build canary template: %w"
-const canaryTemplateParseErrorText = "error trying to parse canary template: %w"
+const (
+	errCanaryTemplateBuildText    = "error trying to build canary template: %w"
+	errCanaryTemplateParseText    = "error trying to parse canary template: %w"
+	errBlueGreenTemplateParseText = "error trying to parse bluegreen template: %w"
+)
 
-const blueGreenTemplateParseErrorText = "error trying to parse bluegreen template: %w"
-
-var ErrUnknownFeature = errors.New("unknown feature specified for template")
+var (
+	ErrUnknownFeature = errors.New("unknown feature specified for template")
+)
 
 func newUnknownFeatureError(feature string) error {
 	return fmt.Errorf("%w: %s", ErrUnknownFeature, feature)
 }
 
 func newCanaryBuildTemplateError(err error) error {
-	return fmt.Errorf(canaryTemplateBuildErrorText, err)
+	return fmt.Errorf(errCanaryTemplateBuildText, err)
 }
 
 func newCanaryParseTemplateError(err error) error {
-	return fmt.Errorf(canaryTemplateParseErrorText, err)
+	return fmt.Errorf(errCanaryTemplateParseText, err)
 }
 
 func newBlueGreenParseTemplateError(err error) error {
-	return fmt.Errorf(blueGreenTemplateParseErrorText, err)
+	return fmt.Errorf(errBlueGreenTemplateParseText, err)
 }

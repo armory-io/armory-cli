@@ -5,30 +5,34 @@ import (
 	"fmt"
 )
 
-const yamlFileReadErrorText = "error trying to read the YAML file: %w"
-const invalidDeploymentObjectErrorText = "error invalid deployment object: %w"
-const deploymentObjectConversionErrorText = "error converting deployment object: %w"
-const deploymentStatusResponseParseErrorText = "error trying to parse response: %w"
-const deploymentStatusRequestErrorText = "request returned an error: status code(%d) %w"
+const (
+	errYamlFileReadText                  = "error trying to read the YAML file: %w"
+	errInvalidDeploymentObjectText       = "error invalid deployment object: %w"
+	errDeploymentObjectConversionText    = "error converting deployment object: %w"
+	errDeploymentStatusResponseParseText = "error trying to parse response: %w"
+	errDeploymentStatusRequestText       = "request returned an error: status code(%d) %w"
+)
 
-var ErrNoApplicationNameDefined = errors.New("application name must be defined in deployment file or by application opt")
+var (
+	ErrNoApplicationNameDefined = errors.New("application name must be defined in deployment file or by application opt")
+)
 
 func newYamlFileReadError(err error) error {
-	return fmt.Errorf(yamlFileReadErrorText, err)
+	return fmt.Errorf(errYamlFileReadText, err)
 }
 
 func newInvalidDeploymentObjectError(err error) error {
-	return fmt.Errorf(invalidDeploymentObjectErrorText, err)
+	return fmt.Errorf(errInvalidDeploymentObjectText, err)
 }
 
 func newDeploymentObjectConversionError(err error) error {
-	return fmt.Errorf(deploymentObjectConversionErrorText, err)
+	return fmt.Errorf(errDeploymentObjectConversionText, err)
 }
 
 func newDeploymentStatusResponseParseError(err error) error {
-	return fmt.Errorf(deploymentStatusResponseParseErrorText, err)
+	return fmt.Errorf(errDeploymentStatusResponseParseText, err)
 }
 
 func newDeploymentStatusRequestError(statusCode int, err error) error {
-	return fmt.Errorf(deploymentStatusRequestErrorText, statusCode, err)
+	return fmt.Errorf(errDeploymentStatusRequestText, statusCode, err)
 }
