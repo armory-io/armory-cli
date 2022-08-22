@@ -7,6 +7,7 @@ import (
 	"github.com/armory/armory-cli/pkg/auth"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/org"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/lestrrat-go/jwx/jwt"
@@ -56,7 +57,7 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 
 	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(clientId, scope, audience, TokenIssuerUrl)
 	if err != nil {
-		return newErrorGettingDeviceCode(err)
+		return errorUtils.NewWrappedError(ErrGettingDeviceCode, err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "You are about to be prompted to verify the following code in your default browser.")
 	fmt.Fprintf(cmd.OutOrStdout(), "Device Code: %s\n", deviceTokenResponse.UserCode)
@@ -77,11 +78,11 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 
 	response, err := auth.PollAuthorizationServerForResponse(clientId, TokenIssuerUrl, deviceTokenResponse, authStartedAt)
 	if err != nil {
-		return newErrorPollingServerResponse(err)
+		return errorUtils.NewWrappedError(ErrPollingServerResponse, err)
 	}
 	parsedJwt, err := auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
-		return newErrorDecodingJwt(err)
+		return errorUtils.NewWrappedError(ErrDecodingJwt, err)
 	}
 
 	selectedEnv, err := selectEnvironment(configuration.GetArmoryCloudAddr(), response.AccessToken, envName)
@@ -95,7 +96,7 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	}
 	parsedJwt, err = auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
-		return newErrorDecodingJwt(err)
+		return errorUtils.NewWrappedError(ErrDecodingJwt, err)
 	}
 
 	err = writeCredentialToFile(err, configuration, parsedJwt, response)
@@ -119,7 +120,7 @@ func createArmoryDirectoryIfNotExists(dir string) {
 func writeCredentialToFile(err error, configuration *config.Configuration, jwt jwt.Token, response *auth.SuccessfulResponse) error {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
-		return newErrorGettingHomeDirectory(err)
+		return errorUtils.NewWrappedError(ErrGettingHomeDirectory, err)
 	}
 
 	armoryCloudEnvironmentConfiguration := configuration.GetArmoryCloudEnvironmentConfiguration()
@@ -130,7 +131,7 @@ func writeCredentialToFile(err error, configuration *config.Configuration, jwt j
 	createArmoryDirectoryIfNotExists(dirname + "/.armory/")
 	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
 	if err != nil {
-		return newErrorWritingCredentialsFile(err)
+		return errorUtils.NewWrappedError(ErrWritingCredentialsFile, err)
 	}
 	return nil
 }
