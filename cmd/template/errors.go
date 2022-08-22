@@ -12,7 +12,8 @@ const (
 )
 
 var (
-	ErrUnknownFeature = errors.New("unknown feature specified for template")
+	ErrUnknownFeature      = errors.New("unknown feature specified for template")
+	ErrCanaryTemplateParse = errors.New("error trying to parse canary template")
 )
 
 func newUnknownFeatureError(feature string) error {

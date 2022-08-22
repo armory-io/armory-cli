@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/auth"
+	"github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/output"
 	log "github.com/sirupsen/logrus"
 	"net/url"
@@ -108,19 +109,19 @@ func (c *Configuration) getArmoryCloudAdder() (*url.URL, error) {
 	armoryCloudAddr := *c.input.ApiAddr
 	parsedUrl, err := url.Parse(armoryCloudAddr)
 	if err != nil {
-		return nil, newArmoryCloudAddrParsingError(armoryCloudAddr, err)
+		return nil, errors.NewWrappedErrorWithDynamicContext(ErrInvalidArmoryCloudAddr, err, ", provided addr: "+armoryCloudAddr)
 	}
 
 	if parsedUrl.Scheme == "" {
-		return nil, newInvalidUrlSchemeError(armoryCloudAddr)
+		return nil, errors.NewErrorWithDynamicContext(ErrInvalidUrlScheme, ", provided addr: "+armoryCloudAddr)
 	}
 
 	if parsedUrl.Host == "" {
-		return nil, newMissingHostInUrlError(armoryCloudAddr)
+		return nil, errors.NewErrorWithDynamicContext(ErrMissingHostInUrl, ", provided addr: "+armoryCloudAddr)
 	}
 
 	if strings.TrimSuffix(parsedUrl.Path, "/") != "" {
-		return nil, newIncludedPathInUrlError(armoryCloudAddr)
+		return nil, errors.NewErrorWithDynamicContext(ErrIncludedPathInUrl, ", provided addr: "+armoryCloudAddr)
 	}
 
 	return &url.URL{
