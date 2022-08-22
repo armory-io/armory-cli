@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/api"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
 	"io"
@@ -19,14 +20,10 @@ import (
 )
 
 var (
-	ErrMinDeployConfigTimeout = errors.New("invalid deployment config: timeout must be equal to or greater than 1 minute")
-	TimeUnitSeconds           = "SECONDS"
-	TimeUnitMinutes           = "MINUTES"
-	TimeUnitHours             = "HOURS"
+	TimeUnitSeconds = "SECONDS"
+	TimeUnitMinutes = "MINUTES"
+	TimeUnitHours   = "HOURS"
 )
-
-var ErrorNoStrategyDeployment = errors.New("invalid deployment: strategy required for Deployment kind manifests")
-var ErrorBadObject = errors.New("invalid deployment: manifest is not valid Kubernetes object")
 
 func CreateDeploymentRequest(application string, config *model.OrchestrationConfig, contextOverrides map[string]string) (*de.StartPipelineRequest, error) {
 	environments := make([]de.PipelineEnvironment, 0, len(*config.Targets))
@@ -247,7 +244,7 @@ func getFileNamesFromManifestPath(manifestPath model.ManifestPath) ([]string, er
 		}
 		err, fileNames := getFileNames(manifestPath)
 		if err != nil {
-			return nil, newErrorReadingManifestsFromFile(err)
+			return nil, errorUtils.NewWrappedError(ErrManifestFileNameRead, err)
 		}
 		allFileNames = append(allFileNames, fileNames...)
 	}
@@ -259,7 +256,7 @@ func funcName(dirFileNames []string) ([]string, error) {
 	for _, fileName := range dirFileNames {
 		file, err := ioutil.ReadFile(fileName)
 		if err != nil {
-			return nil, newManifestFileReadError(fileName, err)
+			return nil, errorUtils.NewWrappedErrorWithDynamicContext(ErrManifestFileRead, err, fileName)
 		}
 		files = append(files, string(file))
 	}
@@ -423,7 +420,7 @@ func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string,
 
 	tm, err := createTrafficManagement(&modelStrategy, target)
 	if err != nil {
-		return nil, newInvalidTrafficManagementConfigError(err)
+		return nil, errorUtils.NewWrappedError(ErrInvalidTrafficManagementConfig, err)
 	}
 
 	if strategy.Canary != nil {
@@ -550,7 +547,7 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisCo
 	for _, query := range analysis.Queries {
 		queryConfig := findByName(analysisConfig.Queries, query)
 		if queryConfig == nil {
-			return nil, newMissingQueryConfigError(query)
+			return nil, errorUtils.NewErrorWithDynamicContext(ErrMissingQueryConfig, ":"+query)
 		}
 	}
 
