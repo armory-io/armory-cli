@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/lestrrat-go/jwx/jwt"
 	log "github.com/sirupsen/logrus"
@@ -105,7 +106,8 @@ func PollAuthorizationServerForResponse(cliClientId string, authUrl string, devi
 		}
 
 		if errorResponse.Error != "authorization_pending" {
-			return nil, newUserAuthPollingError(errorResponse.Error, errorResponse.Description)
+			errContext := fmt.Sprintf(". Err: %s, Desc: %s", errorResponse.Error, errorResponse.Description)
+			return nil, errorUtils.NewErrorWithDynamicContext(ErrUserAuthPolling, errContext)
 		}
 	}
 }
@@ -127,8 +129,8 @@ func RefreshAuthToken(cliClientId string, authUrl string, refreshToken string, e
 	if response != nil {
 		return response, nil
 	}
-
-	return nil, newEnvironmentAuthError(errorResponse.Error, errorResponse.Description)
+	errContext := fmt.Sprintf(". Err: %s, Desc: %s", errorResponse.Error, errorResponse.Description)
+	return nil, errorUtils.NewErrorWithDynamicContext(ErrEnvironmentAuth, errContext)
 }
 
 func getAuthToken(authUrl string, body map[string]string) (*ErrorResponse, *SuccessfulResponse, error) {

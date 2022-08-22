@@ -2,6 +2,7 @@ package template
 
 import (
 	"github.com/armory/armory-cli/pkg/cmdUtils"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -99,7 +100,7 @@ func buildTemplateKubernetesCore(options *templateCanaryOptions) (*yaml.Node, er
 				buildWebhookDefinitionNode("run integration test", "POST", "http://example.com/myurl/{{armory.deploymentId}}", "direct", "agent-rna", "2", "{ \"callbackUri\": \"{{armory.callbackUri}}\" }"))
 			root.Content = append(root.Content, webhooksNode, webhooksValuesNode)
 		default:
-			return nil, newUnknownFeatureError(feature)
+			return nil, errorUtils.NewErrorWithDynamicContext(ErrUnknownFeature, ": "+feature)
 		}
 	}
 

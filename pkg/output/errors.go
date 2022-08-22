@@ -1,21 +1,11 @@
 package output
 
-import "fmt"
-
-const (
-	errJsonMarshalText = "failed to marshal response to json"
-	errYamlMarshalText = "failed to marshal response to yaml"
-	errHttpRequestText = "request returned an error: status code(%d) %w"
+import (
+	"errors"
 )
 
-func newJsonMarshalError(err error) error {
-	return fmt.Errorf("%s: %w", errJsonMarshalText, err)
-}
-
-func newYamlMarshalError(err error) error {
-	return fmt.Errorf("%s: %w", errYamlMarshalText, err)
-}
-
-func newHttpRequestError(statusCode int, err error) error {
-	return fmt.Errorf(errHttpRequestText, statusCode, err)
-}
+var (
+	ErrJsonMarshal = errors.New("failed to marshal response to json")
+	ErrYamlMarshal = errors.New("failed to marshal response to yaml")
+	ErrHttpRequest = errors.New("request returned an error: status code(%d) %w")
+)

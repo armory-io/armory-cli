@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/lestrrat-go/jwx/jwt"
 	"io/ioutil"
@@ -195,7 +197,8 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 		return "", nil, err
 	}
 	if res.StatusCode < 200 || res.StatusCode > 299 {
-		return "", nil, newUnexpectedStatusCodeError(res.StatusCode)
+		errContext := fmt.Sprintf(" %d", res.StatusCode)
+		return "", nil, errorUtils.NewErrorWithDynamicContext(ErrUnexpectedStatusCode, errContext)
 	}
 	defer res.Body.Close()
 	tk, err := ioutil.ReadAll(res.Body)
@@ -205,10 +208,10 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 
 	rt := &remoteToken{}
 	if err := json.Unmarshal(tk, rt); err != nil {
-		return "", nil, newErrorParsingTokenIssuerResponse(a.tokenIssuerUrl, err)
+		return "", nil, errorUtils.NewWrappedErrorWithDynamicContext(ErrParsingTokenIssuerResponse, err, "from "+a.tokenIssuerUrl)
 	}
 	if rt.AccessToken == "" {
-		return "", nil, newNoAccessTokenReturnedError(a.tokenIssuerUrl)
+		return "", nil, errorUtils.NewErrorWithDynamicContext(ErrNoAccessTokenReturned, "from"+a.tokenIssuerUrl)
 	}
 
 	parsedJwt, err := jwt.Parse([]byte(rt.AccessToken))

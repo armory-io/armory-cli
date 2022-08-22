@@ -7,6 +7,7 @@ import (
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	deployment "github.com/armory/armory-cli/pkg/deploy"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/output"
 	"github.com/spf13/cobra"
@@ -116,7 +117,7 @@ func status(cmd *cobra.Command, configuration *config.Configuration, deploymentI
 	// if we've made it this far, the command is valid. if an error occurs it isn't a usage error
 	cmd.SilenceUsage = true
 	if err != nil {
-		return newDeploymentStatusResponseParseError(err)
+		return errorUtils.NewWrappedError(ErrDeploymentStatusResponseParse, err)
 	}
 	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
 	return err
@@ -126,7 +127,8 @@ func getRequestError(response *_nethttp.Response, err error) error {
 	if err != nil {
 		// don't override the received error unless we have an unexpected http response status
 		if response != nil && response.StatusCode >= 300 {
-			err = newDeploymentStatusRequestError(response.StatusCode, err)
+			statusCodeContext := fmt.Sprintf("status code(%d)", response.StatusCode)
+			err = errorUtils.NewWrappedErrorWithDynamicContext(ErrDeploymentStatusRequest, err, statusCodeContext)
 		}
 	}
 	return err

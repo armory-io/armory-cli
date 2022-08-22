@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/util"
 	"net/url"
 	"time"
@@ -78,7 +79,8 @@ func GetEnvironments(ArmoryCloudAddr *url.URL, accessToken *string) ([]Environme
 		return nil, err
 	}
 
-	return nil, newEnvironmentRetrievalError(errorResponse.ErrorId, errorResponse.Errors)
+	errContext := fmt.Sprintf(". ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
+	return nil, errorUtils.NewErrorWithDynamicContext(ErrEnvironmentRetrieval, errContext)
 }
 
 func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
@@ -112,5 +114,6 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, newRNARetrievalError(errorResponse.ErrorId, errorResponse.Errors)
+	errContext := fmt.Sprintf(". ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
+	return nil, errorUtils.NewErrorWithDynamicContext(ErrRNARetrieval, errContext)
 }
