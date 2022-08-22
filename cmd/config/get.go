@@ -6,6 +6,7 @@ import (
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configCmd"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/output"
 	"github.com/spf13/cobra"
@@ -58,7 +59,7 @@ func get(cmd *cobra.Command, options *configApplyOptions, configuration *config.
 
 	cmd.SilenceUsage = true
 	if err != nil {
-		return newErrorParsingGetConfigResponse(err)
+		return errorUtils.NewWrappedError(ErrParsingGetConfigResponse, err)
 	}
 	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
 	return nil

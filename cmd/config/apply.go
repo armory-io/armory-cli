@@ -6,6 +6,7 @@ import (
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configCmd"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -58,13 +59,13 @@ func apply(cmd *cobra.Command, options *configApplyOptions, configuration *confi
 	// read yaml file
 	file, err := ioutil.ReadFile(options.configFile)
 	if err != nil {
-		return newErrorReadingYamlFile(err)
+		return errorUtils.NewWrappedError(ErrReadingYamlFile, err)
 	}
 	cmd.SilenceUsage = true
 	// unmarshall data into struct
 	err = yaml.UnmarshalStrict(file, &payload)
 	if err != nil {
-		return newErrorInvalidConfigurationObject(err)
+		return errorUtils.NewWrappedError(ErrInvalidConfigurationObject, err)
 	}
 	configClient := configCmd.GetConfigClient(configuration)
 	if payload.Roles != nil {
@@ -97,7 +98,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 	// execute request
 	existingRoles, _, err := configClient.GetRoles(ctx)
 	if err != nil {
-		return newErrorGettingRoles(err)
+		return errorUtils.NewWrappedError(ErrGettingRoles, err)
 	}
 	//check to see if role in config file exists already, if so perform a PUT, if not perform a POST to create
 	for _, roleInConfig := range rolesFromConfig {
@@ -111,7 +112,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 				req, err := configCmd.UpdateRolesRequest(&roleInConfig)
 				_, _, err = configClient.UpdateRole(ctx, req)
 				if err != nil {
-					return newErrorUpdateRole(err)
+					return errorUtils.NewWrappedError(ErrUpdateRole, err)
 				}
 				_, err = fmt.Fprintln(cmd.OutOrStdout(), "Updated role: "+roleInConfig.Name)
 				break
@@ -124,7 +125,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 			req, err := configCmd.CreateRoleRequest(&roleInConfig)
 			_, _, err = configClient.CreateRole(ctx, req)
 			if err != nil {
-				return newErrorCreatingRole(err)
+				return errorUtils.NewWrappedError(ErrCreatingRole, err)
 			}
 			_, err = fmt.Fprintln(cmd.OutOrStdout(), "Created role: "+roleInConfig.Name)
 		}
@@ -144,7 +145,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 			req, err := configCmd.DeleteRolesRequest(deletedRole)
 			_, err = configClient.DeleteRole(ctx, req)
 			if err != nil {
-				return newErrorDeletingRole(err)
+				return errorUtils.NewWrappedError(ErrDeletingRole, err)
 			}
 			_, err = fmt.Fprintln(cmd.OutOrStdout(), "Deleted role: "+deletedRole)
 		}
