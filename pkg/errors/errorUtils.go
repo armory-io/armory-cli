@@ -11,9 +11,9 @@ func NewWrappedError(err, thrownErr error) error {
 }
 
 func NewErrorWithDynamicContext(err error, context string) error {
-	return fmt.Errorf("%w, %s", err, context)
+	return fmt.Errorf("%w%s", err, context)
 }
 
 func NewWrappedErrorWithDynamicContext(err, thrownErr error, context string) error {
-	return fmt.Errorf("%w, %s, thrownError: %v", err, context, thrownErr)
+	return fmt.Errorf("%w%s, thrown error: %v", err, context, thrownErr)
 }

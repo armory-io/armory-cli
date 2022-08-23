@@ -117,7 +117,7 @@ func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartHttpError failed with: %s", err)
 	}
-	suite.Equal(`error: "request returned an error: status code(500) "{\"code\":2, \"message\":\"invalid operation\", \"details\":[]}"`,
+	suite.Equal(`error: "request returned an error: status code(500), thrown error: "{\"code\":2, \"message\":\"invalid operation\", \"details\":[]}"`,
 		strings.TrimSpace(string(output)), "they should be equal")
 }
 
@@ -151,7 +151,7 @@ func (suite *DeployStartTestSuite) TestDeployStartBadPath() {
 	if err == nil {
 		suite.T().Fatal("TestDeployStartBadPath failed with: error should not be null")
 	}
-	suite.EqualError(err, "error trying to read the YAML file: open /badPath/test.yml: no such file or directory")
+	suite.EqualError(err, "error trying to read the YAML file, thrown error: open /badPath/test.yml: no such file or directory")
 }
 
 func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnErrorIsRaised() {

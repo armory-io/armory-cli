@@ -163,7 +163,7 @@ func TestDeployStatusHttpError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("TestDeployStatusHttpError failed with: %s", err)
 	}
-	assert.Equal(t, `{ "error": "request returned an error: status code(500) "{\"code\":2, \"message\":\"invalid operation\", \"details\":[]}"" }`,
+	assert.Equal(t, `{ "error": "request returned an error: status code(500), thrown error: "{\"code\":2, \"message\":\"invalid operation\", \"details\":[]}"" }`,
 		strings.TrimSpace(string(output)), "they should be equal")
 }
 
