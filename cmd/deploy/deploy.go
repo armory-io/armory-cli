@@ -18,7 +18,7 @@ const (
 func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 	command := &cobra.Command{
 		Use:     "deploy",
-		Aliases: []string{"deploy"},
+		Aliases: []string{},
 		Short:   deployShort,
 		Long:    deployLong,
 		Example: deployExample,

@@ -134,7 +134,7 @@ func (suite *ServiceTestSuite) TestCreateDeploymentRequestWithBadValidation() {
 		},
 		{
 			"testdata/sadPathDeploymentFileTrafficManagement.yaml",
-			"invalid traffic management config: rootServiceName required in smi",
+			"invalid traffic management config, thrown error: rootServiceName required in smi",
 		},
 		{
 			"testdata/sadPathNoStrategyWithDeploymentFile.yaml",

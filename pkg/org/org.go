@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/util"
 	"net/url"
 	"time"
@@ -78,7 +79,8 @@ func GetEnvironments(ArmoryCloudAddr *url.URL, accessToken *string) ([]Environme
 		return nil, err
 	}
 
-	return nil, fmt.Errorf("error retrieving environment to login to. ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
+	errContext := fmt.Sprintf(". ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
+	return nil, errorUtils.NewErrorWithDynamicContext(ErrEnvironmentRetrieval, errContext)
 }
 
 func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
@@ -104,7 +106,7 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	}
 
 	if resp.StatusCode == 401 {
-		return nil, fmt.Errorf("Error: Unauthorized. Run `armory login` to ensure you're using the correct tenant.")
+		return nil, ErrUnauthorized
 	}
 
 	var errorResponse *ApiError
@@ -112,5 +114,6 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, fmt.Errorf("Error retrieving Remote Network Agents to connect with. ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
+	errContext := fmt.Sprintf(". ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
+	return nil, errorUtils.NewErrorWithDynamicContext(ErrRNARetrieval, errContext)
 }

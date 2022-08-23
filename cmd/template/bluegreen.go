@@ -1,8 +1,8 @@
 package template
 
 import (
-	"fmt"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/spf13/cobra"
 	"strings"
 )
@@ -142,7 +142,7 @@ func blueGreen(cmd *cobra.Command) error {
 	template := strings.Join([]string{KubernetesCoreTemplate, blueGreenTemplate}, "\n")
 	_, err := cmd.OutOrStdout().Write([]byte(template))
 	if err != nil {
-		return fmt.Errorf("error trying to parse bluegreen template: %s", err)
+		return errorUtils.NewWrappedError(ErrBlueGreenTemplateParse, err)
 	}
 	return nil
 }

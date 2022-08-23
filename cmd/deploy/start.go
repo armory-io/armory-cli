@@ -7,6 +7,7 @@ import (
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	deployment "github.com/armory/armory-cli/pkg/deploy"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -98,13 +99,13 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	// read yaml file
 	file, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
-		return fmt.Errorf("error trying to read the YAML file: %s", err)
+		return errorUtils.NewWrappedError(ErrYamlFileRead, err)
 	}
 	cmd.SilenceUsage = true
 	// unmarshall data into struct
 	err = yaml.UnmarshalStrict(file, &payload)
 	if err != nil {
-		return fmt.Errorf("error invalid deployment object: %s", err)
+		return errorUtils.NewWrappedError(ErrInvalidDeploymentObject, err)
 	}
 	applicationOpt := options.application
 	var application string
@@ -115,12 +116,12 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	}
 
 	if len(application) < 1 {
-		return fmt.Errorf("application name must be defined in deployment file or by application opt")
+		return ErrNoApplicationNameDefined
 	}
 
 	dep, err := deployment.CreateDeploymentRequest(application, &payload, options.context)
 	if err != nil {
-		return fmt.Errorf("error converting deployment object: %s", err)
+		return errorUtils.NewWrappedError(ErrDeploymentObjectConversion, err)
 	}
 
 	deployClient := deployment.GetDeployClient(configuration)

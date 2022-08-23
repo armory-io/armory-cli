@@ -6,7 +6,9 @@ import (
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configCmd"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/armory/armory-cli/pkg/output"
 	"github.com/spf13/cobra"
 	_nethttp "net/http"
 	"os"
@@ -44,6 +46,10 @@ func get(cmd *cobra.Command, options *configApplyOptions, configuration *config.
 	if present && !isATest {
 		options.configFile = gitWorkspace + options.configFile
 	}
+	// since we use text as the global default we need to override that for config get
+	if configuration.GetOutputType() == output.Text {
+		configuration.SetOutputFormatter("yaml")
+	}
 	configClient := configCmd.GetConfigClient(configuration)
 	ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 	defer cancel()
@@ -53,7 +59,7 @@ func get(cmd *cobra.Command, options *configApplyOptions, configuration *config.
 
 	cmd.SilenceUsage = true
 	if err != nil {
-		return fmt.Errorf("error trying to parse respone: %s", err)
+		return errorUtils.NewWrappedError(ErrParsingGetConfigResponse, err)
 	}
 	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
 	return nil

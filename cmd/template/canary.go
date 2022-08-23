@@ -1,8 +1,8 @@
 package template
 
 import (
-	"fmt"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -114,7 +114,7 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 			hook.Content = append(hook.Content, hookNode, hookValuesNode)
 			stepsValuesNode.Content = append(stepsValuesNode.Content, hook)
 		default:
-			return fmt.Errorf("unknown feature specified for template: %s", feature)
+			return errorUtils.NewErrorWithDynamicContext(ErrUnknownFeature, ": "+feature)
 		}
 	}
 
@@ -125,11 +125,11 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 
 	bytes, err := yaml.Marshal(root)
 	if err != nil {
-		return fmt.Errorf("error trying to build canary template: %s", err)
+		return errorUtils.NewWrappedError(ErrCanaryTemplateBuild, err)
 	}
 	_, err = cmd.OutOrStdout().Write(bytes)
 	if err != nil {
-		return fmt.Errorf("error trying to parse canary template: %s", err)
+		return errorUtils.NewWrappedError(ErrCanaryTemplateParse, err)
 	}
 	return nil
 }

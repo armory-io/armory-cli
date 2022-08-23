@@ -3,6 +3,7 @@ package logout
 import (
 	"fmt"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/input"
 	"github.com/spf13/cobra"
 	"os"
@@ -44,7 +45,7 @@ func logout(cmd *cobra.Command) error {
 	if word {
 		dirname, err := os.UserHomeDir()
 		if err != nil {
-			return fmt.Errorf("error at getting user home dir: %s", err)
+			return errorUtils.NewWrappedError(ErrGettingHomeDir, err)
 		}
 		if err = os.Remove(dirname + "/.armory/credentials"); os.IsNotExist(err) {
 			fmt.Fprintln(cmd.OutOrStdout(), "You are not logged in, skipping logout")

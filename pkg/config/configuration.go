@@ -1,9 +1,9 @@
 package config
 
 import (
-	"fmt"
 	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/auth"
+	"github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/output"
 	log "github.com/sirupsen/logrus"
 	"net/url"
@@ -109,19 +109,19 @@ func (c *Configuration) getArmoryCloudAdder() (*url.URL, error) {
 	armoryCloudAddr := *c.input.ApiAddr
 	parsedUrl, err := url.Parse(armoryCloudAddr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse supplied Armory Cloud address, provided addr: '%s', err: %s", armoryCloudAddr, err.Error())
+		return nil, errors.NewWrappedErrorWithDynamicContext(ErrInvalidArmoryCloudAddr, err, ", provided addr: "+armoryCloudAddr)
 	}
 
 	if parsedUrl.Scheme == "" {
-		return nil, fmt.Errorf("failed to parse supplied Armory Cloud address, provided addr: '%s', expected url to contain scheme http or https", armoryCloudAddr)
+		return nil, errors.NewErrorWithDynamicContext(ErrInvalidUrlScheme, ", provided addr: "+armoryCloudAddr)
 	}
 
 	if parsedUrl.Host == "" {
-		return nil, fmt.Errorf("failed to parse supplied Armory Cloud address, provided addr: '%s', expected url to contain a host", armoryCloudAddr)
+		return nil, errors.NewErrorWithDynamicContext(ErrMissingHostInUrl, ", provided addr: "+armoryCloudAddr)
 	}
 
 	if strings.TrimSuffix(parsedUrl.Path, "/") != "" {
-		return nil, fmt.Errorf("failed to parse supplied Armory Cloud address, provided addr: '%s', expected url to not contain a path", armoryCloudAddr)
+		return nil, errors.NewErrorWithDynamicContext(ErrIncludedPathInUrl, ", provided addr: "+armoryCloudAddr)
 	}
 
 	return &url.URL{
@@ -161,6 +161,10 @@ func (c *Configuration) GetOutputType() output.Type {
 
 func (c *Configuration) GetOutputFormatter() output.Formatter {
 	return output.GetFormatterForOutputType(c.GetOutputType())
+}
+
+func (c *Configuration) SetOutputFormatter(formatter string) {
+	c.input.OutFormat = &formatter
 }
 
 type ArmoryCloudEnvironmentConfiguration struct {
