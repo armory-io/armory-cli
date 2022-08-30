@@ -288,5 +288,5 @@ jobs:
           registry: Docker Hub
           username: ${{ secrets.AQUA_USER }}
           password: ${{ secrets.AQUA_PASSWORD }}
-          image: armory/armory-cli:${{needs.build-push.outputs.docker-tag}}
+          image: ${{needs.build-push.outputs.docker-tag}}
 
