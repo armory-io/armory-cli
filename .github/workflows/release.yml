@@ -279,6 +279,7 @@ jobs:
     name: CVE Image Scan
     needs:
       - build-push
+      - setup
     runs-on: ubuntu-latest
     steps:
       - name: Run Security Scan
