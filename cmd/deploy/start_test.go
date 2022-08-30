@@ -65,7 +65,7 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
 	}
 	var received = FormattableDeployStartResponse{}
 	json.Unmarshal(output, &received)
-	suite.Equal(received.DeploymentId, expected.PipelineID, "they should be equal")
+	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
@@ -93,7 +93,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	}
 	var received = FormattableDeployStartResponse{}
 	yaml.Unmarshal(output, &received)
-	suite.Equal(received.DeploymentId, expected.PipelineID, "they should be equal")
+	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
@@ -137,7 +137,8 @@ func (suite *DeployStartTestSuite) TestDeployStartFlagFileRequired() {
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartBadPath() {
-	configuration := config.New(&config.Input{})
+	isTest := true
+	configuration := config.New(&config.Input{IsTest: &isTest})
 	deployCmd := NewDeployCmd(configuration)
 	outWriter := bytes.NewBufferString("")
 	deployCmd.SetOut(outWriter)
@@ -218,12 +219,14 @@ func getDeployCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output strin
 	addr := "https://localhost"
 	clientId := ""
 	clientSecret := ""
+	isTest := true
 	configuration := config.New(&config.Input{
 		AccessToken:  &token,
 		ApiAddr:      &addr,
 		ClientId:     &clientId,
 		ClientSecret: &clientSecret,
 		OutFormat:    &output,
+		IsTest:       &isTest,
 	})
 	deployCmd := NewDeployCmd(configuration)
 	deployCmd.SetOut(outWriter)

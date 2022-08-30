@@ -2,13 +2,13 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configCmd"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/spf13/cobra"
+	log "go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -114,7 +114,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 				if err != nil {
 					return errorUtils.NewWrappedError(ErrUpdateRole, err)
 				}
-				_, err = fmt.Fprintln(cmd.OutOrStdout(), "Updated role: "+roleInConfig.Name)
+				log.S().Infof("Updated role: %s", roleInConfig.Name)
 				break
 			}
 		}
@@ -127,18 +127,18 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 			if err != nil {
 				return errorUtils.NewWrappedError(ErrCreatingRole, err)
 			}
-			_, err = fmt.Fprintln(cmd.OutOrStdout(), "Created role: "+roleInConfig.Name)
+			log.S().Infof("Created role: %s", roleInConfig.Name)
 		}
 	}
 	//Check to see if any existing roles are no longer in the config file, if so delete them
 	deletedRoles := findDeletedRoles(rolesFromConfig, existingRoles)
 	if len(deletedRoles) > 0 && !allowAutoDelete {
-		_, err = fmt.Fprintln(cmd.OutOrStdout(), "Detected the following roles that should be deleted. Doing so may be destructive.")
-		_, err = fmt.Fprintln(cmd.OutOrStdout(), "You can enable deletes by setting 'allowAutoDelete' to 'true' in the configuration file.")
+		log.S().Info("Detected the following roles that should be deleted. Doing so may be destructive.")
+		log.S().Info("You can enable deletes by setting 'allowAutoDelete' to 'true' in the configuration file.")
 	}
 	for _, deletedRole := range deletedRoles {
 		if !allowAutoDelete {
-			_, err = fmt.Fprintln(cmd.OutOrStdout(), deletedRole)
+			log.S().Info(deletedRole)
 		} else {
 			ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 			defer cancel()
@@ -147,7 +147,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 			if err != nil {
 				return errorUtils.NewWrappedError(ErrDeletingRole, err)
 			}
-			_, err = fmt.Fprintln(cmd.OutOrStdout(), "Deleted role: "+deletedRole)
+			log.S().Infof("Deleted role: %s", deletedRole)
 		}
 	}
 	return nil

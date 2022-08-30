@@ -5,8 +5,8 @@ import (
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/manifoldco/promptui"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	log "go.uber.org/zap"
 )
 
 var CdConDemo = GithubQuickStartProject{
@@ -51,11 +51,8 @@ func NewQuickStartCmd(configuration *config.Configuration) *cobra.Command {
 }
 
 func quickStart(cmd *cobra.Command, configuration *config.Configuration, options *quickStartOptions) error {
-	if options.verbose {
-		log.SetLevel(log.DebugLevel)
-	}
 
-	log.Info("Welcome to the Armory CD-as-a-Service CLI!\nThis quick start downloads a sample application from GitHub and tells you how to deploy it.\n")
+	log.S().Info("Welcome to the Armory CD-as-a-Service CLI!\nThis quick start downloads a sample application from GitHub and tells you how to deploy it.")
 
 	prompt := promptui.Prompt{
 		Label:     "Ready to get started",
@@ -65,7 +62,7 @@ func quickStart(cmd *cobra.Command, configuration *config.Configuration, options
 	}
 
 	if _, err := prompt.Run(); err != nil {
-		log.Fatalf("Exiting %s\n", err)
+		log.S().Fatalf("Exiting %s\n", err)
 	}
 
 	demo := CdConDemo
@@ -80,7 +77,7 @@ func quickStart(cmd *cobra.Command, configuration *config.Configuration, options
 		ExecWith(demo.UpdateAgentAccount, selectedAgent).
 		FailOnError()
 
-	log.Infof("Execute `cd %s && %s` to deploy the sample application", demo.DirName, demo.GetDeployCommand())
-	log.Infof("Note: You should deploy the application twice. The first deployment creates a new application and the second is a regular deployment.")
+	log.S().Infof("Execute `cd %s && %s` to deploy the sample application", demo.DirName, demo.GetDeployCommand())
+	log.S().Infof("Note: You should deploy the application twice. The first deployment creates a new application and the second is a regular deployment.")
 	return nil
 }

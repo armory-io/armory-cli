@@ -43,12 +43,14 @@ func getStdTestConfig(outFmt string) *config.Configuration {
 	addr := "https://localhost"
 	clientId := ""
 	clientSecret := ""
+	isTest := true
 	return config.New(&config.Input{
 		AccessToken:  &token,
 		ApiAddr:      &addr,
 		ClientId:     &clientId,
 		ClientSecret: &clientSecret,
 		OutFormat:    &outFmt,
+		IsTest:       &isTest,
 	})
 }
 
@@ -72,6 +74,7 @@ func TestDeployStatusJsonSuccess(t *testing.T) {
 	cmd.SetOut(outWriter)
 	args := []string{
 		"status",
+		"--test=true",
 		"--deploymentId=12345",
 	}
 	cmd.SetArgs(args)
