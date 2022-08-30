@@ -1,0 +1,59 @@
+version: v1
+kind: kubernetes
+application: sample-application
+# Map of Application Targets to which we are deploying
+targets:
+  # This in the name of an application target, underneath it are its configuration
+  my-first-environment:
+    # the name of an agent configured account. Agent Name can be found at https://console.cloud.armory.io/configuration > Agents
+    account: nr-synthetic-agent
+    namespace: armory-sample-application
+    # This is the name of the strategy to use when deploying.
+    strategy: mycanary
+
+  my-second-environment:
+    # the name of an agent configured account. Agent Name can be found at https://console.cloud.armory.io/configuration > Agents
+    account: nr-synthetic-agent
+    namespace: armory-demo-application
+    # This is the name of the strategy to use when deploying.
+    strategy: mycanary
+    constraints:
+      dependsOn: [my-first-environment]
+# The list of manifests to deploy
+manifests:
+  # This will read all yaml|yml files in a dir and deploy all manifests in that directory to all targets, or their specified target.
+  - path: manifests/sample-namespace.yml
+    targets: [my-first-environment]
+  - path: manifests/demo-namespace.yml
+    targets: [my-second-environment]
+  - path: manifests/demo-app.yml
+# The map of strategies, a deployment target will reference one of these
+strategies:
+  # this is the name for the strategy
+  mycanary:
+    # This specifies the strategy type
+    canary: 
+        # List of canary steps
+        steps:
+          # there are multiple step types. setWeight changes what percentage of traffic reaches the new version.
+          - setWeight:
+              weight: 25
+          - pause:
+              untilApproved: true
+          - setWeight:
+              weight: 50
+          - setWeight:
+              weight: 100
+  mybluegreen:
+    # This specifies the deployment strategy type
+    blueGreen:
+      activeService: sample-app-svc
+      # List of what needs to happen before redirecting traffic
+      redirectTrafficAfter:
+        - pause:
+            duration: 10
+            unit: seconds
+      # List of what needs to happen before shutting down the old version
+      shutDownOldVersionAfter:
+        - pause:
+            untilApproved: true
