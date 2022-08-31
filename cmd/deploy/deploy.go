@@ -35,6 +35,10 @@ func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 			}
 		},
 	}
+
+	command.PersistentFlags().BoolP("test", "", false, "")
+	command.PersistentFlags().MarkHidden("test")
+
 	// create subcommands
 	command.AddCommand(NewDeployStartCmd(configuration))
 	command.AddCommand(NewDeployStatusCmd(configuration))

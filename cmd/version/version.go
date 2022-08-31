@@ -2,8 +2,8 @@ package version
 
 import (
 	"github.com/armory/armory-cli/pkg/cmdUtils"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	log "go.uber.org/zap"
 )
 
 var Version = "development"
@@ -31,6 +31,6 @@ func NewCmdVersion() *cobra.Command {
 }
 
 func RunVersion(cmd *cobra.Command) error {
-	log.Infof("{\"version\":\"%v\"}", Version)
+	log.S().Infof("{\"version\":\"%v\"}", Version)
 	return nil
 }

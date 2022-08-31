@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	deploy "github.com/armory-io/deploy-engine/api"
+	"github.com/armory/armory-cli/cmd/utils"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	deployment "github.com/armory/armory-cli/pkg/deploy"
@@ -11,6 +12,7 @@ import (
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/output"
 	"github.com/spf13/cobra"
+	log "go.uber.org/zap"
 	_nethttp "net/http"
 	"time"
 )
@@ -89,6 +91,9 @@ func NewDeployStatusCmd(configuration *config.Configuration) *cobra.Command {
 }
 
 func status(cmd *cobra.Command, configuration *config.Configuration, deploymentId string) error {
+	if *configuration.GetIsTest() {
+		utils.ConfigureLoggingForTesting(cmd)
+	}
 	cmd.SetContext(context.WithValue(cmd.Context(), "deploymentId", deploymentId))
 	deployClient := deployment.GetDeployClient(configuration)
 	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Second*5)
@@ -119,7 +124,7 @@ func status(cmd *cobra.Command, configuration *config.Configuration, deploymentI
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrDeploymentStatusResponseParse, err)
 	}
-	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
+	log.S().Info(dataFormat)
 	return err
 }
 

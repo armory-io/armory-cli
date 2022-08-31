@@ -34,6 +34,7 @@ type Input struct {
 	ClientId     *string
 	ClientSecret *string
 	OutFormat    *string
+	IsTest       *bool
 }
 
 type ArmoryCloudEnv int64
@@ -205,4 +206,8 @@ func (c *Configuration) GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnv
 		log.Fatalf("Cannot fetch armory cloud config for unknown armory env")
 	}
 	return armoryCloudEnvironmentConfiguration
+}
+
+func (c *Configuration) GetIsTest() *bool {
+	return c.input.IsTest
 }

@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/api"
+	"github.com/armory/armory-cli/cmd/utils"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	deployment "github.com/armory/armory-cli/pkg/deploy"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/spf13/cobra"
+	log "go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	_nethttp "net/http"
@@ -89,6 +91,9 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 }
 
 func start(cmd *cobra.Command, configuration *config.Configuration, options *deployStartOptions) error {
+	if *configuration.GetIsTest() {
+		utils.ConfigureLoggingForTesting(cmd)
+	}
 	payload := model.OrchestrationConfig{}
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
@@ -138,6 +143,6 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 		return err
 	}
 	cmd.SetContext(context.WithValue(ctx, "deploymentId", deploy.DeploymentId))
-	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
+	log.S().Info(dataFormat)
 	return err
 }

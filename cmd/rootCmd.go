@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	configCmd "github.com/armory/armory-cli/cmd/config"
 	"github.com/armory/armory-cli/cmd/deploy"
 	"github.com/armory/armory-cli/cmd/login"
@@ -10,9 +11,9 @@ import (
 	"github.com/armory/armory-cli/cmd/version"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	easy "github.com/t-tomalak/logrus-easy-formatter"
+	log "go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"io"
 )
 
@@ -24,6 +25,9 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 
 	addr := rootCmd.PersistentFlags().StringP("addr", "", "https://api.cloud.armory.io", "")
 	err := rootCmd.PersistentFlags().MarkHidden("addr")
+	test := rootCmd.PersistentFlags().BoolP("test", "", false, "")
+	err = rootCmd.PersistentFlags().MarkHidden("test")
+
 	if err != nil {
 		return nil
 	}
@@ -36,9 +40,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 	rootCmd.SetOut(outWriter)
 	rootCmd.SetErr(errWriter)
 
-	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
-		configureLogging(*verbose)
-	}
+	configureLogging(*verbose, *test, rootCmd)
 
 	configuration := config.New(&config.Input{
 		ApiAddr:      addr,
@@ -46,6 +48,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 		ClientSecret: clientSecret,
 		AccessToken:  accessToken,
 		OutFormat:    outFormat,
+		IsTest:       test,
 	})
 
 	rootCmd.AddCommand(version.NewCmdVersion())
@@ -60,13 +63,37 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 	return rootCmd
 }
 
-func configureLogging(verboseFlag bool) {
+func configureLogging(verboseFlag, isTest bool, cmd *cobra.Command) {
 	lvl := log.InfoLevel
 	if verboseFlag {
 		lvl = log.DebugLevel
 	}
-	log.SetLevel(lvl)
-	log.SetFormatter(&easy.Formatter{
-		LogFormat: "%msg%\n",
-	})
+
+	loggerConfig := log.NewProductionConfig()
+	encodingConfig := log.NewDevelopmentEncoderConfig()
+	encodingConfig.TimeKey = ""
+	encodingConfig.LevelKey = ""
+	encodingConfig.NameKey = ""
+	encodingConfig.CallerKey = ""
+
+	loggerConfig.Encoding = "console"
+	loggerConfig.Level = log.NewAtomicLevelAt(lvl)
+	loggerConfig.EncoderConfig = encodingConfig
+	logger, err := loggerConfig.Build()
+
+	if isTest {
+		encoder := zapcore.NewConsoleEncoder(encodingConfig)
+		writer := bufio.NewWriter(cmd.OutOrStdout())
+
+		logger = log.New(
+			zapcore.NewCore(encoder, zapcore.AddSync(writer), zapcore.DebugLevel))
+	}
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer logger.Sync()
+	log.ReplaceGlobals(logger)
+
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
+	log "go.uber.org/zap"
 	"io"
 	"net/url"
 	"os"
@@ -59,8 +60,8 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrGettingDeviceCode, err)
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), "You are about to be prompted to verify the following code in your default browser.")
-	fmt.Fprintf(cmd.OutOrStdout(), "Device Code: %s\n", deviceTokenResponse.UserCode)
+	log.S().Info("You are about to be prompted to verify the following code in your default browser.")
+	log.S().Infof("Device Code: %s\n", deviceTokenResponse.UserCode)
 
 	authStartedAt := time.Now()
 
@@ -72,8 +73,8 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	browser.Stdout = io.Discard
 	err = browser.OpenURL(deviceTokenResponse.VerificationUriComplete)
 	if err != nil {
-		fmt.Fprintf(cmd.OutOrStdout(), "You are about to be prompted to verify the following code in your default browser.")
-		fmt.Fprintf(cmd.OutOrStdout(), deviceTokenResponse.VerificationUriComplete)
+		log.S().Info("You are about to be prompted to verify the following code in your default browser.")
+		log.S().Info(deviceTokenResponse.VerificationUriComplete)
 	}
 
 	response, err := auth.PollAuthorizationServerForResponse(clientId, TokenIssuerUrl, deviceTokenResponse, authStartedAt)
@@ -105,7 +106,7 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	}
 
 	claims := parsedJwt.PrivateClaims()["https://cloud.armory.io/principal"].(map[string]interface{})
-	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s to tenant %s your token expires at: %s\n", claims["orgName"], claims["name"], selectedEnv.Name, parsedJwt.Expiration().Format(time.RFC1123))
+	log.S().Infof("Welcome %s user: %s to tenant %s your token expires at: %s\n", claims["orgName"], claims["name"], selectedEnv.Name, parsedJwt.Expiration().Format(time.RFC1123))
 	return nil
 }
 
