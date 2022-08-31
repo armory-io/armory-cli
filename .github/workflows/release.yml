@@ -217,7 +217,7 @@ jobs:
       - compile
     runs-on: ubuntu-latest
     outputs:
-      docker-tag: ${{ steps.meta.outputs.tags }}
+      docker-version: ${{ steps.meta.outputs.version }}
     steps:
       - name: Get GitHub App Installation Token for Private Go Repos
         id: get_token
@@ -289,5 +289,6 @@ jobs:
           registry: Docker Hub
           username: ${{ secrets.AQUA_USER }}
           password: ${{ secrets.AQUA_PASSWORD }}
-          image: ${{needs.build-push.outputs.docker-tag}}
+          image: armory/armory-cli:${{needs.build-push.outputs.docker-version}}
+
 
