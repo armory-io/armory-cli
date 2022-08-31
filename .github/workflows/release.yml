@@ -291,3 +291,4 @@ jobs:
           password: ${{ secrets.AQUA_PASSWORD }}
           image: armory/armory-cli:${{needs.build-push.outputs.docker-version}}
 
+
