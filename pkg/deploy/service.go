@@ -1,25 +1,37 @@
 package deploy
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/pkg"
+	de "github.com/armory-io/deploy-engine/api"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
+	"io"
 	"io/fs"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
-func CreateDeploymentRequest(application string, config *model.OrchestrationConfig, contextOverrides map[string]string) (*de.PipelineStartPipelineRequest, error) {
-	environments := make([]de.PipelinePipelineEnvironment, 0, len(*config.Targets))
-	deployments := make([]de.PipelinePipelineDeployment, 0, len(*config.Targets))
-	var analysis de.AnalysisAnalysisConfig
-	var webhooks *[]de.WebhooksWebhookRunConfig
+var (
+	TimeUnitSeconds = "SECONDS"
+	TimeUnitMinutes = "MINUTES"
+	TimeUnitHours   = "HOURS"
+)
+
+func CreateDeploymentRequest(application string, config *model.OrchestrationConfig, contextOverrides map[string]string) (*de.StartPipelineRequest, error) {
+	environments := make([]de.PipelineEnvironment, 0, len(*config.Targets))
+	deployments := make([]de.PipelineDeployment, 0, len(*config.Targets))
+	var analysis de.AnalysisConfig
+	var webhooks []*de.WebhookRunConfig
 	if config.Analysis != nil {
-		analysis.DefaultAccount = &config.Analysis.DefaultMetricProviderName
+		analysis.DefaultAccount = config.Analysis.DefaultMetricProviderName
 		queries, err := CreateAnalysisQueries(*config.Analysis, config.Analysis.DefaultMetricProviderName)
 		if err != nil {
 			return nil, err
@@ -37,15 +49,14 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 
 		envName := key
 		target := element
-		environments = append(environments, de.PipelinePipelineEnvironment{
-			Name:      &envName,
-			Namespace: &target.Namespace,
-			Account:   &target.Account,
+		environments = append(environments, de.PipelineEnvironment{
+			Name:      envName,
+			Namespace: target.Namespace,
+			Account:   target.Account,
 		})
 
-		strategy, err := buildStrategy(*config, element.Strategy, key, contextOverrides)
-		if err != nil {
-			return nil, err
+		deploymentToAdd := de.PipelineDeployment{
+			Environment: envName,
 		}
 
 		files, err := GetManifestsFromFile(config.Manifests, envName)
@@ -53,36 +64,42 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 			return nil, err
 		}
 
-		pipelineConstraint := de.PipelineConstraintConfiguration{}
+		manifests, err := CreateDeploymentManifests(files, config.Strategies)
+		if err != nil {
+			return nil, err
+		}
+		deploymentToAdd.Manifests = manifests
+
+		strategy, err := buildStrategy(*config, element.Strategy, key, contextOverrides, *files)
+		if err != nil {
+			return nil, err
+		}
+		if strategy != nil {
+			deploymentToAdd.Strategy = *strategy
+		}
+
+		pipelineConstraint := de.ConstraintConfiguration{}
 		if target.Constraints != nil {
+			if target.Constraints.DependsOn != nil {
+				pipelineConstraint.DependsOn = append(pipelineConstraint.DependsOn, *target.Constraints.DependsOn...)
+			} else {
+				pipelineConstraint.DependsOn = []string{}
+			}
+
 			beforeDeployment, err := CreateBeforeDeploymentConstraints(target.Constraints.BeforeDeployment, contextOverrides)
 			if err != nil {
 				return nil, err
 			}
-			if target.Constraints.DependsOn != nil {
-				pipelineConstraint.SetDependsOn(*target.Constraints.DependsOn)
-			} else {
-				pipelineConstraint.SetDependsOn([]string{})
-			}
-			pipelineConstraint.SetBeforeDeployment(beforeDeployment)
+			pipelineConstraint.BeforeDeployment = beforeDeployment
 
 			afterDeployment, err := CreateAfterDeploymentConstraints(target.Constraints.AfterDeployment, contextOverrides, config.Analysis)
 			if err != nil {
 				return nil, err
 			}
-			if target.Constraints.DependsOn != nil {
-				pipelineConstraint.SetDependsOn(*target.Constraints.DependsOn)
-			} else {
-				pipelineConstraint.SetDependsOn([]string{})
-			}
-			pipelineConstraint.SetAfterDeployment(afterDeployment)
+			pipelineConstraint.AfterDeployment = afterDeployment
 		}
-		deploymentToAdd := de.PipelinePipelineDeployment{
-			Environment: &envName,
-			Manifests:   CreateDeploymentManifests(files),
-			Strategy:    strategy,
-			Constraints: &pipelineConstraint,
-		}
+		deploymentToAdd.Constraints = &pipelineConstraint
+
 		if config.Analysis != nil {
 			deploymentToAdd.Analysis = &analysis
 		}
@@ -91,38 +108,49 @@ func CreateDeploymentRequest(application string, config *model.OrchestrationConf
 		}
 		deployments = append(deployments, deploymentToAdd)
 	}
-	req := de.PipelineStartPipelineRequest{
-		Application:  &application,
-		Environments: &environments,
-		Deployments:  &deployments,
+	req := de.StartPipelineRequest{
+		Application:  application,
+		Environments: environments,
+		Deployments:  deployments,
+	}
+	if config.DeploymentConfig != nil && config.DeploymentConfig.Timeout != nil {
+		deployTimeout := APIToDuration(config.DeploymentConfig.Timeout.Duration, config.DeploymentConfig.Timeout.Unit)
+		minTimeout := 1 * time.Minute
+		if deployTimeout < minTimeout {
+			return nil, ErrMinDeployConfigTimeout
+		}
+		req.DeploymentConfig = &de.DeploymentConfig{
+			Timeout: &de.Timeout{
+				Duration: config.DeploymentConfig.Timeout.Duration,
+				Unit:     de.TimeUnit(strings.ToUpper(config.DeploymentConfig.Timeout.Unit)),
+			},
+		}
 	}
 	return &req, nil
 }
 
-func createDeploymentCanarySteps(strategy model.Strategy, analysisConfig *model.AnalysisConfig, context map[string]string) ([]de.KubernetesV2CanaryStep, error) {
-	var steps []de.KubernetesV2CanaryStep
+func createDeploymentCanarySteps(strategy model.Strategy, analysisConfig *model.AnalysisConfig, context map[string]string) ([]*de.DeploymentStep, error) {
+	var steps []*de.DeploymentStep
 	for _, step := range *strategy.Canary.Steps {
 		if step.SetWeight != nil {
 			steps = append(
 				steps,
-				de.KubernetesV2CanaryStep{
-					SetWeight: &de.KubernetesV2CanarySetWeightStep{
-						Weight: &step.SetWeight.Weight,
+				&de.DeploymentStep{
+					SetWeight: &de.CanarySetWeightStepRequest{
+						Weight: step.SetWeight.Weight,
 					},
-					Pause: nil,
 				})
 		}
 
 		if step.Pause != nil {
-			pause, err := createCanaryPause(step.Pause)
+			pause, err := createPauseStep(step.Pause)
 			if err != nil {
 				return nil, err
 			}
 			steps = append(
 				steps,
-				de.KubernetesV2CanaryStep{
-					SetWeight: nil,
-					Pause:     pause,
+				&de.DeploymentStep{
+					Pause: pause,
 				})
 		}
 
@@ -134,17 +162,17 @@ func createDeploymentCanarySteps(strategy model.Strategy, analysisConfig *model.
 
 			steps = append(
 				steps,
-				de.KubernetesV2CanaryStep{
+				&de.DeploymentStep{
 					Analysis: analysis,
 				})
 		}
 		if step.RunWebhook != nil {
 			steps = append(
 				steps,
-				de.KubernetesV2CanaryStep{
-					WebhookRun: &de.WebhooksWebhookRunStepInput{
+				&de.DeploymentStep{
+					WebhookRun: &de.WebhookRunStepRequest{
 						Name:    step.RunWebhook.Name,
-						Context: util.MergeMaps(step.RunWebhook.Context, &context),
+						Context: util.MergeMaps(step.RunWebhook.Context, context),
 					},
 				})
 		}
@@ -152,105 +180,158 @@ func createDeploymentCanarySteps(strategy model.Strategy, analysisConfig *model.
 	return steps, nil
 }
 
-func CreateAnalysisQueries(analysis model.AnalysisConfig, defaultMetricProviderName string) (*[]de.AnalysisAnalysisQueries, error) {
+func CreateAnalysisQueries(analysis model.AnalysisConfig, defaultMetricProviderName string) ([]*de.AnalysisQuery, error) {
 	if analysis.Queries == nil {
 		// we will only return a validation error if there is an analysis step being used in a canary or blue-green strategy
 		return nil, nil
 	}
-	queries := *analysis.Queries
-	var analysisQueries []de.AnalysisAnalysisQueries
+	queries := analysis.Queries
+	var analysisQueries []*de.AnalysisQuery
 	for _, query := range queries {
 		if query.MetricProviderName == nil {
 			if defaultMetricProviderName == "" {
-				return nil, fmt.Errorf("metric provider must be provided either in the analysis config, as defaultMetricProviderName, or in the query as metricProviderName")
+				return nil, ErrMissingMetricsProvider
 			}
 			query.MetricProviderName = &defaultMetricProviderName
 		}
-		analysisQueries = append(analysisQueries, de.AnalysisAnalysisQueries{
+		analysisQueries = append(analysisQueries, &de.AnalysisQuery{
 			Name:               query.Name,
 			QueryTemplate:      query.QueryTemplate,
 			UpperLimit:         query.UpperLimit,
 			LowerLimit:         query.LowerLimit,
-			MetricProviderName: query.MetricProviderName,
+			MetricProviderName: *query.MetricProviderName,
 		})
 	}
-	return &analysisQueries, nil
+	return analysisQueries, nil
 }
 
 func GetManifestsFromFile(manifests *[]model.ManifestPath, env string) (*[]string, error) {
-	var fileNames []string
+	var allFileNames []string
 	var files []string
-	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
-	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
 	for _, manifestPath := range *manifests {
 		if manifestPath.Targets != nil && len(manifestPath.Targets) == 0 {
-			return nil, fmt.Errorf("please omit targets to include the manifests for all targets or specify the targets")
+			return nil, ErrTargetsNotSpecified
 		}
-
 		if util.Contains(manifestPath.Targets, env) || manifestPath.Targets == nil {
 			if manifestPath.Inline != "" {
 				files = append(files, manifestPath.Inline)
 			}
-			if present && !isATest {
-				manifestPath.Path = gitWorkspace + manifestPath.Path
+			fileNames, err := getFileNamesFromManifestPath(manifestPath)
+			if err != nil {
+				return nil, err
 			}
-			if manifestPath.Path != "" {
-				err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
-					if err != nil {
-						fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
-						return err
-					}
-					if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml" {
-						fileNames = append(fileNames, path)
-					}
-
-					return nil
-				})
-				if err != nil {
-					return nil, fmt.Errorf("unable to read manifest(s) from file: %s", err)
-				}
-			}
+			allFileNames = append(allFileNames, fileNames...)
 		}
 	}
 
-	for _, fileName := range fileNames {
-		file, err := ioutil.ReadFile(fileName)
-		if err != nil {
-			return nil, fmt.Errorf("error trying to read manifest file '%s': %s", fileName, err)
-		}
-		files = append(files, string(file))
+	dirFiles, err := funcName(allFileNames)
+	if err != nil {
+		return nil, err
 	}
+	files = append(files, dirFiles...)
 
 	return &files, nil
 }
 
-func CreateDeploymentManifests(manifests *[]string) *[]de.KubernetesV2Manifest {
-	deManifests := make([]de.KubernetesV2Manifest, 0, len(*manifests))
+func getFileNamesFromManifestPath(manifestPath model.ManifestPath) ([]string, error) {
+	var allFileNames []string
+	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
+	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
+
+	if manifestPath.Path != "" {
+		if present && !isATest {
+			manifestPath.Path = gitWorkspace + "/" + manifestPath.Path
+		}
+		err, fileNames := getFileNames(manifestPath)
+		if err != nil {
+			return nil, errorUtils.NewWrappedError(ErrManifestFileNameRead, err)
+		}
+		allFileNames = append(allFileNames, fileNames...)
+	}
+	return allFileNames, nil
+}
+
+func funcName(dirFileNames []string) ([]string, error) {
+	var files []string
+	for _, fileName := range dirFileNames {
+		file, err := ioutil.ReadFile(fileName)
+		if err != nil {
+			return nil, errorUtils.NewWrappedErrorWithDynamicContext(ErrManifestFileRead, err, fileName)
+		}
+		files = append(files, string(file))
+	}
+	return files, nil
+}
+
+func getFileNames(manifestPath model.ManifestPath) (error, []string) {
+	var fileNames []string
+	err := filepath.WalkDir(manifestPath.Path, func(path string, info fs.DirEntry, err error) error {
+		if err != nil {
+			fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return err
+		}
+		if filepath.Ext(path) == ".yaml" || filepath.Ext(path) == ".yml" {
+			fileNames = append(fileNames, path)
+		}
+
+		return nil
+	})
+	return err, fileNames
+}
+
+func containsDeployment(manifest string) (bool, error) {
+	var manifests []unstructured.Unstructured
+	decoder := yaml.NewYAMLToJSONDecoder(bytes.NewReader([]byte(manifest)))
+	for {
+		obj := unstructured.Unstructured{}
+		if err := decoder.Decode(&obj); errors.Is(err, io.EOF) {
+			break
+		} else if err != nil {
+			return false, ErrorBadObject
+		}
+
+		if obj.Object == nil {
+			continue
+		}
+
+		manifests = append(manifests, obj)
+	}
+
+	for _, manifest := range manifests {
+		if manifest.GetKind() == "Deployment" {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func CreateDeploymentManifests(manifests *[]string, strategy *map[string]model.Strategy) ([]de.Manifest, error) {
+	deManifests := make([]de.Manifest, 0, len(*manifests))
 	for _, manifest := range *manifests {
 		deManifests = append(
 			deManifests,
-			de.KubernetesV2Manifest{
-				Inline: de.KubernetesV2InlineManifest{
+			de.Manifest{
+				Inline: de.InlineManifest{
 					Value: manifest,
 				},
 			})
 	}
-	return &deManifests
+	return deManifests, nil
 }
 
-func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeployment, contextOverrides map[string]string) ([]de.PipelineConstraint, error) {
+func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeployment, contextOverrides map[string]string) ([]de.Constraint, error) {
 	if beforeDeployment == nil {
-		return []de.PipelineConstraint{}, nil
+		return []de.Constraint{}, nil
 	}
-	pipelineConstraints := make([]de.PipelineConstraint, 0, len(*beforeDeployment))
-	var constraint de.PipelineConstraint
+	pipelineConstraints := make([]de.Constraint, 0, len(*beforeDeployment))
+	var constraint de.Constraint
 	for _, obj := range *beforeDeployment {
 		if obj.Pause != nil {
-			pause, err := createPauseConstraint(obj.Pause)
+			pause, err := createPauseStep(obj.Pause)
 			if err != nil {
 				return nil, err
 			}
-			constraint = de.PipelineConstraint{
+			constraint = de.Constraint{
 				Pause: pause,
 			}
 		} else if obj.RunWebhook != nil {
@@ -258,7 +339,7 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 			if err != nil {
 				return nil, err
 			}
-			constraint = de.PipelineConstraint{
+			constraint = de.Constraint{
 				Webhook: webhook,
 			}
 		}
@@ -268,19 +349,19 @@ func CreateBeforeDeploymentConstraints(beforeDeployment *[]model.BeforeDeploymen
 	return pipelineConstraints, nil
 }
 
-func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, contextOverrides map[string]string, analysisConfig *model.AnalysisConfig) ([]de.PipelineConstraint, error) {
+func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, contextOverrides map[string]string, analysisConfig *model.AnalysisConfig) ([]de.Constraint, error) {
 	if afterDeployment == nil {
-		return []de.PipelineConstraint{}, nil
+		return []de.Constraint{}, nil
 	}
-	pipelineConstraints := make([]de.PipelineConstraint, 0, len(*afterDeployment))
-	var constraint de.PipelineConstraint
+	pipelineConstraints := make([]de.Constraint, 0, len(*afterDeployment))
+	var constraint de.Constraint
 	for _, obj := range *afterDeployment {
 		if obj.Pause != nil {
-			pause, err := createPauseConstraint(obj.Pause)
+			pause, err := createPauseStep(obj.Pause)
 			if err != nil {
 				return nil, err
 			}
-			constraint = de.PipelineConstraint{
+			constraint = de.Constraint{
 				Pause: pause,
 			}
 		} else if obj.RunWebhook != nil {
@@ -288,7 +369,7 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, 
 			if err != nil {
 				return nil, err
 			}
-			constraint = de.PipelineConstraint{
+			constraint = de.Constraint{
 				Webhook: webhook,
 			}
 		} else if obj.Analysis != nil {
@@ -296,7 +377,7 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, 
 			if err != nil {
 				return nil, err
 			}
-			constraint = de.PipelineConstraint{
+			constraint = de.Constraint{
 				Analysis: analysis,
 			}
 		}
@@ -306,60 +387,74 @@ func CreateAfterDeploymentConstraints(afterDeployment *[]model.AfterDeployment, 
 	return pipelineConstraints, nil
 }
 
-func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string, context map[string]string) (*de.PipelinePipelineStrategy, error) {
+func buildStrategy(modelStrategy model.OrchestrationConfig, strategyName string, target string, context map[string]string, manifests []string) (*de.PipelineStrategy, error) {
+	var hasDeployment bool
+	var err error
+	for _, f := range manifests {
+		hasDeployment, err = containsDeployment(f)
+		if err != nil {
+			return nil, err
+		}
+		if hasDeployment {
+			break
+		}
+	}
+
+	// don't allow deployment objects to be deployed without a strategy (should be blue-green or canary)
+	if hasDeployment && modelStrategy.Strategies == nil {
+		return nil, ErrorNoStrategyDeployment
+	}
+
+	// Rolling deploys - no deployment objects = ignored strategy
+	if !hasDeployment {
+		return nil, nil
+	}
+
+	// No strategy is allowed for rolling deploys
+	if modelStrategy.Strategies == nil {
+		return nil, nil
+	}
+
 	configStrategies := *modelStrategy.Strategies
 	strategy := configStrategies[strategyName]
+
+	tm, err := createTrafficManagement(&modelStrategy, target)
+	if err != nil {
+		return nil, errorUtils.NewWrappedError(ErrInvalidTrafficManagementConfig, err)
+	}
+
 	if strategy.Canary != nil {
 		steps, err := createDeploymentCanarySteps(strategy, modelStrategy.Analysis, context)
 		if err != nil {
 			return nil, err
 		}
-		tm, err := createTrafficManagement(&modelStrategy, target)
-		if err != nil {
-			return nil, fmt.Errorf("invalid traffic management config: %s", err)
+		canary := de.CanaryStrategy{
+			Steps: steps,
 		}
-		return &de.PipelinePipelineStrategy{
-			Canary: &de.KubernetesV2CanaryStrategy{
-				Steps:             steps,
-				TrafficManagement: tm,
-			},
+		if tm != nil && tm.SMI != nil {
+			canary.TrafficManagement = &de.TrafficManagementRequest{
+				SMI: tm.SMI,
+			}
+		}
+		return &de.PipelineStrategy{
+			Canary: &canary,
 		}, nil
 	} else if strategy.BlueGreen != nil {
-		if strategy.BlueGreen.ActiveService == "" {
-			return nil, errors.New("invalid blueGreen config: activeService is required")
+		blueGreenStrategy, err := createBlueGreenStrategy(strategy, modelStrategy.Analysis, tm)
+		if err != nil {
+			return nil, err
 		}
-
-		ps := &de.PipelinePipelineStrategy{
-			BlueGreen: &de.KubernetesV2BlueGreenStrategy{
-				ActiveService:  strategy.BlueGreen.ActiveService,
-				PreviewService: strategy.BlueGreen.PreviewService,
-			},
-		}
-		if strategy.BlueGreen.RedirectTrafficAfter != nil {
-			redirectTrafficAfter, err := createBlueGreenRedirectConditions(strategy.BlueGreen.RedirectTrafficAfter, modelStrategy.Analysis)
-			if err != nil {
-				return nil, err
-			}
-			ps.BlueGreen.RedirectTrafficAfter = &redirectTrafficAfter
-		}
-		if strategy.BlueGreen.ShutDownOldVersionAfter != nil {
-			shutDownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutDownOldVersionAfter, modelStrategy.Analysis)
-			if err != nil {
-				return nil, err
-			}
-			ps.BlueGreen.ShutDownOldVersionAfter = &shutDownOldVersionAfter
-		}
-		return ps, nil
+		return blueGreenStrategy, nil
 	}
 
-	return nil, fmt.Errorf("%s is not a valid strategy; define canary or blueGreen strategy", strategyName)
+	return nil, nil
 }
 
-func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.KubernetesV2TrafficManagementInput, error) {
+func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string) (*de.TrafficManagementRequest, error) {
 	if mo.TrafficManagement == nil {
 		return nil, nil
 	}
-	var tms de.KubernetesV2TrafficManagementInput
+	var tms de.TrafficManagementRequest
 	for _, tm := range *mo.TrafficManagement {
 		if len(tm.SMI) > 0 {
 			smis, err := createSMIs(tm)
@@ -368,25 +463,79 @@ func createTrafficManagement(mo *model.OrchestrationConfig, currentTarget string
 			}
 			// missing targets means smi config will be applied to all targets
 			if len(tm.Targets) == 0 {
-				tms.Smi = smis
+				tms.SMI = smis
 				break
 			}
 			// otherwise we apply the smi config to user-defined targets
 			for _, t := range tm.Targets {
 				if t == currentTarget {
-					tms.Smi = smis
+					tms.SMI = smis
+					break
+				}
+			}
+		}
+		if len(tm.Kubernetes) > 0 {
+			kubernetesTraffic, err := createKubernetesTraffic(tm)
+			if err != nil {
+				return nil, err
+			}
+			// missing targets means kubernetes config will be applied to all targets
+			if len(tm.Targets) == 0 {
+				tms.Kubernetes = kubernetesTraffic
+				break
+			}
+			for _, t := range tm.Targets {
+				if t == currentTarget {
+					tms.Kubernetes = kubernetesTraffic
 					break
 				}
 			}
 		}
 	}
-	if tms.Smi != nil {
+	if tms.SMI != nil || tms.Kubernetes != nil {
 		return &tms, nil
 	}
 	return nil, nil
 }
 
-func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisConfig *model.AnalysisConfig, context map[string]string) (*de.AnalysisAnalysisStepInput, error) {
+func createBlueGreenStrategy(strategy model.Strategy, analysisConfig *model.AnalysisConfig, tm *de.TrafficManagementRequest) (*de.PipelineStrategy, error) {
+	ps := &de.PipelineStrategy{
+		BlueGreen: &de.BlueGreenStrategy{},
+	}
+
+	if strategy.BlueGreen.ActiveService != "" {
+		ps.BlueGreen.ActiveService = strategy.BlueGreen.ActiveService
+
+	}
+
+	if strategy.BlueGreen.PreviewService != "" {
+		ps.BlueGreen.PreviewService = strategy.BlueGreen.PreviewService
+	}
+
+	if tm != nil && tm.Kubernetes != nil {
+		ps.BlueGreen.TrafficManagement = &de.TrafficManagementRequest{
+			Kubernetes: tm.Kubernetes,
+		}
+	}
+
+	if strategy.BlueGreen.RedirectTrafficAfter != nil {
+		redirectTrafficAfter, err := createBlueGreenRedirectConditions(strategy.BlueGreen.RedirectTrafficAfter, analysisConfig)
+		if err != nil {
+			return nil, err
+		}
+		ps.BlueGreen.RedirectTrafficAfter = redirectTrafficAfter
+	}
+	if strategy.BlueGreen.ShutDownOldVersionAfter != nil {
+		shutDownOldVersionAfter, err := createBlueGreenShutdownConditions(strategy.BlueGreen.ShutDownOldVersionAfter, analysisConfig)
+		if err != nil {
+			return nil, err
+		}
+		ps.BlueGreen.ShutDownOldVersionAfter = shutDownOldVersionAfter
+	}
+	return ps, nil
+}
+
+func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisConfig *model.AnalysisConfig, context map[string]string) (*de.AnalysisStepRequest, error) {
 	if analysisConfig == nil {
 		return nil, errors.New("analysis step is present but a top-level analysis config is not defined")
 	}
@@ -395,68 +544,57 @@ func createDeploymentCanaryAnalysisStep(analysis *model.AnalysisStep, analysisCo
 		return nil, errors.New("top-level analysis config is present but no queries are defined")
 	}
 
-	for _, query := range *analysis.Queries {
-		queryConfig := findByName(*analysisConfig.Queries, query)
+	for _, query := range analysis.Queries {
+		queryConfig := findByName(analysisConfig.Queries, query)
 		if queryConfig == nil {
-			return nil, fmt.Errorf("query in step does not exist in top-level analysis config: %q", query)
+			return nil, errorUtils.NewErrorWithDynamicContext(ErrMissingQueryConfig, ":"+query)
 		}
 	}
 
-	var rollBackMode *de.AnalysisRollMode
-	var rollForwardMode *de.AnalysisRollMode
-	var units *de.TimeTimeUnit
-	var lookbackMethod *de.AnalysisLookbackMethod
-	var err error
+	var rollBackMode de.RollMode
+	var rollForwardMode de.RollMode
+	var units de.TimeUnit
+	var lookbackMethod de.LookbackMethod
 
 	if analysis.RollBackMode != "" {
-		rollBackMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(analysis.RollBackMode))
+		rollBackMode = de.RollMode(strings.ToUpper(analysis.RollBackMode))
 	} else {
-		rollBackMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
-	}
-	if err != nil {
-		return nil, err
+		rollBackMode = "AUTOMATIC"
 	}
 
 	if analysis.RollForwardMode != "" {
-		rollForwardMode, err = de.NewAnalysisRollModeFromValue(strings.ToUpper(analysis.RollForwardMode))
+		rollForwardMode = de.RollMode(strings.ToUpper(analysis.RollForwardMode))
 	} else {
-		rollForwardMode, err = de.NewAnalysisRollModeFromValue("AUTOMATIC")
-	}
-	if err != nil {
-		return nil, err
-	}
-	if analysis.Units != "" {
-		units, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(analysis.Units))
-	} else {
-		units, err = de.NewTimeTimeUnitFromValue("NONE")
-	}
-	if err != nil {
-		return nil, err
-	}
-	if analysis.LookbackMethod != "" {
-		lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue(strings.ToUpper(analysis.LookbackMethod))
-	} else {
-		lookbackMethod, err = de.NewAnalysisLookbackMethodFromValue("UNSET")
-	}
-	if err != nil {
-		return nil, err
+		rollForwardMode = "AUTOMATIC"
 	}
 
-	return &de.AnalysisAnalysisStepInput{
-		Context:               util.MergeMaps(&analysis.Context, &context),
+	if analysis.Units != "" {
+		units = de.TimeUnit(strings.ToUpper(analysis.Units))
+	} else {
+		units = de.TimeUnitNone
+	}
+
+	if analysis.LookbackMethod != "" {
+		lookbackMethod = de.LookbackMethod(strings.ToUpper(analysis.LookbackMethod))
+	} else {
+		lookbackMethod = de.LookbackMethodUnset
+	}
+
+	return &de.AnalysisStepRequest{
+		Context:               util.MergeMaps(analysis.Context, context),
 		RollBackMode:          rollBackMode,
 		RollForwardMode:       rollForwardMode,
-		Interval:              &analysis.Interval,
+		Interval:              analysis.Interval,
 		Units:                 units,
-		NumberOfJudgmentRuns:  &analysis.NumberOfJudgmentRuns,
-		AbortOnFailedJudgment: &analysis.AbortOnFailedJudgment,
+		NumberOfJudgmentRuns:  analysis.NumberOfJudgmentRuns,
+		AbortOnFailedJudgment: analysis.AbortOnFailedJudgment,
 		LookbackMethod:        lookbackMethod,
 		Queries:               analysis.Queries,
 	}, nil
 }
 
-func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition, analysisConfig *model.AnalysisConfig) ([]de.KubernetesV2RedirectTrafficAfter, error) {
-	var redirectConditions []de.KubernetesV2RedirectTrafficAfter
+func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition, analysisConfig *model.AnalysisConfig) ([]*de.DeploymentStep, error) {
+	var redirectConditions []*de.DeploymentStep
 	for _, condition := range conditions {
 		if condition.Pause != nil {
 			pause, err := createPauseStep(condition.Pause)
@@ -465,7 +603,7 @@ func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition, a
 			}
 			redirectConditions = append(
 				redirectConditions,
-				de.KubernetesV2RedirectTrafficAfter{
+				&de.DeploymentStep{
 					Pause: pause,
 				})
 		}
@@ -477,13 +615,13 @@ func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition, a
 
 			redirectConditions = append(
 				redirectConditions,
-				de.KubernetesV2RedirectTrafficAfter{
+				&de.DeploymentStep{
 					Analysis: analysis,
 				})
 		}
 		if condition.RunWebhook != nil {
-			redirectConditions = append(redirectConditions, de.KubernetesV2RedirectTrafficAfter{
-				WebhookRun: &de.WebhooksWebhookRunStepInput{
+			redirectConditions = append(redirectConditions, &de.DeploymentStep{
+				WebhookRun: &de.WebhookRunStepRequest{
 					Name:    condition.RunWebhook.Name,
 					Context: condition.RunWebhook.Context,
 				},
@@ -493,8 +631,8 @@ func createBlueGreenRedirectConditions(conditions []*model.BlueGreenCondition, a
 	return redirectConditions, nil
 }
 
-func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, analysisConfig *model.AnalysisConfig) ([]de.KubernetesV2ShutDownOldVersionAfter, error) {
-	var shutDownConditions []de.KubernetesV2ShutDownOldVersionAfter
+func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, analysisConfig *model.AnalysisConfig) ([]*de.DeploymentStep, error) {
+	var shutDownConditions []*de.DeploymentStep
 	for _, condition := range conditions {
 		if condition.Pause != nil {
 			pause, err := createPauseStep(condition.Pause)
@@ -503,7 +641,7 @@ func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, a
 			}
 			shutDownConditions = append(
 				shutDownConditions,
-				de.KubernetesV2ShutDownOldVersionAfter{
+				&de.DeploymentStep{
 					Pause: pause,
 				})
 		}
@@ -515,13 +653,13 @@ func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, a
 
 			shutDownConditions = append(
 				shutDownConditions,
-				de.KubernetesV2ShutDownOldVersionAfter{
+				&de.DeploymentStep{
 					Analysis: analysis,
 				})
 		}
 		if condition.RunWebhook != nil {
-			shutDownConditions = append(shutDownConditions, de.KubernetesV2ShutDownOldVersionAfter{
-				WebhookRun: &de.WebhooksWebhookRunStepInput{
+			shutDownConditions = append(shutDownConditions, &de.DeploymentStep{
+				WebhookRun: &de.WebhookRunStepRequest{
 					Name:    condition.RunWebhook.Name,
 					Context: condition.RunWebhook.Context,
 				},
@@ -531,75 +669,35 @@ func createBlueGreenShutdownConditions(conditions []*model.BlueGreenCondition, a
 	return shutDownConditions, nil
 }
 
-func createPauseStep(pause *model.PauseStep) (*de.KubernetesV2PauseStep, error) {
+func createPauseStep(pause *model.PauseStep) (*de.PauseStepRequest, error) {
 	if err := validatePauseStep(pause); err != nil {
 		return nil, err
 	}
-	unit, err := createTimeUnit(pause)
-	if err != nil {
-		return nil, err
-	}
+	unit := createTimeUnit(pause)
 
-	pauseStep := de.NewKubernetesV2PauseStep()
-	pauseStep.SetUnit(*unit)
-	pauseStep.SetUntilApproved(pause.UntilApproved)
-	pauseStep.SetDuration(pause.Duration)
-	return pauseStep, nil
+	return &de.PauseStepRequest{
+		Duration:      pause.Duration,
+		Unit:          unit,
+		UntilApproved: pause.UntilApproved,
+	}, nil
 }
 
-func createPauseConstraint(pause *model.PauseStep) (*de.PipelinePauseConstraint, error) {
-	if err := validatePauseStep(pause); err != nil {
-		return nil, err
-	}
-	pauseConstraint := de.NewPipelinePauseConstraint()
-	unit, err := createTimeUnit(pause)
-	if err != nil {
-		return nil, err
-	}
-	pauseConstraint.SetUnit(*unit)
-	pauseConstraint.SetUntilApproved(pause.UntilApproved)
-	pauseConstraint.SetDuration(pause.Duration)
-	return pauseConstraint, nil
-}
-
-func createWebhookConstraint(webhook *model.WebhookStep, contextOverrides map[string]string) (*de.WebhooksWebhookRunStepInput, error) {
+func createWebhookConstraint(webhook *model.WebhookStep, contextOverrides map[string]string) (*de.WebhookRunStepRequest, error) {
 	if err := validateWebhookStep(webhook); err != nil {
 		return nil, err
 	}
-	webhookConstraint := de.NewWebhooksWebhookRunStepInput()
-	webhookConstraint.SetName(*webhook.Name)
-	webhookConstraint.SetContext(*util.MergeMaps(webhook.Context, &contextOverrides))
-
-	return webhookConstraint, nil
+	return &de.WebhookRunStepRequest{
+		Name:    webhook.Name,
+		Context: util.MergeMaps(webhook.Context, contextOverrides),
+	}, nil
 }
 
-func createCanaryPause(pause *model.PauseStep) (*de.KubernetesV2PauseStep, error) {
-	if err := validatePauseStep(pause); err != nil {
-		return nil, err
-	}
-	pauseStep := de.NewKubernetesV2PauseStep()
-	unit, err := createTimeUnit(pause)
-	if err != nil {
-		return nil, err
-	}
-	pauseStep.SetUnit(*unit)
-	pauseStep.SetUntilApproved(pause.UntilApproved)
-	pauseStep.SetDuration(pause.Duration)
-	return pauseStep, nil
-}
-
-func createTimeUnit(pause *model.PauseStep) (*de.TimeTimeUnit, error) {
-	var unit *de.TimeTimeUnit
-	var err error
+func createTimeUnit(pause *model.PauseStep) de.TimeUnit {
 	if pause.Unit == "" {
-		unit, err = de.NewTimeTimeUnitFromValue("NONE")
+		return de.TimeUnitNone
 	} else {
-		unit, err = de.NewTimeTimeUnitFromValue(strings.ToUpper(pause.Unit))
+		return de.TimeUnit(strings.ToUpper(pause.Unit))
 	}
-	if err != nil {
-		return nil, err
-	}
-	return unit, nil
 }
 
 func validatePauseStep(pause *model.PauseStep) error {
@@ -616,7 +714,7 @@ func validatePauseStep(pause *model.PauseStep) error {
 }
 
 func validateWebhookStep(webhook *model.WebhookStep) error {
-	if *webhook.Name == "" {
+	if webhook.Name == "" {
 		return errors.New("webhook constraint is not valid: you must provide a name for a configured webhook")
 	}
 	return nil
@@ -624,15 +722,15 @@ func validateWebhookStep(webhook *model.WebhookStep) error {
 
 func findByName(queries []model.Query, name string) *model.Query {
 	for _, configQuery := range queries {
-		if name == *configQuery.Name {
+		if name == configQuery.Name {
 			return &configQuery
 		}
 	}
 	return nil
 }
 
-func buildWebhooks(webhooks []model.WebhookConfig) (*[]de.WebhooksWebhookRunConfig, error) {
-	var webhooksList []de.WebhooksWebhookRunConfig
+func buildWebhooks(webhooks []model.WebhookConfig) ([]*de.WebhookRunConfig, error) {
+	var webhooksList []*de.WebhookRunConfig
 	for _, webhook := range webhooks {
 		var body string
 		if webhook.BodyTemplate != nil {
@@ -642,33 +740,33 @@ func buildWebhooks(webhooks []model.WebhookConfig) (*[]de.WebhooksWebhookRunConf
 				return nil, err
 			}
 		}
-		webhooksList = append(webhooksList, de.WebhooksWebhookRunConfig{
+		webhooksList = append(webhooksList, &de.WebhookRunConfig{
 			Name:            webhook.Name,
 			Method:          webhook.Method,
-			UriTemplate:     webhook.UriTemplate,
+			URITemplate:     webhook.UriTemplate,
 			NetworkMode:     webhook.NetworkMode,
 			AgentIdentifier: webhook.AgentIdentifier,
-			RetryCount:      getRetryCount(webhook.RetryCount),
+			RetryCount:      webhook.RetryCount,
 			Headers:         buildHeaders(webhook.Headers),
-			BodyTemplate:    &body,
+			BodyTemplate:    body,
 		})
 	}
-	return &webhooksList, nil
+	return webhooksList, nil
 }
 
-func buildHeaders(headers *[]model.Header) *[]de.WebhooksWebhookHeaders {
+func buildHeaders(headers *[]model.Header) []de.WebhookHeader {
 	if headers == nil {
 		return nil
 	}
 
-	var headersList []de.WebhooksWebhookHeaders
+	var headersList []de.WebhookHeader
 	for _, header := range *headers {
-		headersList = append(headersList, de.WebhooksWebhookHeaders{
+		headersList = append(headersList, de.WebhookHeader{
 			Key:   header.Key,
 			Value: header.Value,
 		})
 	}
-	return &headersList
+	return headersList
 }
 
 func buildBody(bodyTemplate *model.Body) (string, error) {
@@ -682,25 +780,44 @@ func buildBody(bodyTemplate *model.Body) (string, error) {
 	return *bodyTemplate.Inline, nil
 }
 
-func getRetryCount(retries *int32) *int32 {
-	if retries == nil {
-		def := int32(0)
-		return &def
-	}
-	return retries
-}
-
-func createSMIs(tm model.TrafficManagement) (*[]de.KubernetesV2SmiTrafficManagementConfig, error) {
-	var smis []de.KubernetesV2SmiTrafficManagementConfig
+func createSMIs(tm model.TrafficManagement) ([]*de.SMITrafficManagementConfig, error) {
+	var smis []*de.SMITrafficManagementConfig
 	for _, s := range tm.SMI {
-		if s.RootServiceName == nil {
+		if s.RootServiceName == "" {
 			return nil, errors.New("rootServiceName required in smi")
 		}
-		smis = append(smis, de.KubernetesV2SmiTrafficManagementConfig{
+		smis = append(smis, &de.SMITrafficManagementConfig{
 			RootServiceName:   s.RootServiceName,
 			CanaryServiceName: s.CanaryServiceName,
 			TrafficSplitName:  s.TrafficSplitName,
 		})
 	}
-	return &smis, nil
+	return smis, nil
+}
+
+func createKubernetesTraffic(tm model.TrafficManagement) ([]*de.KubernetesTrafficManagementConfig, error) {
+	var kubernetesTraffic []*de.KubernetesTrafficManagementConfig
+	for _, kc := range tm.Kubernetes {
+		trafficConfig := kc
+		kubernetesTraffic = append(kubernetesTraffic, &de.KubernetesTrafficManagementConfig{
+			ActiveService:  trafficConfig.ActiveService,
+			PreviewService: trafficConfig.PreviewService,
+		})
+	}
+	return kubernetesTraffic, nil
+}
+
+func APIToDuration(scalar int32, unit string) time.Duration {
+	switch unit {
+	case TimeUnitSeconds:
+		d, _ := time.ParseDuration(fmt.Sprintf("%ds", scalar))
+		return d
+	case TimeUnitMinutes:
+		d, _ := time.ParseDuration(fmt.Sprintf("%dm", scalar))
+		return d
+	case TimeUnitHours:
+		d, _ := time.ParseDuration(fmt.Sprintf("%dh", scalar))
+		return d
+	}
+	return time.Duration(0)
 }

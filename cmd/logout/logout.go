@@ -1,16 +1,17 @@
 package logout
 
 import (
-	"fmt"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/input"
 	"github.com/spf13/cobra"
+	log "go.uber.org/zap"
 	"os"
 )
 
 const (
-	logoutShort   = "Logout from Armory Cloud."
-	logoutLong    = "Logout from Armory Cloud and delete any credentials stored."
+	logoutShort   = "Log out from Armory CD-as-a-Service."
+	logoutLong    = "Log out from Armory CD-as-a-Service and delete any credentials stored."
 	logoutExample = "armory logout"
 )
 
@@ -44,13 +45,13 @@ func logout(cmd *cobra.Command) error {
 	if word {
 		dirname, err := os.UserHomeDir()
 		if err != nil {
-			return fmt.Errorf("error at getting user home dir: %s", err)
+			return errorUtils.NewWrappedError(ErrGettingHomeDir, err)
 		}
 		if err = os.Remove(dirname + "/.armory/credentials"); os.IsNotExist(err) {
-			fmt.Fprintln(cmd.OutOrStdout(), "You are not logged in, skipping logout")
+			log.S().Info("You are not logged in, skipping logout")
 			return nil
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), "You have successfully been logged out")
+		log.S().Info("You have successfully been logged out")
 	}
 	return nil
 }

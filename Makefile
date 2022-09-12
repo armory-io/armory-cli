@@ -1,3 +1,4 @@
+APP_NAME="armory-cli"
 GOARCH    ?= $(shell go env GOARCH)
 GOOS      ?= $(shell go env GOOS)
 PWD = $(shell pwd)
@@ -5,10 +6,10 @@ PWD = $(shell pwd)
 
 BUILD_DIR       := ${PWD}/build
 DIST_DIR        := ${BUILD_DIR}/dist/$(GOOS)_$(GOARCH)
-REPORTS_DIR     := ${BUILD_DIR}/reports/coverage
+REPORTS_DIR     := ${BUILD_DIR}/reports
 
 .PHONY: all
-all: version clean test coverage build
+all: version clean check build
 
 ############
 ## Building
@@ -29,13 +30,13 @@ build: build-dirs Makefile
 ############
 ## Testing
 ############
-.PHONY: test
-test: build-dirs Makefile
-	@go test -v -cover ./pkg/... ./cmd/... -json > test-report.json
-.PHONY: coverage
-coverage:
-	@go test -v -coverprofile=profile.cov ./pkg/... ./cmd/...
-	@go tool cover -html=profile.cov -o ${BUILD_DIR}/reports/coverage/index.html
+.PHONY: check
+check: export APP_NAME:=$(APP_NAME)
+check: export BUILD_DIR:=$(BUILD_DIR)
+check: build-dirs
+	@go install github.com/vakenbolt/go-test-report@v0.9.3
+	@go run scripts/check.go
+	@go tool cover -html=${BUILD_DIR}/reports/profile.cov -o ${BUILD_DIR}/reports/coverage.html
 
 .PHONY: version
 version:
@@ -46,9 +47,13 @@ clean:
 	rm -rf build
 
 .PHONY: integration
+integration: export APP_NAME:=$(APP_NAME)
+integration: export BUILD_DIR:=$(BUILD_DIR)
 integration: build-dirs Makefile
-	@go test -v -cover ./integration/... -json > integration-test-report.json
-	@go test -v -coverprofile=integration.cov ./integration/...
+	@go install github.com/vakenbolt/go-test-report@v0.9.3
+	@go test -v -cover ./integration/... -json > ${BUILD_DIR}/reports/integration-test-report.json
+	@go test -v -coverprofile=${BUILD_DIR}/reports/integration.cov ./integration/...
+	go-test-report --title ${APP_NAME}-integration-test -v --output ${BUILD_DIR}/reports/integration_test_report.html
 
 .PHONY: format
 format:

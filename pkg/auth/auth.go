@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/lestrrat-go/jwx/jwt"
 	"io/ioutil"
@@ -20,13 +21,12 @@ const (
 )
 
 type Auth struct {
-	clientId             string `yaml:"clientId,omitempty" json:"clientId,omitempty"`
-	secret               string `yaml:"secret,omitempty" json:"secret,omitempty"`
-	tokenIssuerUrl       string `yaml:"tokenIssuerUrl,omitempty" json:"tokenIssuerUrl,omitempty"`
-	audience             string `yaml:"audience,omitempty" json:"audience,omitempty"`
-	verify               bool   `yaml:"verify" json:"verify"`
-	source               string `yaml:"source" json:"source"`
-	token                string `yaml:"token" json:"token"`
+	clientId             string
+	secret               string
+	tokenIssuerUrl       string
+	audience             string
+	source               string
+	token                string
 	memCachedCredentials *Credentials
 }
 
@@ -37,7 +37,6 @@ func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience, token str
 		source:         source,
 		tokenIssuerUrl: tokenIssuerUrl,
 		audience:       audience,
-		verify:         true,
 		token:          token,
 	}
 }
@@ -64,7 +63,7 @@ func (a *Auth) getTokenForCI() (*Credentials, error) {
 	}
 
 	if a.clientId == "" || a.secret == "" {
-		return nil, errors.New("no credentials set or expired, run armory login command or add clientId and clientSecret flags on the command")
+		return nil, errors.New("no credentials set or expired. Either run armory login command to interactively login, or add clientId and clientSecret flags to specify service account credentials")
 	}
 
 	token, expires, err := a.authentication(nil)
@@ -108,7 +107,7 @@ func (a *Auth) getTokenForSystemUser() (string, error) {
 	}
 
 	if a.clientId == "" || a.secret == "" {
-		return "", errors.New("no credentials set, add clientId and clientSecret flags on the command")
+		return "", errors.New("no credentials set. Either run armory login to interactively login, or add clientId and clientSecret flags to specify service account credentials")
 	}
 
 	token, expires, err := a.authentication(nil)
@@ -150,6 +149,31 @@ func (a *Auth) GetEnvironmentId() (string, error) {
 	return currentCreds.GetEnvironmentId()
 }
 
+func (a *Auth) GetOrganizationId() (string, error) {
+	if a.token != "" {
+		return NewCredentials("", "", "", "", a.token, "").GetOrganizationId()
+	}
+
+	if os.Getenv("CI") == "true" {
+		creds, err := a.getTokenForCI()
+		if err != nil {
+			return "", err
+		}
+		return creds.Token, nil
+	}
+
+	dirname, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	currentCreds, err := LoadCredentials(dirname + "/.armory/credentials")
+
+	if err != nil {
+		return "", err
+	}
+	return currentCreds.GetOrganizationId()
+}
+
 func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 	if a.token != "" {
 		return "", nil, errors.New("do not try to execute remote authentication when a Token has been provided to the command")
@@ -173,7 +197,8 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 		return "", nil, err
 	}
 	if res.StatusCode < 200 || res.StatusCode > 299 {
-		return "", nil, fmt.Errorf("unexpected status code while getting token %d", res.StatusCode)
+		errContext := fmt.Sprintf(" %d", res.StatusCode)
+		return "", nil, errorUtils.NewErrorWithDynamicContext(ErrUnexpectedStatusCode, errContext)
 	}
 	defer res.Body.Close()
 	tk, err := ioutil.ReadAll(res.Body)
@@ -183,26 +208,18 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 
 	rt := &remoteToken{}
 	if err := json.Unmarshal(tk, rt); err != nil {
-		return "", nil, fmt.Errorf("unable to parse response from %s: %w", a.tokenIssuerUrl, err)
+		return "", nil, errorUtils.NewWrappedErrorWithDynamicContext(ErrParsingTokenIssuerResponse, err, "from "+a.tokenIssuerUrl)
 	}
 	if rt.AccessToken == "" {
-		return "", nil, fmt.Errorf("no access_token returned from %s", a.tokenIssuerUrl)
+		return "", nil, errorUtils.NewErrorWithDynamicContext(ErrNoAccessTokenReturned, "from"+a.tokenIssuerUrl)
 	}
 
-	t, err := jwt.Parse([]byte(rt.AccessToken), a.parseOptions()...)
+	parsedJwt, err := jwt.Parse([]byte(rt.AccessToken))
 	if err != nil {
 		return "", nil, err
 	}
-	exp := t.Expiration()
+	exp := parsedJwt.Expiration()
 	return rt.AccessToken, &exp, nil
-}
-
-func (a *Auth) parseOptions() []jwt.ParseOption {
-	var opts []jwt.ParseOption
-	if a.verify {
-		opts = append(opts, jwt.WithValidate(true))
-	}
-	return opts
 }
 
 type remoteToken struct {

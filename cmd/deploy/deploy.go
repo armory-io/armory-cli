@@ -18,7 +18,7 @@ const (
 func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 	command := &cobra.Command{
 		Use:     "deploy",
-		Aliases: []string{"deploy"},
+		Aliases: []string{},
 		Short:   deployShort,
 		Long:    deployLong,
 		Example: deployExample,
@@ -35,6 +35,10 @@ func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 			}
 		},
 	}
+
+	command.PersistentFlags().BoolP("test", "", false, "")
+	command.PersistentFlags().MarkHidden("test")
+
 	// create subcommands
 	command.AddCommand(NewDeployStartCmd(configuration))
 	command.AddCommand(NewDeployStatusCmd(configuration))

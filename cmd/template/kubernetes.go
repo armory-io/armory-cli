@@ -1,8 +1,8 @@
 package template
 
 import (
-	"fmt"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -11,8 +11,6 @@ import (
 const (
 	kubernetesShort = "Generate a Kubernetes deployment template."
 )
-
-// TODO(cat): update template language using slab doc
 
 func NewTemplateKubernetesCmd() *cobra.Command {
 	command := &cobra.Command{
@@ -39,13 +37,21 @@ func buildTemplateKubernetesCore(options *templateCanaryOptions) (*yaml.Node, er
 	root.Content = append(root.Content, util.BuildStringNode("kind", "kubernetes", "")...)
 	root.Content = append(root.Content, util.BuildStringNode("application", "<AppName>", "The name of the application to deploy.")...)
 
+	deployConfigNode, deployConfigValuesNode := util.BuildMapNode("deploymentConfig", "")
+	timeoutNode, timeoutValuesNode := util.BuildMapNode("timeout",
+		"Optional. Sets a timeout for rolling back deployments that do not reach a READY state. Applies to all deployments in this file. Must be equal to or greater than 1 minute")
+	timeoutValuesNode.Content = append(timeoutValuesNode.Content, util.BuildIntNode("duration", "1800", "")...)
+	timeoutValuesNode.Content = append(timeoutValuesNode.Content, util.BuildStringNode("unit", "SECONDS", "")...)
+	deployConfigValuesNode.Content = append(deployConfigValuesNode.Content, timeoutNode, timeoutValuesNode)
+	root.Content = append(root.Content, deployConfigNode, deployConfigValuesNode)
+
 	// Target root
 	targetNode, targetValuesNode := util.BuildMapNode("targets", "Map of your deployment target, "+
-		"Borealis supports deploying to one target cluster.")
+		"Armory CD-as-a-Service supports deploying to one target cluster.")
 	devNode, devValuesNode := util.BuildMapNode("<deploymentName>",
 		"Name for your deployment. Use a descriptive value such as the environment name.")
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("account",
-		"<accountName>", "The account name that was assigned to the deployment target when you installed the RNA.")...)
+		"<accountName>", "The name that you assigned to the deployment target cluster when you installed the RNA.")...)
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("namespace",
 		"<namespace>", "(Recommended) Set the namespace that the app gets deployed to. Overrides the namespaces that are in your manifests")...)
 	devValuesNode.Content = append(devValuesNode.Content, util.BuildStringNode("strategy",
@@ -94,7 +100,7 @@ func buildTemplateKubernetesCore(options *templateCanaryOptions) (*yaml.Node, er
 				buildWebhookDefinitionNode("run integration test", "POST", "http://example.com/myurl/{{armory.deploymentId}}", "direct", "agent-rna", "2", "{ \"callbackUri\": \"{{armory.callbackUri}}\" }"))
 			root.Content = append(root.Content, webhooksNode, webhooksValuesNode)
 		default:
-			return nil, fmt.Errorf("unknown feature specified for template: %s", feature)
+			return nil, errorUtils.NewErrorWithDynamicContext(ErrUnknownFeature, ": "+feature)
 		}
 	}
 

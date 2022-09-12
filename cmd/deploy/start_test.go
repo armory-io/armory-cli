@@ -3,7 +3,7 @@ package deploy
 import (
 	"bytes"
 	"encoding/json"
-	de "github.com/armory-io/deploy-engine/pkg"
+	de "github.com/armory-io/deploy-engine/api"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/jarcoal/httpmock"
@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -40,9 +41,10 @@ func (suite *DeployStartTestSuite) TearDownSuite() {
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
-	expected := de.NewPipelineStartPipelineResponse()
-	expected.SetPipelineId("12345")
-	err := registerResponder(expected, 200)
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
+	err := registerResponder(expected, http.StatusAccepted)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
@@ -63,13 +65,14 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
 	}
 	var received = FormattableDeployStartResponse{}
 	json.Unmarshal(output, &received)
-	suite.Equal(received.DeploymentId, expected.GetPipelineId(), "they should be equal")
+	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
-	expected := de.NewPipelineStartPipelineResponse()
-	expected.SetPipelineId("12345")
-	err := registerResponder(expected, 200)
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
+	err := registerResponder(expected, http.StatusAccepted)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -90,7 +93,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	}
 	var received = FormattableDeployStartResponse{}
 	yaml.Unmarshal(output, &received)
-	suite.Equal(received.DeploymentId, expected.GetPipelineId(), "they should be equal")
+	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
@@ -114,7 +117,7 @@ func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartHttpError failed with: %s", err)
 	}
-	suite.Equal(`error: "request returned an error: status code(500) "{\"code\":2, \"message\":\"invalid operation\", \"details\":[]}"`,
+	suite.Equal(`error: "request returned an error: status code(500), thrown error: "{\"code\":2, \"message\":\"invalid operation\", \"details\":[]}"`,
 		strings.TrimSpace(string(output)), "they should be equal")
 }
 
@@ -134,7 +137,8 @@ func (suite *DeployStartTestSuite) TestDeployStartFlagFileRequired() {
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartBadPath() {
-	configuration := config.New(&config.Input{})
+	isTest := true
+	configuration := config.New(&config.Input{IsTest: &isTest})
 	deployCmd := NewDeployCmd(configuration)
 	outWriter := bytes.NewBufferString("")
 	deployCmd.SetOut(outWriter)
@@ -148,12 +152,13 @@ func (suite *DeployStartTestSuite) TestDeployStartBadPath() {
 	if err == nil {
 		suite.T().Fatal("TestDeployStartBadPath failed with: error should not be null")
 	}
-	suite.EqualError(err, "error trying to read the YAML file: open /badPath/test.yml: no such file or directory")
+	suite.EqualError(err, "error trying to read the YAML file, thrown error: open /badPath/test.yml: no such file or directory")
 }
 
 func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnErrorIsRaised() {
-	expected := de.NewPipelineStartPipelineResponse()
-	expected.SetPipelineId("12345")
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
 	err := registerResponder(expected, 200)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
@@ -173,8 +178,9 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnE
 }
 
 func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameButFlagIsSuppliedAnErrorIsNotRaised() {
-	expected := de.NewPipelineStartPipelineResponse()
-	expected.SetPipelineId("12345")
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
 	err := registerResponder(expected, 200)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
@@ -213,12 +219,14 @@ func getDeployCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output strin
 	addr := "https://localhost"
 	clientId := ""
 	clientSecret := ""
+	isTest := true
 	configuration := config.New(&config.Input{
 		AccessToken:  &token,
 		ApiAddr:      &addr,
 		ClientId:     &clientId,
 		ClientSecret: &clientSecret,
 		OutFormat:    &output,
+		IsTest:       &isTest,
 	})
 	deployCmd := NewDeployCmd(configuration)
 	deployCmd.SetOut(outWriter)

@@ -7,12 +7,14 @@ import (
 	"github.com/armory/armory-cli/pkg/auth"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/org"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
+	log "go.uber.org/zap"
 	"io"
 	"net/url"
 	"os"
@@ -21,7 +23,7 @@ import (
 )
 
 const (
-	loginShort   = "Login as User to Armory Cloud"
+	loginShort   = "Log in as User to Armory CD-as-a-Service"
 	loginLong    = ""
 	loginExample = ""
 )
@@ -56,10 +58,10 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 
 	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(clientId, scope, audience, TokenIssuerUrl)
 	if err != nil {
-		return fmt.Errorf("error at getting device code: %s", err)
+		return errorUtils.NewWrappedError(ErrGettingDeviceCode, err)
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), "You are about to be prompted to verify the following code in your default browser.")
-	fmt.Fprintf(cmd.OutOrStdout(), "Device Code: %s\n", deviceTokenResponse.UserCode)
+	log.S().Info("You are about to be prompted to verify the following code in your default browser.")
+	log.S().Infof("Device Code: %s\n", deviceTokenResponse.UserCode)
 
 	authStartedAt := time.Now()
 
@@ -71,17 +73,17 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	browser.Stdout = io.Discard
 	err = browser.OpenURL(deviceTokenResponse.VerificationUriComplete)
 	if err != nil {
-		fmt.Fprintf(cmd.OutOrStdout(), "You are about to be prompted to verify the following code in your default browser.")
-		fmt.Fprintf(cmd.OutOrStdout(), deviceTokenResponse.VerificationUriComplete)
+		log.S().Info("You are about to be prompted to verify the following code in your default browser.")
+		log.S().Info(deviceTokenResponse.VerificationUriComplete)
 	}
 
 	response, err := auth.PollAuthorizationServerForResponse(clientId, TokenIssuerUrl, deviceTokenResponse, authStartedAt)
 	if err != nil {
-		return fmt.Errorf("error at polling auth server for response. Err: %s", err)
+		return errorUtils.NewWrappedError(ErrPollingServerResponse, err)
 	}
-	jwt, err := auth.ValidateJwt(response.AccessToken)
+	parsedJwt, err := auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
-		return fmt.Errorf("error at decoding jwt. Err: %s", err)
+		return errorUtils.NewWrappedError(ErrDecodingJwt, err)
 	}
 
 	selectedEnv, err := selectEnvironment(configuration.GetArmoryCloudAddr(), response.AccessToken, envName)
@@ -93,18 +95,18 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	if err != nil {
 		return err
 	}
-	jwt, err = auth.ValidateJwt(response.AccessToken)
+	parsedJwt, err = auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
-		return fmt.Errorf("error at decoding jwt. Err: %s", err)
+		return errorUtils.NewWrappedError(ErrDecodingJwt, err)
 	}
 
-	err = writeCredentialToFile(err, configuration, jwt, response)
+	err = writeCredentialToFile(err, configuration, parsedJwt, response)
 	if err != nil {
 		return err
 	}
 
-	claims := jwt.PrivateClaims()["https://cloud.armory.io/principal"].(map[string]interface{})
-	fmt.Fprintf(cmd.OutOrStdout(), "Welcome %s user: %s to environment %s your token expires at: %s\n", claims["orgName"], claims["name"], selectedEnv.Name, jwt.Expiration().Format(time.RFC1123))
+	claims := parsedJwt.PrivateClaims()["https://cloud.armory.io/principal"].(map[string]interface{})
+	log.S().Infof("Welcome %s user: %s to tenant %s your token expires at: %s\n", claims["orgName"], claims["name"], selectedEnv.Name, parsedJwt.Expiration().Format(time.RFC1123))
 	return nil
 }
 
@@ -119,7 +121,7 @@ func createArmoryDirectoryIfNotExists(dir string) {
 func writeCredentialToFile(err error, configuration *config.Configuration, jwt jwt.Token, response *auth.SuccessfulResponse) error {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("there was an error getting the home directory. Err: %s", err)
+		return errorUtils.NewWrappedError(ErrGettingHomeDirectory, err)
 	}
 
 	armoryCloudEnvironmentConfiguration := configuration.GetArmoryCloudEnvironmentConfiguration()
@@ -130,7 +132,7 @@ func writeCredentialToFile(err error, configuration *config.Configuration, jwt j
 	createArmoryDirectoryIfNotExists(dirname + "/.armory/")
 	err = credentials.WriteCredentials(dirname + "/.armory/credentials")
 	if err != nil {
-		return fmt.Errorf("there was an error writing the credentials file. Err: %s", err)
+		return errorUtils.NewWrappedError(ErrWritingCredentialsFile, err)
 	}
 	return nil
 }
@@ -145,21 +147,21 @@ func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnviro
 		return c.(org.Environment).Name
 	}).ToSlice(&environmentNames)
 
+	// If there is only 1 environment for the org, we will auto-select it
+	if len(environments) == 1 {
+		return &environments[0], nil
+	}
+
 	if len(namedEnvironment) > 0 && namedEnvironment[0] != "" {
-		requestedEnv := linq.From(environments).Where(func(c interface{}) bool {
-			return c.(org.Environment).Name == namedEnvironment[0]
-		}).Select(func(c interface{}) interface{} {
-			return c.(org.Environment)
-		}).First()
+		requestedEnv := getEnvForEnvName(environments, namedEnvironment[0])
 		if requestedEnv != nil {
-			sel := requestedEnv.(org.Environment)
-			return &sel, nil
+			return requestedEnv, nil
 		}
-		return nil, errors.New(fmt.Sprintf("Environment %s not found, please choose a known environment: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ",")))
+		return nil, errors.New(fmt.Sprintf("Tenant %s not found, please choose a known tenant: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ",")))
 	}
 
 	prompt := promptui.Select{
-		Label:  "Select environment",
+		Label:  "Select tenant",
 		Items:  environmentNames,
 		Stdout: &util.BellSkipper{},
 	}
@@ -167,18 +169,26 @@ func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnviro
 	_, requestedEnv, err := prompt.Run()
 
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("failed to select an environment to login to; %v\n", err))
+		return nil, errors.New(fmt.Sprintf("failed to select an tenant to login to; %v\n", err))
 	}
-	selectedEnv := linq.From(environments).Where(func(c interface{}) bool {
-		return c.(org.Environment).Name == requestedEnv
-	}).Select(func(c interface{}) interface{} {
-		return c.(org.Environment)
-	}).First()
-
+	selectedEnv := getEnvForEnvName(environments, requestedEnv)
 	if selectedEnv == nil {
-		return nil, errors.New("unable to select chosen environment")
+		return nil, errors.New("unable to select chosen tenant")
 	}
-	sel := selectedEnv.(org.Environment)
 
-	return &sel, nil
+	return selectedEnv, nil
+}
+
+func getEnvForEnvName(environments []org.Environment, envName string) *org.Environment {
+	env := linq.
+		From(environments).
+		Where(func(c interface{}) bool {
+			return c.(org.Environment).Name == envName
+		}).
+		Select(func(c interface{}) interface{} {
+			return c.(org.Environment)
+		}).
+		First()
+	sel := env.(org.Environment)
+	return &sel
 }

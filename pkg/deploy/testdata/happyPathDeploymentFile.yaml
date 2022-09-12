@@ -1,6 +1,10 @@
 version: v1
 kind: kubernetes
 application: app
+deploymentConfig:
+  timeout:
+    duration: 6000
+    unit: "SECONDS"
 # Map of Deployment Targets, this is set up in a way where
 # we can do multi-target deployments (multi-region or multi-cluster)
 targets:

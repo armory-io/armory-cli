@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - master
+      - main
 
 name: Build and Release
 jobs:
@@ -27,7 +27,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           default_bump: patch
-          release_branches: master
+          release_branches: main
           create_annotated_tag: false
           append_to_pre_release_tag: rc
 
@@ -216,6 +216,8 @@ jobs:
       - create-release
       - compile
     runs-on: ubuntu-latest
+    outputs:
+      docker-version: ${{ steps.meta.outputs.version }}
     steps:
       - name: Get GitHub App Installation Token for Private Go Repos
         id: get_token
@@ -227,11 +229,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      # TODO: remove when Go 1.18 has been released.
       - name: Setup Go environment
         uses: actions/setup-go@v2.1.4
         with:
-          go-version: '1.18.0-rc1'
+          go-version: '1.18.1'
           stable: false
 
       - name: Cache Dependencies
@@ -278,6 +279,7 @@ jobs:
     name: CVE Image Scan
     needs:
       - build-push
+      - setup
     runs-on: ubuntu-latest
     steps:
       - name: Run Security Scan
@@ -287,5 +289,6 @@ jobs:
           registry: Docker Hub
           username: ${{ secrets.AQUA_USER }}
           password: ${{ secrets.AQUA_PASSWORD }}
-          image: armory/armory-cli:${{needs.setup.outputs.version}}
+          image: armory/armory-cli:${{needs.build-push.outputs.docker-version}}
+
 

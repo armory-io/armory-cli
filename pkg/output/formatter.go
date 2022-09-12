@@ -3,7 +3,7 @@ package output
 import (
 	"encoding/json"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/pkg"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"gopkg.in/yaml.v3"
 	_nethttp "net/http"
 )
@@ -48,7 +48,7 @@ func MarshalToJson(input Formattable) (string, error) {
 
 	pretty, err := json.MarshalIndent(input.Get(), "", " ")
 	if err != nil {
-		return getErrorAsJson(err), fmt.Errorf("failed to marshal response to json: %v", err)
+		return getErrorAsJson(err), errorUtils.NewWrappedError(ErrJsonMarshal, err)
 	}
 	return string(pretty), nil
 }
@@ -65,7 +65,7 @@ func MarshalToYaml(input Formattable) (string, error) {
 
 	pretty, err := yaml.Marshal(input.Get())
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal response to yaml: %v", err)
+		return "", errorUtils.NewWrappedError(ErrYamlMarshal, err)
 	}
 	return string(pretty), nil
 }
@@ -79,9 +79,8 @@ func getRequestError(input Formattable) error {
 	if err != nil {
 		// don't override the received error unless we have an unexpected http response status
 		if input.GetHttpResponse() != nil && input.GetHttpResponse().StatusCode >= 300 {
-			openAPIErr := err.(de.GenericOpenAPIError)
-			err = fmt.Errorf("request returned an error: status code(%d) %s",
-				input.GetHttpResponse().StatusCode, string(openAPIErr.Body()))
+			errContext := fmt.Sprintf(": status code(%d)", input.GetHttpResponse().StatusCode)
+			err = errorUtils.NewWrappedErrorWithDynamicContext(ErrHttpRequest, err, errContext)
 		}
 	}
 

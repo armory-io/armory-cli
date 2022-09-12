@@ -1,14 +1,22 @@
 package config
 
 import (
-	"fmt"
+	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/auth"
-	"github.com/armory/armory-cli/pkg/deploy"
+	"github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/output"
 	log "github.com/sirupsen/logrus"
 	"net/url"
 	"strings"
 )
+
+type CliConfiguration interface {
+	GetArmoryCloudEnv() ArmoryCloudEnv
+	GetAuthToken() string
+	GetCustomerEnvironmentId() string
+	GetArmoryCloudAddr() *url.URL
+	GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnvironmentConfiguration
+}
 
 type Configuration struct {
 	input *Input
@@ -26,6 +34,7 @@ type Input struct {
 	ClientId     *string
 	ClientSecret *string
 	OutFormat    *string
+	IsTest       *bool
 }
 
 type ArmoryCloudEnv int64
@@ -81,6 +90,14 @@ func (c *Configuration) GetCustomerEnvironmentId() string {
 	return environment
 }
 
+func (c *Configuration) GetCustomerOrganizationId() string {
+	organization, err := c.getAuth().GetOrganizationId()
+	if err != nil {
+		log.Fatalf("failed to fetch organization, err: %s", err.Error())
+	}
+	return organization
+}
+
 func (c *Configuration) GetArmoryCloudAddr() *url.URL {
 	parsedAddr, err := c.getArmoryCloudAdder()
 	if err != nil {
@@ -93,19 +110,19 @@ func (c *Configuration) getArmoryCloudAdder() (*url.URL, error) {
 	armoryCloudAddr := *c.input.ApiAddr
 	parsedUrl, err := url.Parse(armoryCloudAddr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse supplied Armory Cloud address, provided addr: '%s', err: %s", armoryCloudAddr, err.Error())
+		return nil, errors.NewWrappedErrorWithDynamicContext(ErrInvalidArmoryCloudAddr, err, ", provided addr: "+armoryCloudAddr)
 	}
 
 	if parsedUrl.Scheme == "" {
-		return nil, fmt.Errorf("failed to parse supplied Armory Cloud address, provided addr: '%s', expected url to contain scheme http or https", armoryCloudAddr)
+		return nil, errors.NewErrorWithDynamicContext(ErrInvalidUrlScheme, ", provided addr: "+armoryCloudAddr)
 	}
 
 	if parsedUrl.Host == "" {
-		return nil, fmt.Errorf("failed to parse supplied Armory Cloud address, provided addr: '%s', expected url to contain a host", armoryCloudAddr)
+		return nil, errors.NewErrorWithDynamicContext(ErrMissingHostInUrl, ", provided addr: "+armoryCloudAddr)
 	}
 
 	if strings.TrimSuffix(parsedUrl.Path, "/") != "" {
-		return nil, fmt.Errorf("failed to parse supplied Armory Cloud address, provided addr: '%s', expected url to not contain a path", armoryCloudAddr)
+		return nil, errors.NewErrorWithDynamicContext(ErrIncludedPathInUrl, ", provided addr: "+armoryCloudAddr)
 	}
 
 	return &url.URL{
@@ -114,15 +131,15 @@ func (c *Configuration) getArmoryCloudAdder() (*url.URL, error) {
 	}, nil
 }
 
-func (c *Configuration) GetDeployEngineClient() *deploy.Client {
-	deployClient, err := deploy.NewDeployClient(
+func (c *Configuration) GetArmoryCloudClient() *armoryCloud.Client {
+	armoryCloudClient, err := armoryCloud.NewArmoryCloudClient(
 		c.GetArmoryCloudAddr(),
 		c.GetAuthToken(),
 	)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	return deployClient
+	return armoryCloudClient
 }
 
 func (c *Configuration) GetOutputType() output.Type {
@@ -145,6 +162,10 @@ func (c *Configuration) GetOutputType() output.Type {
 
 func (c *Configuration) GetOutputFormatter() output.Formatter {
 	return output.GetFormatterForOutputType(c.GetOutputType())
+}
+
+func (c *Configuration) SetOutputFormatter(formatter string) {
+	c.input.OutFormat = &formatter
 }
 
 type ArmoryCloudEnvironmentConfiguration struct {
@@ -175,7 +196,7 @@ func (c *Configuration) GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnv
 		break
 	case dev:
 		armoryCloudEnvironmentConfiguration = &ArmoryCloudEnvironmentConfiguration{
-			CloudConsoleBaseUrl: "https://localhost:9000",
+			CloudConsoleBaseUrl: "https://console.dev.cloud.armory.io:3000",
 			CliClientId:         "o2QghLMwgT1t1glzGaAOqEiIbbiHqUpc",
 			TokenIssuerUrl:      "https://auth.dev.cloud.armory.io/oauth",
 			Audience:            "https://api.dev.cloud.armory.io",
@@ -185,4 +206,8 @@ func (c *Configuration) GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnv
 		log.Fatalf("Cannot fetch armory cloud config for unknown armory env")
 	}
 	return armoryCloudEnvironmentConfiguration
+}
+
+func (c *Configuration) GetIsTest() *bool {
+	return c.input.IsTest
 }

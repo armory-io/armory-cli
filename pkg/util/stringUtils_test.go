@@ -20,4 +20,3 @@ func TestContainsStringUnsortedList(t *testing.T) {
 	assert.EqualValues(t, true, Contains(sortedStrs, "b"))
 	assert.EqualValues(t, true, Contains(sortedStrs, "c"))
 }
-

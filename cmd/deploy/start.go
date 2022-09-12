@@ -3,12 +3,15 @@ package deploy
 import (
 	"context"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/pkg"
+	de "github.com/armory-io/deploy-engine/api"
+	"github.com/armory/armory-cli/cmd/utils"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	deployment "github.com/armory/armory-cli/pkg/deploy"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/spf13/cobra"
+	log "go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	_nethttp "net/http"
@@ -17,8 +20,8 @@ import (
 )
 
 const (
-	deployStartShort   = "Start deployment with Armory Cloud"
-	deployStartLong    = "Start deployment with Armory Cloud"
+	deployStartShort   = "Start deployment with Armory CD-as-a-Service"
+	deployStartLong    = "Start deployment with Armory CD-as-a-Service"
 	deployStartExample = "armory deploy start [options]"
 )
 
@@ -35,9 +38,14 @@ type FormattableDeployStartResponse struct {
 	err          error
 }
 
-func newDeployStartResponse(raw *de.PipelineStartPipelineResponse, response *_nethttp.Response, err error) FormattableDeployStartResponse {
+func newDeployStartResponse(raw *de.StartPipelineResponse, response *_nethttp.Response, err error) FormattableDeployStartResponse {
+	var pipelineID string
+	if raw != nil {
+		pipelineID = raw.PipelineID
+	}
+
 	deployment := FormattableDeployStartResponse{
-		DeploymentId: raw.GetPipelineId(),
+		DeploymentId: pipelineID,
 		httpResponse: response,
 		err:          err,
 	}
@@ -83,6 +91,9 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 }
 
 func start(cmd *cobra.Command, configuration *config.Configuration, options *deployStartOptions) error {
+	if *configuration.GetIsTest() {
+		utils.ConfigureLoggingForTesting(cmd)
+	}
 	payload := model.OrchestrationConfig{}
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
@@ -93,13 +104,13 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	// read yaml file
 	file, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
-		return fmt.Errorf("error trying to read the YAML file: %s", err)
+		return errorUtils.NewWrappedError(ErrYamlFileRead, err)
 	}
 	cmd.SilenceUsage = true
 	// unmarshall data into struct
 	err = yaml.UnmarshalStrict(file, &payload)
 	if err != nil {
-		return fmt.Errorf("error invalid deployment object: %s", err)
+		return errorUtils.NewWrappedError(ErrInvalidDeploymentObject, err)
 	}
 	applicationOpt := options.application
 	var application string
@@ -110,31 +121,28 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	}
 
 	if len(application) < 1 {
-		return fmt.Errorf("application name must be defined in deployment file or by application opt")
+		return ErrNoApplicationNameDefined
 	}
 
 	dep, err := deployment.CreateDeploymentRequest(application, &payload, options.context)
 	if err != nil {
-		return fmt.Errorf("error converting deployment object: %s", err)
+		return errorUtils.NewWrappedError(ErrDeploymentObjectConversion, err)
 	}
 
-	deployClient := configuration.GetDeployEngineClient()
+	deployClient := deployment.GetDeployClient(configuration)
 
-	ctx, cancel := context.WithTimeout(deployClient.Context, time.Minute)
+	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Minute)
 	defer cancel()
-	// prepare request
-	request := deployClient.DeploymentServiceApi.
-		DeploymentServiceStartKubernetesPipeline(ctx).Body(*dep)
 	// execute request
-	raw, response, err := request.Execute()
+	raw, response, err := deployClient.StartPipeline(ctx, dep)
 	// create response object
-	deploy := newDeployStartResponse(&raw, response, err)
+	deploy := newDeployStartResponse(raw, response, err)
 	// format response
 	dataFormat, err := configuration.GetOutputFormatter()(deploy)
 	if err != nil {
-		return fmt.Errorf("error trying to parse response: %s", err)
+		return err
 	}
 	cmd.SetContext(context.WithValue(ctx, "deploymentId", deploy.DeploymentId))
-	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
+	log.S().Info(dataFormat)
 	return err
 }

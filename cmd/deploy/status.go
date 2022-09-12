@@ -3,19 +3,23 @@ package deploy
 import (
 	"context"
 	"fmt"
-	deploy "github.com/armory-io/deploy-engine/pkg"
+	deploy "github.com/armory-io/deploy-engine/api"
+	"github.com/armory/armory-cli/cmd/utils"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
+	deployment "github.com/armory/armory-cli/pkg/deploy"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/output"
 	"github.com/spf13/cobra"
+	log "go.uber.org/zap"
 	_nethttp "net/http"
 	"time"
 )
 
 const (
-	deployStatusShort   = "Watch deployment on Armory Cloud"
-	deployStatusLong    = "Watch deployment on Armory Cloud"
+	deployStatusShort   = "Watch deployment on Armory CD-as-a-Service"
+	deployStatusLong    = "Watch deployment on Armory CD-as-a-Service"
 	deployStatusExample = "armory deploy status [options]"
 )
 
@@ -52,14 +56,14 @@ func (u FormattableDeployStatus) String() string {
 	ret += fmt.Sprintf("[%v] application: %s, started: %s\n", now, *u.DeployResp.Application, *u.DeployResp.StartedAtIso8601)
 	ret += fmt.Sprintf("[%v] status: ", now)
 	switch status := *u.DeployResp.Status; status {
-	case deploy.WORKFLOWWORKFLOWSTATUS_PAUSED:
+	case deploy.WorkflowStatusPaused:
 		for _, stages := range *u.DeployResp.Steps {
-			if *stages.Type == "pause" && *stages.Status == deploy.WORKFLOWWORKFLOWSTATUS_PAUSED {
-				ret += fmt.Sprintf("[%s] msg: Paused for %d %s. You can skip the pause in the cloud console or CLI\n", status, stages.Pause.GetDuration(), stages.Pause.GetUnit())
+			if *stages.Type == "pause" && *stages.Status == deploy.WorkflowStatusPaused {
+				ret += fmt.Sprintf("[%s] msg: Paused for %d %s. You can skip the pause in the CD-as-a-Service Console or CLI\n", status, stages.Pause.Duration, stages.Pause.Unit)
 			}
 		}
-	case deploy.WORKFLOWWORKFLOWSTATUS_AWAITING_APPROVAL:
-		ret += fmt.Sprintf("[%s] msg: Paused for Manual Judgment. You can approve the rollout and continue the deployment in the cloud console or CLI.\n", status)
+	case deploy.WorkflowStatusAwaitingApproval:
+		ret += fmt.Sprintf("[%s] msg: Paused for Manual Judgment. You can approve the rollout and continue the deployment in the CD-as-a-Service Console or CLI.\n", status)
 	default:
 		ret += string(status) + "\n"
 	}
@@ -87,25 +91,26 @@ func NewDeployStatusCmd(configuration *config.Configuration) *cobra.Command {
 }
 
 func status(cmd *cobra.Command, configuration *config.Configuration, deploymentId string) error {
+	if *configuration.GetIsTest() {
+		utils.ConfigureLoggingForTesting(cmd)
+	}
 	cmd.SetContext(context.WithValue(cmd.Context(), "deploymentId", deploymentId))
-	deployClient := configuration.GetDeployEngineClient()
-	ctx, cancel := context.WithTimeout(deployClient.Context, time.Second*5)
+	deployClient := deployment.GetDeployClient(configuration)
+	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Second*5)
 	defer cancel()
-	req := deployClient.DeploymentServiceApi.DeploymentServicePipelineStatus(ctx, deploymentId)
-	pipelineResp, response, err := req.Execute()
+	pipelineResp, response, err := deployClient.PipelineStatus(ctx, deploymentId)
 	var steps []model.Step
-	if response != nil && response.StatusCode == 200 && configuration.GetOutputType() != output.Text {
-		for _, stages := range pipelineResp.GetSteps() {
+	if err == nil && configuration.GetOutputType() != output.Text {
+		for _, stages := range pipelineResp.Steps {
 			var step = model.Step{}
-			if stages.GetType() == "deployment" && stages.GetStatus() != deploy.WORKFLOWWORKFLOWSTATUS_NOT_STARTED {
-				deployment := stages.GetDeployment()
-				request := deployClient.DeploymentServiceApi.DeploymentServiceStatus(ctx, deployment.GetId())
-				deployRes, response, err := request.Execute()
+			if stages.Type == "deployment" && stages.Status != deploy.WorkflowStatusNotStarted {
+				deployment := stages.Deployment
+				deployRes, response, err := deployClient.DeploymentStatus(ctx, deployment.ID)
 				err = getRequestError(response, err)
 				if err != nil {
 					return err
 				}
-				step = model.NewStep(stages, &deployRes)
+				step = model.NewStep(stages, deployRes)
 			} else {
 				step = model.NewStep(stages, nil)
 			}
@@ -117,9 +122,9 @@ func status(cmd *cobra.Command, configuration *config.Configuration, deploymentI
 	// if we've made it this far, the command is valid. if an error occurs it isn't a usage error
 	cmd.SilenceUsage = true
 	if err != nil {
-		return fmt.Errorf("error trying to parse respone: %s", err)
+		return errorUtils.NewWrappedError(ErrDeploymentStatusResponseParse, err)
 	}
-	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
+	log.S().Info(dataFormat)
 	return err
 }
 
@@ -127,9 +132,8 @@ func getRequestError(response *_nethttp.Response, err error) error {
 	if err != nil {
 		// don't override the received error unless we have an unexpected http response status
 		if response != nil && response.StatusCode >= 300 {
-			openAPIErr := err.(deploy.GenericOpenAPIError)
-			err = fmt.Errorf("request returned an error: status code(%d) %s",
-				response.StatusCode, string(openAPIErr.Body()))
+			statusCodeContext := fmt.Sprintf("status code(%d)", response.StatusCode)
+			err = errorUtils.NewWrappedErrorWithDynamicContext(ErrDeploymentStatusRequest, err, statusCodeContext)
 		}
 	}
 	return err

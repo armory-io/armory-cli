@@ -1,34 +1,126 @@
 package deploy
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
-	deploy "github.com/armory-io/deploy-engine/pkg"
-	"github.com/armory/armory-cli/cmd/version"
-	"net/url"
-	"os"
+	"github.com/armory-io/deploy-engine/api"
+	"github.com/armory/armory-cli/pkg/armoryCloud"
+	"github.com/armory/armory-cli/pkg/config"
+	"io"
+	"net/http"
 )
 
-type Client struct {
-	*deploy.APIClient
-	Context context.Context
+type (
+	DeployClient struct {
+		ArmoryCloudClient *armoryCloud.Client
+	}
+)
+
+func GetDeployClient(configuration *config.Configuration) *DeployClient {
+	armoryCloudClient := configuration.GetArmoryCloudClient()
+	return &DeployClient{
+		ArmoryCloudClient: armoryCloudClient,
+	}
 }
 
 var source = "armory-cli"
 
-func NewDeployClient(armoryCloudAddr *url.URL, token string) (*Client, error) {
-	if val, present := os.LookupEnv("ARMORY_DEPLOYORIGIN"); present {
-		source = val
+func (c *DeployClient) PipelineStatus(ctx context.Context, pipelineID string) (*api.PipelineStatusResponse, *http.Response, error) {
+	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodGet, fmt.Sprintf("/pipelines/%s", pipelineID), nil)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	deployClient := &Client{
-		Context: context.Background(),
+	resp, err := c.ArmoryCloudClient.Http.Do(req)
+	if err != nil {
+		return nil, resp, err
 	}
-	cfg := deploy.NewConfiguration()
-	cfg.Host = armoryCloudAddr.Host
-	cfg.Scheme = armoryCloudAddr.Scheme
-	cfg.AddDefaultHeader("X-Armory-Client", fmt.Sprintf("%s", source)+"/"+version.Version)
-	deployClient.APIClient = deploy.NewAPIClient(cfg)
-	deployClient.Context = context.WithValue(deployClient.Context, deploy.ContextAccessToken, token)
-	return deployClient, nil
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, resp, &deployError{response: resp}
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	var pipeline api.PipelineStatusResponse
+	if err := json.Unmarshal(bodyBytes, &pipeline); err != nil {
+		return nil, resp, err
+	}
+	return &pipeline, resp, nil
+}
+
+func (c *DeployClient) DeploymentStatus(ctx context.Context, deploymentID string) (*api.DeploymentStatusResponse, *http.Response, error) {
+	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodGet, fmt.Sprintf("/deployments/%s", deploymentID), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resp, err := c.ArmoryCloudClient.Http.Do(req)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, resp, &deployError{response: resp}
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	var deployment api.DeploymentStatusResponse
+	if err := json.Unmarshal(bodyBytes, &deployment); err != nil {
+		return nil, resp, err
+	}
+	return &deployment, resp, nil
+}
+
+func (c *DeployClient) StartPipeline(ctx context.Context, request *api.StartPipelineRequest) (*api.StartPipelineResponse, *http.Response, error) {
+	reqBytes, err := json.Marshal(request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodPost, "/pipelines/kubernetes", bytes.NewReader(reqBytes))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resp, err := c.ArmoryCloudClient.Http.Do(req)
+	if err != nil {
+		return nil, resp, &deployError{response: resp}
+	}
+
+	if resp.StatusCode != http.StatusAccepted {
+		return nil, resp, &deployError{response: resp}
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	var startResponse api.StartPipelineResponse
+	if err := json.Unmarshal(bodyBytes, &startResponse); err != nil {
+		return nil, resp, err
+	}
+	return &startResponse, resp, nil
+}
+
+type deployError struct {
+	response *http.Response
+}
+
+func (d *deployError) Error() string {
+	responseBytes, err := io.ReadAll(d.response.Body)
+	if err != nil {
+		return fmt.Sprintf("could not read HTTP response body: %s", err)
+	}
+	return string(responseBytes)
 }
