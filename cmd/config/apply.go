@@ -115,7 +115,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 					if err != nil {
 						return errorUtils.NewWrappedError(ErrUpdateRole, err)
 					}
-					log.S().Infof("Updated role: '%s'", roleInConfig.Name)
+					log.S().Infof("Updated Role: '%s'", roleInConfig.Name)
 				} else {
 					log.S().Infof("Role %s is a system defined role and cannot be updated via CLI.", roleInConfig.Name)
 				}
