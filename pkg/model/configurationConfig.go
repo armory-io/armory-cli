@@ -10,9 +10,10 @@ type ConfiguationOutput struct {
 }
 
 type RoleConfig struct {
-	Name   string        `yaml:"name,omitempty"`
-	Tenant string        `yaml:"tenant,omitempty"`
-	Grants []GrantConfig `yaml:"grants,omitempty"`
+	Name          string        `yaml:"name,omitempty"`
+	Tenant        string        `yaml:"tenant,omitempty"`
+	SystemDefined bool          `yaml:"systemDefined,omitempty" json:"systemDefined,omitempty"`
+	Grants        []GrantConfig `yaml:"grants,omitempty"`
 }
 
 type GrantConfig struct {

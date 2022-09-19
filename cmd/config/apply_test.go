@@ -125,6 +125,80 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyUpdateRole() {
 	suite.Equal(1, callCount["GET /roles"])
 }
 
+func (suite *ConfigApplyTestSuite) TestConfigApplyUpdateOfSystemRoleIsBlocked() {
+	getExpected := []model.RoleConfig{{
+		Name:          "test",
+		Tenant:        "testTenant",
+		SystemDefined: true,
+		Grants: []model.GrantConfig{{
+			Type:       "api",
+			Resource:   "org",
+			Permission: "all",
+		}},
+	}}
+
+	err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	}
+
+	tempFile := util.TempAppFile("", "app", testConfigYamlStrForUpdate)
+	if tempFile == nil {
+		suite.T().Fatal("TestDeployStartJsonSuccess failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
+	outWriter := bytes.NewBufferString("")
+	cmd := getConfigApplyCmdWithTmpFile(outWriter, tempFile, "json")
+	err = cmd.Execute()
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	}
+	_, err = ioutil.ReadAll(outWriter)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	}
+	callCount := httpmock.GetCallCountInfo()
+	suite.Equal(0, callCount["PUT /roles/test"])
+	suite.Equal(1, callCount["GET /roles"])
+}
+
+func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteOfSystemRoleIsBlocked() {
+	getExpected := []model.RoleConfig{{
+		Name:          "test",
+		Tenant:        "testTenant",
+		SystemDefined: true,
+		Grants: []model.GrantConfig{{
+			Type:       "api",
+			Resource:   "org",
+			Permission: "all",
+		}},
+	}}
+
+	err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	}
+
+	tempFile := util.TempAppFile("", "app", testConfigYamlStrForDeleteSystemRoles)
+	if tempFile == nil {
+		suite.T().Fatal("TestDeployStartJsonSuccess failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
+	outWriter := bytes.NewBufferString("")
+	cmd := getConfigApplyCmdWithTmpFile(outWriter, tempFile, "json")
+	err = cmd.Execute()
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	}
+	_, err = ioutil.ReadAll(outWriter)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	}
+	callCount := httpmock.GetCallCountInfo()
+	suite.Equal(0, callCount["DELETE /roles/test"])
+	suite.Equal(1, callCount["GET /roles"])
+}
+
 func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleAllowAutoDelete() {
 	getExpected := []model.RoleConfig{{
 		Name:   "test",
@@ -330,4 +404,8 @@ roles:
       - type: api
         resource: org
         permission: all
+`
+
+const testConfigYamlStrForDeleteSystemRoles = `
+roles: []
 `
