@@ -84,7 +84,7 @@ func findDeletedRoles(rolesInConfigFile, existingRoles []model.RoleConfig) []str
 		ma[configRole.Name] = true
 	}
 	for _, existingRole := range existingRoles {
-		if !ma[existingRole.Name] {
+		if !ma[existingRole.Name] && !existingRole.SystemDefined {
 			deletedRoles = append(deletedRoles, existingRole.Name)
 		}
 	}
@@ -106,15 +106,19 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 		for _, roleInExisting := range existingRoles {
 			if roleInConfig.Name == roleInExisting.Name {
 				exists = true
-				//update existing role
-				ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
-				defer cancel()
-				req, err := configCmd.UpdateRolesRequest(&roleInConfig)
-				_, _, err = configClient.UpdateRole(ctx, req)
-				if err != nil {
-					return errorUtils.NewWrappedError(ErrUpdateRole, err)
+				if !roleInExisting.SystemDefined {
+					//update existing role
+					ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
+					defer cancel()
+					req, err := configCmd.UpdateRolesRequest(&roleInConfig)
+					_, _, err = configClient.UpdateRole(ctx, req)
+					if err != nil {
+						return errorUtils.NewWrappedError(ErrUpdateRole, err)
+					}
+					log.S().Infof("Updated Role: '%s'", roleInConfig.Name)
+				} else {
+					log.S().Infof("Role %s is a system role. You cannot update it via the CLI.", roleInConfig.Name)
 				}
-				log.S().Infof("Updated role: %s", roleInConfig.Name)
 				break
 			}
 		}

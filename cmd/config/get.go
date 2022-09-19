@@ -66,7 +66,7 @@ func get(cmd *cobra.Command, options *configApplyOptions, configuration *config.
 }
 
 type FormattableConfiguration struct {
-	Configuration model.ConfiguationOutput `json:"roles", yaml:"roles"`
+	Configuration model.ConfiguationOutput `json:"roles" yaml:"roles"`
 	httpResponse  *_nethttp.Response
 	err           error
 }
@@ -84,9 +84,15 @@ func (u FormattableConfiguration) GetFetchError() error {
 }
 
 func newGetConfigWrapper(rawRoles []model.RoleConfig, response *_nethttp.Response, err error) FormattableConfiguration {
+	userOnlyRoles := make([]model.RoleConfig, 0)
+	for _, role := range rawRoles {
+		if !role.SystemDefined {
+			userOnlyRoles = append(userOnlyRoles, role)
+		}
+	}
 	wrapper := FormattableConfiguration{
 		Configuration: model.ConfiguationOutput{
-			Roles: rawRoles,
+			Roles: userOnlyRoles,
 		},
 		httpResponse: response,
 		err:          err,
