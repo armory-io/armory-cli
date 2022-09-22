@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+  namespace: armory-sample-application
+  annotations: 
+    "app": "sample-app"
+    "prometheus.io/scrape": "true"
+spec:
+  revisionHistoryLimit: 1
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+      annotations: 
+        "app": "sample-app"
+        "prometheus.io/scrape": "true"
+    spec:
+      containers:
+      - image:  demoimages/bluegreen:v3 #v5, v4, v3
+        imagePullPolicy: Always
+        name: sample-app
+        resources:
+          limits:
+            cpu: "100m" # this is to ensure the above busy wait cannot DOS a low CPU cluster.
+            memory: "70Mi"
+          requests:
+            cpu: "10m" # this is to ensure the above busy wait cannot DOS a low CPU cluster.
+            memory: "70Mi"
+        #ports:
+        #  - containerPort: 8086
+      restartPolicy: Always
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app-svc
+  labels:
+    app: sample-app
+  annotations:
+    linkerd.io/inject: enabled
+spec:
+  selector:
+    app: sample-app
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
