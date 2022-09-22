@@ -77,7 +77,7 @@ func quickStart(cmd *cobra.Command, configuration *config.Configuration, options
 		ExecWith(demo.UpdateAgentAccount, selectedAgent).
 		FailOnError()
 
-	log.S().Infof("Execute `cd %s && %s` to deploy the sample application", demo.DirName, demo.GetDeployCommand())
-	log.S().Infof("Note: You should deploy the application twice. The first deployment creates a new application and the second is a regular deployment.")
+	log.S().Infof("\nExecute `cd %s && %s` to deploy the sample application", demo.DirName, demo.GetDeployCommand())
+	log.S().Infof("\nNote: You should deploy the application twice. The first deployment creates a new application and the second is a regular deployment.")
 	return nil
 }
