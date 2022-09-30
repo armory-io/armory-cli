@@ -86,7 +86,7 @@ func NewDeployStatusCmd(configuration *config.Configuration) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&deploymentId, "deploymentId", "i", "", "(Required) The ID of an existing deployment.\n"+
-		"deploymentId can be found by navigating to the deployment status page and looking in the url: \n"+
+		"You can find the deploymentId by navigating to the deployment status page and looking in the URL: \n"+
 		"https://console.cloud.armory.io/deployments/pipeline/<deploymentId>")
 	cmd.MarkFlagRequired("deploymentId")
 	return cmd
