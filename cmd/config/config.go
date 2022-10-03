@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/armory/armory-cli/pkg/cmdUtils"
-	"github.com/armory/armory-cli/pkg/config"
+	cliconfig "github.com/armory/armory-cli/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +12,7 @@ const (
 	configExample = ""
 )
 
-func NewConfigCmd(configuration *config.Configuration) *cobra.Command {
+func NewConfigCmd(configuration *cliconfig.Configuration) *cobra.Command {
 	command := &cobra.Command{
 		Use:     "config",
 		Aliases: []string{},

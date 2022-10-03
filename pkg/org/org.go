@@ -1,3 +1,4 @@
+// Deprecated: org is another client in this project and should be replaced by the client in the configuration package.
 package org
 
 import (

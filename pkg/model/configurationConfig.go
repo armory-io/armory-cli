@@ -10,6 +10,8 @@ type ConfiguationOutput struct {
 }
 
 type RoleConfig struct {
+	ID            string        `json:"id" yaml:"-"`
+	EnvID         string        `json:"envId" yaml:"-"`
 	Name          string        `yaml:"name,omitempty"`
 	Tenant        string        `yaml:"tenant,omitempty"`
 	SystemDefined bool          `yaml:"systemDefined,omitempty" json:"systemDefined,omitempty"`

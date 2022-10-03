@@ -2,8 +2,9 @@ package config
 
 import (
 	"bytes"
-	"github.com/armory/armory-cli/pkg/config"
+	cliconfig "github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/armory/armory-cli/pkg/model/configClient"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/jarcoal/httpmock"
 	"github.com/spf13/cobra"
@@ -39,6 +40,9 @@ func (suite *ConfigApplyTestSuite) TearDownSuite() {
 
 func (suite *ConfigApplyTestSuite) TestConfigApplyCreateRole() {
 	getExpected := []model.RoleConfig{}
+	getEnvironmentsExpected := []configClient.Environment{{
+		Name: "testTenant",
+	}}
 	postExpected := model.RoleConfig{
 		Name:   "test",
 		Tenant: "testTenant",
@@ -48,13 +52,14 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyCreateRole() {
 			Permission: "all",
 		},
 		}}
-	err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
 	}
-	err = registerResponder(postExpected, http.StatusCreated, "/roles", http.MethodPost)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
+	}
+	if err := registerResponder(postExpected, http.StatusCreated, "/roles", http.MethodPost); err != nil {
+		suite.T().Fatal(err)
 	}
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForCreate)
@@ -64,45 +69,51 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyCreateRole() {
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
 	cmd := getConfigApplyCmdWithTmpFile(outWriter, tempFile, "json")
-	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := cmd.Execute(); err != nil {
+		suite.T().Fatal(err)
 	}
-	_, err = ioutil.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if _, err := ioutil.ReadAll(outWriter); err != nil {
+		suite.T().Fatal(err)
 	}
 	callCount := httpmock.GetCallCountInfo()
 	suite.Equal(1, callCount["POST /roles"])
 	suite.Equal(1, callCount["GET /roles"])
+	suite.Equal(1, callCount["GET /environments"])
 }
 
 func (suite *ConfigApplyTestSuite) TestConfigApplyUpdateRole() {
 	getExpected := []model.RoleConfig{{
+		ID:     "test-role-id",
+		Name:   "test",
+		Tenant: "testTenant",
+		EnvID:  "env-id",
+		Grants: []model.GrantConfig{{
+			Type:       "api",
+			Resource:   "organization",
+			Permission: "full",
+		}},
+	}}
+	getEnvironmentsExpected := []configClient.Environment{{
+		Name: "testTenant",
+		ID:   "env-id",
+	}}
+	putExpected := model.RoleConfig{
 		Name:   "test",
 		Tenant: "testTenant",
 		Grants: []model.GrantConfig{{
 			Type:       "api",
-			Resource:   "org",
-			Permission: "all",
-		}},
-	}}
-	putExpected := model.RoleConfig{
-		Name:   "test",
-		Tenant: "testTenantNew",
-		Grants: []model.GrantConfig{{
-			Type:       "api",
-			Resource:   "org",
-			Permission: "all",
+			Resource:   "tenant",
+			Permission: "full",
 		},
 		}}
-	err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
 	}
-	err = registerResponder(putExpected, http.StatusOK, "/roles/test", http.MethodPut)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
+	}
+	if err := registerResponder(putExpected, http.StatusOK, "/roles/test-role-id", http.MethodPut); err != nil {
+		suite.T().Fatal(err)
 	}
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForUpdate)
@@ -112,22 +123,23 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyUpdateRole() {
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
 	cmd := getConfigApplyCmdWithTmpFile(outWriter, tempFile, "json")
-	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := cmd.Execute(); err != nil {
+		suite.T().Fatal(err)
 	}
-	_, err = ioutil.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if _, err := ioutil.ReadAll(outWriter); err != nil {
+		suite.T().Fatal(err)
 	}
 	callCount := httpmock.GetCallCountInfo()
-	suite.Equal(1, callCount["PUT /roles/test"])
+	suite.Equal(1, callCount["PUT /roles/test-role-id"])
 	suite.Equal(1, callCount["GET /roles"])
+	suite.Equal(1, callCount["GET /environments"])
 }
 
 func (suite *ConfigApplyTestSuite) TestConfigApplyUpdateOfSystemRoleIsBlocked() {
 	getExpected := []model.RoleConfig{{
+		ID:            "system-role-id",
 		Name:          "test",
+		EnvID:         "env-id",
 		Tenant:        "testTenant",
 		SystemDefined: true,
 		Grants: []model.GrantConfig{{
@@ -136,10 +148,16 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyUpdateOfSystemRoleIsBlocked() 
 			Permission: "all",
 		}},
 	}}
+	getEnvironmentsExpected := []configClient.Environment{{
+		Name: "testTenant",
+		ID:   "env-id",
+	}}
 
-	err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
+	}
+	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
 	}
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForUpdate)
@@ -149,22 +167,23 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyUpdateOfSystemRoleIsBlocked() 
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
 	cmd := getConfigApplyCmdWithTmpFile(outWriter, tempFile, "json")
-	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := cmd.Execute(); err != nil {
+		suite.T().Fatal(err)
 	}
-	_, err = ioutil.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if _, err := ioutil.ReadAll(outWriter); err != nil {
+		suite.T().Fatal(err)
 	}
 	callCount := httpmock.GetCallCountInfo()
-	suite.Equal(0, callCount["PUT /roles/test"])
+	suite.Equal(0, callCount["PUT /roles/system-role-id"])
 	suite.Equal(1, callCount["GET /roles"])
+	suite.Equal(1, callCount["GET /environments"])
 }
 
 func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteOfSystemRoleIsBlocked() {
 	getExpected := []model.RoleConfig{{
+		ID:            "system-role-id",
 		Name:          "test",
+		EnvID:         "env-id",
 		Tenant:        "testTenant",
 		SystemDefined: true,
 		Grants: []model.GrantConfig{{
@@ -173,10 +192,16 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteOfSystemRoleIsBlocked() 
 			Permission: "all",
 		}},
 	}}
+	getEnvironmentsExpected := []configClient.Environment{{
+		Name: "testTenant",
+		ID:   "env-id",
+	}}
 
-	err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
+	}
+	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
 	}
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForDeleteSystemRoles)
@@ -186,22 +211,23 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteOfSystemRoleIsBlocked() 
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
 	cmd := getConfigApplyCmdWithTmpFile(outWriter, tempFile, "json")
-	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := cmd.Execute(); err != nil {
+		suite.T().Fatal(err)
 	}
-	_, err = ioutil.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if _, err := ioutil.ReadAll(outWriter); err != nil {
+		suite.T().Fatal(err)
 	}
 	callCount := httpmock.GetCallCountInfo()
-	suite.Equal(0, callCount["DELETE /roles/test"])
+	suite.Equal(0, callCount["DELETE /roles/system-role-id"])
 	suite.Equal(1, callCount["GET /roles"])
+	suite.Equal(1, callCount["GET /environments"])
 }
 
 func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleAllowAutoDelete() {
 	getExpected := []model.RoleConfig{{
+		ID:     "role-id-1",
 		Name:   "test",
+		EnvID:  "env-id",
 		Tenant: "testTenant",
 		Grants: []model.GrantConfig{{
 			Type:       "api",
@@ -210,7 +236,9 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleAllowAutoDelete() {
 		}},
 	},
 		{
+			ID:     "role-id-2",
 			Name:   "test2",
+			EnvID:  "env-id",
 			Tenant: "testTenant",
 			Grants: []model.GrantConfig{{
 				Type:       "api",
@@ -219,6 +247,10 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleAllowAutoDelete() {
 			}},
 		},
 	}
+	getEnvironmentsExpected := []configClient.Environment{{
+		Name: "testTenant",
+		ID:   "env-id",
+	}}
 	deleteExpected := model.RoleConfig{
 		Name:   "test2",
 		Tenant: "testTenant",
@@ -230,24 +262,24 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleAllowAutoDelete() {
 		}}
 	putExpected := model.RoleConfig{
 		Name:   "test",
-		Tenant: "testTenantNew",
+		Tenant: "testTenant",
 		Grants: []model.GrantConfig{{
 			Type:       "api",
-			Resource:   "org",
+			Resource:   "tenant",
 			Permission: "all",
 		},
 		}}
-	err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
 	}
-	err = registerResponder(putExpected, http.StatusOK, "/roles/test", http.MethodPut)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
 	}
-	err = registerResponder(deleteExpected, http.StatusNoContent, "/roles/test2", http.MethodDelete)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := registerResponder(putExpected, http.StatusOK, "/roles/role-id-1", http.MethodPut); err != nil {
+		suite.T().Fatal(err)
+	}
+	if err := registerResponder(deleteExpected, http.StatusNoContent, "/roles/role-id-2", http.MethodDelete); err != nil {
+		suite.T().Fatal(err)
 	}
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForDeleteAllowAutoDelete)
@@ -257,23 +289,24 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleAllowAutoDelete() {
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
 	cmd := getConfigApplyCmdWithTmpFile(outWriter, tempFile, "json")
-	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := cmd.Execute(); err != nil {
+		suite.T().Fatal(err)
 	}
-	_, err = ioutil.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if _, err := ioutil.ReadAll(outWriter); err != nil {
+		suite.T().Fatal(err)
 	}
 	callCount := httpmock.GetCallCountInfo()
-	suite.Equal(1, callCount["DELETE /roles/test2"])
+	suite.Equal(1, callCount["DELETE /roles/role-id-2"])
 	suite.Equal(1, callCount["GET /roles"])
-	suite.Equal(1, callCount["PUT /roles/test"])
+	suite.Equal(1, callCount["GET /environments"])
+	suite.Equal(1, callCount["PUT /roles/role-id-1"])
 }
 
 func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleDontAllowAutoDelete() {
 	getExpected := []model.RoleConfig{
 		{
+			ID:     "role-id-1",
+			EnvID:  "env-id",
 			Name:   "test",
 			Tenant: "testTenant",
 			Grants: []model.GrantConfig{
@@ -285,6 +318,8 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleDontAllowAutoDelete(
 			},
 		},
 		{
+			ID:     "role-id-2",
+			EnvID:  "env-id",
 			Name:   "test2",
 			Tenant: "testTenant",
 			Grants: []model.GrantConfig{
@@ -296,22 +331,27 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleDontAllowAutoDelete(
 			},
 		},
 	}
+	getEnvironmentsExpected := []configClient.Environment{{
+		Name: "testTenant",
+		ID:   "env-id",
+	}}
 	putExpected := model.RoleConfig{
 		Name:   "test",
-		Tenant: "testTenantNew",
+		Tenant: "testTenant",
 		Grants: []model.GrantConfig{{
 			Type:       "api",
-			Resource:   "org",
+			Resource:   "tenant",
 			Permission: "all",
 		},
 		}}
-	err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
 	}
-	err = registerResponder(putExpected, http.StatusOK, "/roles/test", http.MethodPut)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
+	}
+	if err := registerResponder(putExpected, http.StatusOK, "/roles/role-id-1", http.MethodPut); err != nil {
+		suite.T().Fatal(err)
 	}
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForDeleteDontAllowAutoDelete)
@@ -321,18 +361,17 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleDontAllowAutoDelete(
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
 	cmd := getConfigApplyCmdWithTmpFile(outWriter, tempFile, "json")
-	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if err := cmd.Execute(); err != nil {
+		suite.T().Fatal(err)
 	}
-	_, err = ioutil.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	if _, err := ioutil.ReadAll(outWriter); err != nil {
+		suite.T().Fatal(err)
 	}
 	callCount := httpmock.GetCallCountInfo()
-	suite.Equal(0, callCount["DELETE /roles/test2"])
+	suite.Equal(0, callCount["DELETE /roles/role-id-2"])
 	suite.Equal(1, callCount["GET /roles"])
-	suite.Equal(1, callCount["PUT /roles/test"])
+	suite.Equal(1, callCount["GET /environments"])
+	suite.Equal(1, callCount["PUT /roles/role-id-1"])
 }
 
 func registerResponder(body any, status int, url, method string) error {
@@ -349,7 +388,7 @@ func getConfigApplyCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output 
 	addr := "https://localhost"
 	clientId := ""
 	clientSecret := ""
-	configuration := config.New(&config.Input{
+	configuration := cliconfig.New(&cliconfig.Input{
 		AccessToken:  &token,
 		ApiAddr:      &addr,
 		ClientId:     &clientId,
@@ -369,11 +408,11 @@ func getConfigApplyCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output 
 const testConfigYamlStrForUpdate = `
 roles:
   - name: test
-    tenant: testTenantNew
+    tenant: testTenant
     grants:
       - type: api
-        resource: org
-        permission: all
+        resource: tenant
+        permission: full
 `
 const testConfigYamlStrForCreate = `
 roles:
@@ -389,20 +428,20 @@ const testConfigYamlStrForDeleteAllowAutoDelete = `
 allowAutoDelete: true
 roles:
   - name: test
-    tenant: testTenantNew
+    tenant: testTenant
     grants:
       - type: api
-        resource: org
+        resource: tenant
         permission: all
 `
 const testConfigYamlStrForDeleteDontAllowAutoDelete = `
 allowAutoDelete: false
 roles:
   - name: test
-    tenant: testTenantNew
+    tenant: testTenant
     grants:
       - type: api
-        resource: org
+        resource: tenant
         permission: all
 `
 
