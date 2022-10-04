@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
-	"github.com/armory/armory-cli/pkg/config"
-	"github.com/armory/armory-cli/pkg/configCmd"
+	cliconfig "github.com/armory/armory-cli/pkg/config"
+	"github.com/armory/armory-cli/pkg/configuration"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/output"
@@ -21,7 +21,7 @@ const (
 	configGetExample = "armory config get"
 )
 
-func NewConfigGetCmd(configuration *config.Configuration) *cobra.Command {
+func NewConfigGetCmd(configuration *cliconfig.Configuration) *cobra.Command {
 	options := &configApplyOptions{}
 	cmd := &cobra.Command{
 		Use:     "get",
@@ -39,7 +39,7 @@ func NewConfigGetCmd(configuration *config.Configuration) *cobra.Command {
 	return cmd
 }
 
-func get(cmd *cobra.Command, options *configApplyOptions, configuration *config.Configuration) error {
+func get(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Configuration) error {
 	//in case this is running on a GitHub instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
@@ -47,15 +47,15 @@ func get(cmd *cobra.Command, options *configApplyOptions, configuration *config.
 		options.configFile = gitWorkspace + options.configFile
 	}
 	// since we use text as the global default we need to override that for config get
-	if configuration.GetOutputType() == output.Text {
-		configuration.SetOutputFormatter("yaml")
+	if cli.GetOutputType() == output.Text {
+		cli.SetOutputFormatter("yaml")
 	}
-	configClient := configCmd.GetConfigClient(configuration)
+	configClient := configuration.NewClient(cli)
 	ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 	defer cancel()
 	// execute request
 	roles, resp, err := configClient.GetRoles(ctx)
-	dataFormat, err := configuration.GetOutputFormatter()(newGetConfigWrapper(roles, resp, err))
+	dataFormat, err := cli.GetOutputFormatter()(newGetConfigWrapper(roles, resp, err))
 
 	cmd.SilenceUsage = true
 	if err != nil {

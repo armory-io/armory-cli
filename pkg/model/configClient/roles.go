@@ -15,13 +15,13 @@ type CreateRoleResponse struct {
 }
 
 type UpdateRoleRequest struct {
-	Name   string              `yaml:"name,omitempty"`
+	ID     string              `yaml:"id"`
 	Tenant string              `yaml:"tenant,omitempty"`
 	Grants []model.GrantConfig `yaml:"grants,omitempty"`
 }
 
 type DeleteRoleRequest struct {
-	Name string `yaml:"name,omitempty"`
+	ID string `yaml:"id"`
 }
 
 type UpdateRoleResponse struct {

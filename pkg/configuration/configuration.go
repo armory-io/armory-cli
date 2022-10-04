@@ -1,4 +1,4 @@
-package configCmd
+package configuration
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/armory/armory-cli/pkg/armoryCloud"
-	"github.com/armory/armory-cli/pkg/config"
+	cliconfig "github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/model/configClient"
 	"io"
@@ -19,7 +19,7 @@ type (
 	}
 )
 
-func GetConfigClient(configuration *config.Configuration) *ConfigClient {
+func NewClient(configuration *cliconfig.Configuration) *ConfigClient {
 	armoryCloudClient := configuration.GetArmoryCloudClient()
 	return &ConfigClient{
 		ArmoryCloudClient: armoryCloudClient,
@@ -56,7 +56,7 @@ func (c *ConfigClient) CreateRole(ctx context.Context, request *configClient.Cre
 
 func (c *ConfigClient) UpdateRole(ctx context.Context, request *configClient.UpdateRoleRequest) (*configClient.UpdateRoleResponse, *http.Response, error) {
 	reqBytes, err := json.Marshal(request)
-	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodPut, fmt.Sprintf("/roles/%s", request.Name), bytes.NewReader(reqBytes))
+	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodPut, fmt.Sprintf("/roles/%s", request.ID), bytes.NewReader(reqBytes))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -123,7 +123,7 @@ func (d *configError) Error() string {
 
 func (c *ConfigClient) DeleteRole(ctx context.Context, request *configClient.DeleteRoleRequest) (*http.Response, error) {
 	reqBytes, err := json.Marshal(request)
-	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodDelete, fmt.Sprintf("/roles/%s", request.Name), bytes.NewReader(reqBytes))
+	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodDelete, fmt.Sprintf("/roles/%s", request.ID), bytes.NewReader(reqBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -138,4 +138,27 @@ func (c *ConfigClient) DeleteRole(ctx context.Context, request *configClient.Del
 	}
 
 	return resp, nil
+}
+
+func (c *ConfigClient) GetEnvironments(ctx context.Context) ([]configClient.Environment, error) {
+	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodGet, "/environments", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.ArmoryCloudClient.Http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, &configError{response: resp}
+	}
+
+	var environments []configClient.Environment
+	if err := json.NewDecoder(resp.Body).Decode(&environments); err != nil {
+		return nil, err
+	}
+
+	return environments, nil
 }

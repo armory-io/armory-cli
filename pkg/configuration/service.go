@@ -1,22 +1,22 @@
-package configCmd
+package configuration
 
 import (
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/model/configClient"
 )
 
-func UpdateRolesRequest(config *model.RoleConfig) (*configClient.UpdateRoleRequest, error) {
+func UpdateRolesRequest(id, tenant string, grants []model.GrantConfig) (*configClient.UpdateRoleRequest, error) {
 	req := configClient.UpdateRoleRequest{
-		Name:   config.Name,
-		Tenant: config.Tenant,
-		Grants: config.Grants,
+		ID:     id,
+		Tenant: tenant,
+		Grants: grants,
 	}
 	return &req, nil
 }
 
-func DeleteRolesRequest(roleName string) (*configClient.DeleteRoleRequest, error) {
+func DeleteRolesRequest(roleID string) (*configClient.DeleteRoleRequest, error) {
 	req := configClient.DeleteRoleRequest{
-		Name: roleName,
+		ID: roleID,
 	}
 	return &req, nil
 }
