@@ -3,10 +3,12 @@ package config
 import (
 	"context"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
-	"github.com/armory/armory-cli/pkg/config"
-	"github.com/armory/armory-cli/pkg/configCmd"
+	cliconfig "github.com/armory/armory-cli/pkg/config"
+	"github.com/armory/armory-cli/pkg/configuration"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/armory/armory-cli/pkg/model/configClient"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	log "go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -25,7 +27,7 @@ type configApplyOptions struct {
 	configFile string
 }
 
-func NewConfigApplyCmd(configuration *config.Configuration) *cobra.Command {
+func NewConfigApplyCmd(configuration *cliconfig.Configuration) *cobra.Command {
 	options := &configApplyOptions{}
 	cmd := &cobra.Command{
 		Use:     "apply --file [<path to file>]",
@@ -48,7 +50,7 @@ func NewConfigApplyCmd(configuration *config.Configuration) *cobra.Command {
 	return cmd
 }
 
-func apply(cmd *cobra.Command, options *configApplyOptions, configuration *config.Configuration) error {
+func apply(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Configuration) error {
 	payload := model.ConfigurationConfig{}
 	//in case this is running on a GitHub instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
@@ -62,37 +64,37 @@ func apply(cmd *cobra.Command, options *configApplyOptions, configuration *confi
 		return errorUtils.NewWrappedError(ErrReadingYamlFile, err)
 	}
 	cmd.SilenceUsage = true
-	// unmarshall data into struct
-	err = yaml.UnmarshalStrict(file, &payload)
-	if err != nil {
+	// unmarshal data into struct
+	if err := yaml.UnmarshalStrict(file, &payload); err != nil {
 		return errorUtils.NewWrappedError(ErrInvalidConfigurationObject, err)
 	}
-	configClient := configCmd.GetConfigClient(configuration)
+	cc := configuration.NewClient(cli)
 	if payload.Roles != nil {
-		err := processRoles(configClient, payload.Roles, cmd, payload.AllowAutoDelete)
-		if err != nil {
-			return err
-		}
+		return processRoles(cc, payload.Roles, payload.AllowAutoDelete)
 	}
 	return err
 }
 
-func findDeletedRoles(rolesInConfigFile, existingRoles []model.RoleConfig) []string {
-	ma := make(map[string]bool, len(rolesInConfigFile))
-	var deletedRoles []string
-	for _, configRole := range rolesInConfigFile {
-		ma[configRole.Name] = true
-	}
-	for _, existingRole := range existingRoles {
-		if !ma[existingRole.Name] && !existingRole.SystemDefined {
-			deletedRoles = append(deletedRoles, existingRole.Name)
+func findDeletedRoles(rolesInConfigFile, apiRoles []model.RoleConfig, environments []configClient.Environment) []model.RoleConfig {
+	var deletedRoles []model.RoleConfig
+	for _, apiRole := range apiRoles {
+		if apiRole.SystemDefined {
+			continue
+		}
+
+		_, ok := lo.Find(rolesInConfigFile, func(configRole model.RoleConfig) bool {
+			return configRoleMatchesAPIRole(configRole, apiRole, environments)
+		})
+		if !ok {
+			deletedRoles = append(deletedRoles, apiRole)
 		}
 	}
+
 	return deletedRoles
 }
 
-func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.RoleConfig, cmd *cobra.Command, allowAutoDelete bool) error {
-	//get existing rolls
+func processRoles(configClient *configuration.ConfigClient, rolesFromConfig []model.RoleConfig, allowAutoDelete bool) error {
+	//get existing roles
 	ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 	defer cancel()
 	// execute request
@@ -100,22 +102,31 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrGettingRoles, err)
 	}
+
+	environments, err := configClient.GetEnvironments(ctx)
+	if err != nil {
+		return err
+	}
+
 	//check to see if role in config file exists already, if so perform a PUT, if not perform a POST to create
 	for _, roleInConfig := range rolesFromConfig {
 		exists := false
 		for _, roleInExisting := range existingRoles {
-			if roleInConfig.Name == roleInExisting.Name {
+			if configRoleMatchesAPIRole(roleInConfig, roleInExisting, environments) {
 				exists = true
 				if !roleInExisting.SystemDefined {
 					//update existing role
 					ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 					defer cancel()
-					req, err := configCmd.UpdateRolesRequest(&roleInConfig)
+					req, err := configuration.UpdateRolesRequest(roleInExisting.ID, roleInConfig.Tenant, roleInConfig.Grants)
+					if err != nil {
+						return errorUtils.NewWrappedError(ErrUpdateRole, err)
+					}
 					_, _, err = configClient.UpdateRole(ctx, req)
 					if err != nil {
 						return errorUtils.NewWrappedError(ErrUpdateRole, err)
 					}
-					log.S().Infof("Updated Role: '%s'", roleInConfig.Name)
+					log.S().Infof("Updated Role: %s", roleInConfig.Name)
 				} else {
 					log.S().Infof("Role %s is a system role. You cannot update it via the CLI.", roleInConfig.Name)
 				}
@@ -126,7 +137,7 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 			//create new role
 			ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 			defer cancel()
-			req, err := configCmd.CreateRoleRequest(&roleInConfig)
+			req, err := configuration.CreateRoleRequest(&roleInConfig)
 			_, _, err = configClient.CreateRole(ctx, req)
 			if err != nil {
 				return errorUtils.NewWrappedError(ErrCreatingRole, err)
@@ -135,24 +146,39 @@ func processRoles(configClient *configCmd.ConfigClient, rolesFromConfig []model.
 		}
 	}
 	//Check to see if any existing roles are no longer in the config file, if so delete them
-	deletedRoles := findDeletedRoles(rolesFromConfig, existingRoles)
+	deletedRoles := findDeletedRoles(rolesFromConfig, existingRoles, environments)
 	if len(deletedRoles) > 0 && !allowAutoDelete {
 		log.S().Info("Detected the following roles that should be deleted. Doing so may be destructive.")
 		log.S().Info("You can enable deletes by setting 'allowAutoDelete' to 'true' in the configuration file.")
 	}
 	for _, deletedRole := range deletedRoles {
 		if !allowAutoDelete {
-			log.S().Info(deletedRole)
+			log.S().Info(deletedRole.Name)
 		} else {
 			ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 			defer cancel()
-			req, err := configCmd.DeleteRolesRequest(deletedRole)
+			req, err := configuration.DeleteRolesRequest(deletedRole.ID)
 			_, err = configClient.DeleteRole(ctx, req)
 			if err != nil {
 				return errorUtils.NewWrappedError(ErrDeletingRole, err)
 			}
-			log.S().Infof("Deleted role: %s", deletedRole)
+			log.S().Infof("Deleted role: %s", deletedRole.Name)
 		}
 	}
 	return nil
+}
+
+func configRoleMatchesAPIRole(configRole model.RoleConfig, apiRole model.RoleConfig, environments []configClient.Environment) bool {
+	if configRole.Tenant == "" {
+		return configRole.Name == apiRole.Name
+	}
+
+	environment, ok := lo.Find(environments, func(e configClient.Environment) bool {
+		return e.Name == configRole.Tenant
+	})
+	if !ok {
+		return false
+	}
+
+	return apiRole.EnvID == environment.ID && configRole.Name == apiRole.Name
 }

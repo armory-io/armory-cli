@@ -3,7 +3,7 @@ package config
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/armory/armory-cli/pkg/config"
+	cliconfig "github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/jarcoal/httpmock"
 	"github.com/spf13/cobra"
@@ -113,7 +113,7 @@ func getConfigGetCmdWithTmpFile(outWriter io.Writer, output string) *cobra.Comma
 	addr := "https://localhost"
 	clientId := ""
 	clientSecret := ""
-	configuration := config.New(&config.Input{
+	configuration := cliconfig.New(&cliconfig.Input{
 		AccessToken:  &token,
 		ApiAddr:      &addr,
 		ClientId:     &clientId,
