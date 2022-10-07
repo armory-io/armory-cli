@@ -2,6 +2,10 @@ package config
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
+	"time"
+
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	cliconfig "github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configuration"
@@ -12,9 +16,6 @@ import (
 	"github.com/spf13/cobra"
 	log "go.uber.org/zap"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"os"
-	"time"
 )
 
 const (
@@ -126,7 +127,7 @@ func processRoles(configClient *configuration.ConfigClient, rolesFromConfig []mo
 					if err != nil {
 						return errorUtils.NewWrappedError(ErrUpdateRole, err)
 					}
-					log.S().Infof("Updated Role: %s", roleInConfig.Name)
+					log.S().Infof("Updated role: %s", roleInConfig.Name)
 				} else {
 					log.S().Infof("Role %s is a system role. You cannot update it via the CLI.", roleInConfig.Name)
 				}
