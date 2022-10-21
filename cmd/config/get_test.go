@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	cliconfig "github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/armory/armory-cli/pkg/model/configClient"
 	"github.com/jarcoal/httpmock"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/suite"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"testing"
@@ -38,6 +38,7 @@ func (suite *ConfigGetTestSuite) TearDownSuite() {
 }
 
 func (suite *ConfigGetTestSuite) TestConfigGetUserRole() {
+	var getEnvironmentsExpected []configClient.Environment
 	getExpected := []model.RoleConfig{{
 		Name:   "test",
 		Tenant: "testTenant",
@@ -47,6 +48,10 @@ func (suite *ConfigGetTestSuite) TestConfigGetUserRole() {
 			Permission: "all",
 		}},
 	}}
+
+	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
+	}
 
 	err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet)
 	if err != nil {
@@ -59,11 +64,12 @@ func (suite *ConfigGetTestSuite) TestConfigGetUserRole() {
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
-	jsonContent, err := ioutil.ReadAll(outWriter)
+	jsonContent, err := io.ReadAll(outWriter)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
 	callCount := httpmock.GetCallCountInfo()
+	suite.Equal(1, callCount["GET /environments"])
 	suite.Equal(1, callCount["GET /roles"])
 	result := model.ConfigurationConfig{}
 	json.Unmarshal(jsonContent, &result)
@@ -72,7 +78,45 @@ func (suite *ConfigGetTestSuite) TestConfigGetUserRole() {
 	}
 }
 
+func (suite *ConfigGetTestSuite) TestConfigGetTenants() {
+	getEnvironmentsExpected := []configClient.Environment{{
+		Name: "testTenant",
+	}}
+	var getRolesExpected []model.RoleConfig
+
+	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
+	}
+
+	err := registerResponder(getRolesExpected, http.StatusOK, "/roles", http.MethodGet)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	}
+
+	outWriter := bytes.NewBufferString("")
+	cmd := getConfigGetCmdWithTmpFile(outWriter, "json")
+	err = cmd.Execute()
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	}
+	jsonContent, err := io.ReadAll(outWriter)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	}
+	callCount := httpmock.GetCallCountInfo()
+	suite.Equal(1, callCount["GET /environments"])
+	suite.Equal(1, callCount["GET /roles"])
+	result := model.ConfigurationConfig{}
+	json.Unmarshal(jsonContent, &result)
+	if len(result.Tenants) != 1 {
+		suite.T().Fatalf("expected one tenant to be retured!")
+	}
+}
+
 func (suite *ConfigGetTestSuite) TestConfigGetSystemRole() {
+	getEnvironmentsExpected := []configClient.Environment{{
+		Name: "testTenant",
+	}}
 	getExpected := []model.RoleConfig{{
 		Name:          "test",
 		Tenant:        "testTenant",
@@ -84,6 +128,9 @@ func (suite *ConfigGetTestSuite) TestConfigGetSystemRole() {
 		}},
 	}}
 
+	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
+		suite.T().Fatal(err)
+	}
 	err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
@@ -95,11 +142,12 @@ func (suite *ConfigGetTestSuite) TestConfigGetSystemRole() {
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
-	jsonContent, err := ioutil.ReadAll(outWriter)
+	jsonContent, err := io.ReadAll(outWriter)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
 	callCount := httpmock.GetCallCountInfo()
+	suite.Equal(1, callCount["GET /environments"])
 	suite.Equal(1, callCount["GET /roles"])
 	result := model.ConfigurationConfig{}
 	json.Unmarshal(jsonContent, &result)

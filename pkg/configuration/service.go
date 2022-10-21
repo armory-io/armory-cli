@@ -29,3 +29,10 @@ func CreateRoleRequest(config *model.RoleConfig) (*configClient.CreateRoleReques
 	}
 	return &req, nil
 }
+
+func CreateTenantRequest(tenant string) (configClient.CreateTenantRequest, error) {
+	req := configClient.CreateTenantRequest{
+		Name: tenant,
+	}
+	return req, nil
+}

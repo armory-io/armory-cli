@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -60,7 +59,7 @@ func apply(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Confi
 		options.configFile = gitWorkspace + options.configFile
 	}
 	// read yaml file
-	file, err := ioutil.ReadFile(options.configFile)
+	file, err := os.ReadFile(options.configFile)
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrReadingYamlFile, err)
 	}
@@ -70,10 +69,54 @@ func apply(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Confi
 		return errorUtils.NewWrappedError(ErrInvalidConfigurationObject, err)
 	}
 	cc := configuration.NewClient(cli)
+	if payload.Tenants != nil {
+		if err = processTenants(cc, payload.Tenants); err != nil {
+			return err
+		}
+	}
 	if payload.Roles != nil {
 		return processRoles(cc, payload.Roles, payload.AllowAutoDelete)
 	}
 	return err
+}
+
+func processTenants(configClient *configuration.ConfigClient, tenants []string) error {
+	// get existing tenants
+	ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
+	defer cancel()
+	// execute request
+	existingTenants, err := configClient.GetEnvironments(ctx)
+	if err != nil {
+		return errorUtils.NewWrappedError(ErrGettingTenants, err)
+	}
+
+	// check to see if tenants in config file exists already, if not perform a POST to create
+	for _, tenant := range tenants {
+		if !configTenantMatchesAPITenants(tenant, existingTenants) {
+			// create new tenant
+			ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
+			defer cancel()
+
+			req, err := configuration.CreateTenantRequest(tenant)
+			if err != nil {
+				return errorUtils.NewWrappedError(ErrCreatingTenant, err)
+			}
+			_, _, err = configClient.CreateEnvironment(ctx, req)
+			if err != nil {
+				return errorUtils.NewWrappedError(ErrCreatingTenant, err)
+			}
+			log.S().Infof("Created tenant: %s", tenant)
+		}
+	}
+
+	return nil
+}
+
+func configTenantMatchesAPITenants(tenant string, existingTenants []configClient.Environment) bool {
+	_, exists := lo.Find(existingTenants, func(et configClient.Environment) bool {
+		return tenant == et.Name
+	})
+	return exists
 }
 
 func findDeletedRoles(rolesInConfigFile, apiRoles []model.RoleConfig, environments []configClient.Environment) []model.RoleConfig {
@@ -106,7 +149,7 @@ func processRoles(configClient *configuration.ConfigClient, rolesFromConfig []mo
 
 	environments, err := configClient.GetEnvironments(ctx)
 	if err != nil {
-		return err
+		return errorUtils.NewWrappedError(ErrGettingRoles, err)
 	}
 
 	//check to see if role in config file exists already, if so perform a PUT, if not perform a POST to create

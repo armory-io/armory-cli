@@ -162,3 +162,31 @@ func (c *ConfigClient) GetEnvironments(ctx context.Context) ([]configClient.Envi
 
 	return environments, nil
 }
+
+func (c *ConfigClient) CreateEnvironment(ctx context.Context, request configClient.CreateTenantRequest) (*configClient.CreateTenantResponse, *http.Response, error) {
+	reqBytes, err := json.Marshal(request)
+	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodPost, "/tenants", bytes.NewReader(reqBytes))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	resp, err := c.ArmoryCloudClient.Http.Do(req)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, resp, &configError{response: resp}
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	var tenant configClient.CreateTenantResponse
+	if err := json.Unmarshal(bodyBytes, &tenant); err != nil {
+		return nil, resp, err
+	}
+	return &tenant, resp, nil
+}
