@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"context"
 	configCmd "github.com/armory/armory-cli/cmd/config"
 	"github.com/armory/armory-cli/cmd/deploy"
 	"github.com/armory/armory-cli/cmd/login"
@@ -11,10 +12,15 @@ import (
 	"github.com/armory/armory-cli/cmd/version"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
+	"github.com/armory/armory-cli/pkg/output"
+	"github.com/fatih/color"
+	"github.com/google/go-github/v48/github"
 	"github.com/spf13/cobra"
 	log "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"io"
+	"net/http"
+	"time"
 )
 
 func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
@@ -50,6 +56,8 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 		OutFormat:    outFormat,
 		IsTest:       test,
 	})
+
+	CheckForUpdate(configuration)
 
 	rootCmd.AddCommand(version.NewCmdVersion())
 	rootCmd.AddCommand(deploy.NewDeployCmd(configuration))
@@ -96,4 +104,22 @@ func configureLogging(verboseFlag, isTest bool, cmd *cobra.Command) {
 	defer logger.Sync()
 	log.ReplaceGlobals(logger)
 
+}
+
+func CheckForUpdate(cli *config.Configuration) {
+	ctx := context.Background()
+	currentVersion := version.Version
+	http := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+	ghClient := github.NewClient(http)
+	currentRelease, _, err := ghClient.Repositories.GetLatestRelease(ctx, "armory-io", "armory-cli")
+	if err != nil {
+		return
+	}
+	if (*currentRelease.TagName != currentVersion) || (currentVersion == "development") && cli.GetOutputType() == output.Text {
+		color.Set(color.BgGreen)
+		log.S().Infof("\nA new version of the Armory CLI, %s, is available. Please upgrade your cli by running avm install \n", *currentRelease.TagName)
+		color.Unset()
+	}
 }
