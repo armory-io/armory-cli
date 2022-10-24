@@ -117,7 +117,7 @@ func CheckForUpdate(cli *config.Configuration) {
 	if err != nil {
 		return
 	}
-	if (*currentRelease.TagName != currentVersion) || (currentVersion == "development") && cli.GetOutputType() == output.Text {
+	if ((*currentRelease.TagName != currentVersion) || (currentVersion == "development")) && cli.GetOutputType() == output.Text {
 		color.Set(color.BgGreen)
 		log.S().Infof("\nA new version of the Armory CLI, %s, is available. Please upgrade your cli by running avm install \n", *currentRelease.TagName)
 		color.Unset()
