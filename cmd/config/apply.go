@@ -90,10 +90,10 @@ func processEnvironments(configClient *configuration.ConfigClient, environments 
 		return errorUtils.NewWrappedError(ErrGettingEnvironments, err)
 	}
 
-	// check to see if tenants in config file exists already, if not perform a POST to create
+	// check to see if environments in config file exists already, if not perform a POST to create
 	for _, environment := range environments {
 		if !configEnvironmentMatchesAPIEnvironments(environment, existingEnvironments) {
-			// create new tenant
+			// create new environment
 			ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 			defer cancel()
 
