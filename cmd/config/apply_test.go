@@ -8,6 +8,7 @@ import (
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/jarcoal/httpmock"
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"io"
 	"net/http"
@@ -46,12 +47,8 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyCreateTenant() {
 		Name: "testTenant2",
 	}
 
-	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(postExpected, http.StatusCreated, "/environments", http.MethodPost); err != nil {
-		suite.T().Fatal(err)
-	}
+	assert.NoError(suite.T(), registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(postExpected, http.StatusCreated, "/environments", http.MethodPost))
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForCreateTenants)
 	if tempFile == nil {
@@ -85,15 +82,10 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyCreateRole() {
 			Permission: "all",
 		},
 		}}
-	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(postExpected, http.StatusCreated, "/roles", http.MethodPost); err != nil {
-		suite.T().Fatal(err)
-	}
+
+	assert.NoError(suite.T(), registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(postExpected, http.StatusCreated, "/roles", http.MethodPost))
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForCreate)
 	if tempFile == nil {
@@ -139,15 +131,10 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyUpdateRole() {
 			Permission: "full",
 		},
 		}}
-	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(putExpected, http.StatusOK, "/roles/test-role-id", http.MethodPut); err != nil {
-		suite.T().Fatal(err)
-	}
+
+	assert.NoError(suite.T(), registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(putExpected, http.StatusOK, "/roles/test-role-id", http.MethodPut))
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForUpdate)
 	if tempFile == nil {
@@ -186,12 +173,8 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyUpdateOfSystemRoleIsBlocked() 
 		ID:   "env-id",
 	}}
 
-	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
+	assert.NoError(suite.T(), registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet))
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForUpdate)
 	if tempFile == nil {
@@ -230,12 +213,8 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteOfSystemRoleIsBlocked() 
 		ID:   "env-id",
 	}}
 
-	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
+	assert.NoError(suite.T(), registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet))
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForDeleteSystemRoles)
 	if tempFile == nil {
@@ -302,18 +281,11 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleAllowAutoDelete() {
 			Permission: "all",
 		},
 		}}
-	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(putExpected, http.StatusOK, "/roles/role-id-1", http.MethodPut); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(deleteExpected, http.StatusNoContent, "/roles/role-id-2", http.MethodDelete); err != nil {
-		suite.T().Fatal(err)
-	}
+
+	assert.NoError(suite.T(), registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(putExpected, http.StatusOK, "/roles/role-id-1", http.MethodPut))
+	assert.NoError(suite.T(), registerResponder(deleteExpected, http.StatusNoContent, "/roles/role-id-2", http.MethodDelete))
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForDeleteAllowAutoDelete)
 	if tempFile == nil {
@@ -377,15 +349,10 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleDontAllowAutoDelete(
 			Permission: "all",
 		},
 		}}
-	if err := registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
-		suite.T().Fatal(err)
-	}
-	if err := registerResponder(putExpected, http.StatusOK, "/roles/role-id-1", http.MethodPut); err != nil {
-		suite.T().Fatal(err)
-	}
+
+	assert.NoError(suite.T(), registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(putExpected, http.StatusOK, "/roles/role-id-1", http.MethodPut))
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForDeleteDontAllowAutoDelete)
 	if tempFile == nil {
