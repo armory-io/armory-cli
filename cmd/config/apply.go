@@ -149,7 +149,7 @@ func processRoles(configClient *configuration.ConfigClient, rolesFromConfig []mo
 
 	environments, err := configClient.GetEnvironments(ctx)
 	if err != nil {
-		return errorUtils.NewWrappedError(ErrGettingRoles, err)
+		return errorUtils.NewWrappedError(ErrGettingEnvironments, err)
 	}
 
 	//check to see if role in config file exists already, if so perform a PUT, if not perform a POST to create
