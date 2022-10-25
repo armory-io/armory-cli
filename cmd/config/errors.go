@@ -11,5 +11,7 @@ var (
 	ErrCreatingRole               = errors.New("error trying to create role")
 	ErrDeletingRole               = errors.New("error trying to delete role")
 	ErrGettingRoles               = errors.New("error getting existing roles")
+	ErrCreatingEnvironment        = errors.New("error trying to create environment")
+	ErrGettingEnvironments        = errors.New("error getting environments")
 	ErrParsingGetConfigResponse   = errors.New("error trying to parse response")
 )

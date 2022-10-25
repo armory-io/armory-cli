@@ -29,3 +29,9 @@ func CreateRoleRequest(config *model.RoleConfig) (*configClient.CreateRoleReques
 	}
 	return &req, nil
 }
+
+func CreateEnvironmentRequest(environment string) configClient.CreateEnvironmentRequest {
+	return configClient.CreateEnvironmentRequest{
+		Name: environment,
+	}
+}

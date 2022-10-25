@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -60,7 +59,7 @@ func apply(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Confi
 		options.configFile = gitWorkspace + options.configFile
 	}
 	// read yaml file
-	file, err := ioutil.ReadFile(options.configFile)
+	file, err := os.ReadFile(options.configFile)
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrReadingYamlFile, err)
 	}
@@ -70,10 +69,50 @@ func apply(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Confi
 		return errorUtils.NewWrappedError(ErrInvalidConfigurationObject, err)
 	}
 	cc := configuration.NewClient(cli)
+	if payload.Environments != nil {
+		if err = processEnvironments(cc, payload.Environments); err != nil {
+			return err
+		}
+	}
 	if payload.Roles != nil {
 		return processRoles(cc, payload.Roles, payload.AllowAutoDelete)
 	}
 	return err
+}
+
+func processEnvironments(configClient *configuration.ConfigClient, environments []string) error {
+	// get existing environments
+	ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
+	defer cancel()
+	// execute request
+	existingEnvironments, err := configClient.GetEnvironments(ctx)
+	if err != nil {
+		return errorUtils.NewWrappedError(ErrGettingEnvironments, err)
+	}
+
+	// check to see if environments in config file exists already, if not perform a POST to create
+	for _, environment := range environments {
+		if !configEnvironmentMatchesAPIEnvironments(environment, existingEnvironments) {
+			// create new environment
+			ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
+			defer cancel()
+
+			_, _, err = configClient.CreateEnvironment(ctx, configuration.CreateEnvironmentRequest(environment))
+			if err != nil {
+				return errorUtils.NewWrappedError(ErrCreatingEnvironment, err)
+			}
+			log.S().Infof("Created tenant: %s", environment)
+		}
+	}
+
+	return nil
+}
+
+func configEnvironmentMatchesAPIEnvironments(environment string, existingEnvironments []configClient.Environment) bool {
+	_, exists := lo.Find(existingEnvironments, func(ee configClient.Environment) bool {
+		return environment == ee.Name
+	})
+	return exists
 }
 
 func findDeletedRoles(rolesInConfigFile, apiRoles []model.RoleConfig, environments []configClient.Environment) []model.RoleConfig {
@@ -106,7 +145,7 @@ func processRoles(configClient *configuration.ConfigClient, rolesFromConfig []mo
 
 	environments, err := configClient.GetEnvironments(ctx)
 	if err != nil {
-		return err
+		return errorUtils.NewWrappedError(ErrGettingEnvironments, err)
 	}
 
 	//check to see if role in config file exists already, if so perform a PUT, if not perform a POST to create

@@ -3,16 +3,19 @@ package config
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	cliconfig "github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configuration"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
+	configClientModel "github.com/armory/armory-cli/pkg/model/configClient"
 	"github.com/armory/armory-cli/pkg/output"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
-	_nethttp "net/http"
-	"os"
-	"time"
 )
 
 const (
@@ -54,8 +57,13 @@ func get(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Configu
 	ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 	defer cancel()
 	// execute request
+	environments, err := configClient.GetEnvironments(ctx)
+	if err != nil {
+		return errorUtils.NewWrappedError(ErrGettingEnvironments, err)
+	}
+
 	roles, resp, err := configClient.GetRoles(ctx)
-	dataFormat, err := cli.GetOutputFormatter()(newGetConfigWrapper(roles, resp, err))
+	dataFormat, err := cli.GetOutputFormatter()(newGetConfigWrapper(environments, roles, resp, err))
 
 	cmd.SilenceUsage = true
 	if err != nil {
@@ -66,8 +74,8 @@ func get(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Configu
 }
 
 type FormattableConfiguration struct {
-	Configuration model.ConfiguationOutput `json:"roles" yaml:"roles"`
-	httpResponse  *_nethttp.Response
+	Configuration model.ConfigurationOutput `json:"roles" yaml:"roles"`
+	httpResponse  *http.Response
 	err           error
 }
 
@@ -75,7 +83,7 @@ func (u FormattableConfiguration) Get() interface{} {
 	return u.Configuration
 }
 
-func (u FormattableConfiguration) GetHttpResponse() *_nethttp.Response {
+func (u FormattableConfiguration) GetHttpResponse() *http.Response {
 	return u.httpResponse
 }
 
@@ -83,16 +91,22 @@ func (u FormattableConfiguration) GetFetchError() error {
 	return u.err
 }
 
-func newGetConfigWrapper(rawRoles []model.RoleConfig, response *_nethttp.Response, err error) FormattableConfiguration {
+func newGetConfigWrapper(rawEnvironments []configClientModel.Environment, rawRoles []model.RoleConfig, response *http.Response, err error) FormattableConfiguration {
 	userOnlyRoles := make([]model.RoleConfig, 0)
 	for _, role := range rawRoles {
 		if !role.SystemDefined {
 			userOnlyRoles = append(userOnlyRoles, role)
 		}
 	}
+
+	environments := lo.Map(rawEnvironments, func(environment configClientModel.Environment, _ int) string {
+		return environment.Name
+	})
+
 	wrapper := FormattableConfiguration{
-		Configuration: model.ConfiguationOutput{
-			Roles: userOnlyRoles,
+		Configuration: model.ConfigurationOutput{
+			Environments: environments,
+			Roles:        userOnlyRoles,
 		},
 		httpResponse: response,
 		err:          err,
