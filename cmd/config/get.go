@@ -59,7 +59,7 @@ func get(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Configu
 	// execute request
 	environments, err := configClient.GetEnvironments(ctx)
 	if err != nil {
-		return errorUtils.NewWrappedError(ErrGettingTenants, err)
+		return errorUtils.NewWrappedError(ErrGettingEnvironments, err)
 	}
 
 	roles, resp, err := configClient.GetRoles(ctx)

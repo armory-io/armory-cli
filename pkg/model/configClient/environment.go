@@ -6,12 +6,12 @@ type Environment struct {
 	OrgID string `json:"orgId"`
 }
 
-type CreateTenantRequest struct {
+type CreateEnvironmentRequest struct {
 	Name string `json:"name"`
 }
 
-type CreateTenantResponse struct {
-	ID    string `json:"tenantID"`
+type CreateEnvironmentResponse struct {
+	ID    string `json:"tenantId"`
 	Name  string `json:"name"`
 	Roles []any  `json:"roles"`
 }

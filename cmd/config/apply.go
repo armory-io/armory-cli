@@ -70,7 +70,7 @@ func apply(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Confi
 	}
 	cc := configuration.NewClient(cli)
 	if payload.Tenants != nil {
-		if err = processTenants(cc, payload.Tenants); err != nil {
+		if err = processEnvironments(cc, payload.Tenants); err != nil {
 			return err
 		}
 	}
@@ -80,41 +80,41 @@ func apply(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Confi
 	return err
 }
 
-func processTenants(configClient *configuration.ConfigClient, tenants []string) error {
-	// get existing tenants
+func processEnvironments(configClient *configuration.ConfigClient, environments []string) error {
+	// get existing environments
 	ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 	defer cancel()
 	// execute request
-	existingTenants, err := configClient.GetEnvironments(ctx)
+	existingEnvironments, err := configClient.GetEnvironments(ctx)
 	if err != nil {
-		return errorUtils.NewWrappedError(ErrGettingTenants, err)
+		return errorUtils.NewWrappedError(ErrGettingEnvironments, err)
 	}
 
 	// check to see if tenants in config file exists already, if not perform a POST to create
-	for _, tenant := range tenants {
-		if !configTenantMatchesAPITenants(tenant, existingTenants) {
+	for _, environment := range environments {
+		if !configEnvironmentMatchesAPIEnvironments(environment, existingEnvironments) {
 			// create new tenant
 			ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 			defer cancel()
 
-			req, err := configuration.CreateTenantRequest(tenant)
+			req, err := configuration.CreateEnvironmentRequest(environment)
 			if err != nil {
-				return errorUtils.NewWrappedError(ErrCreatingTenant, err)
+				return errorUtils.NewWrappedError(ErrCreatingEnvironment, err)
 			}
 			_, _, err = configClient.CreateEnvironment(ctx, req)
 			if err != nil {
-				return errorUtils.NewWrappedError(ErrCreatingTenant, err)
+				return errorUtils.NewWrappedError(ErrCreatingEnvironment, err)
 			}
-			log.S().Infof("Created tenant: %s", tenant)
+			log.S().Infof("Created tenant: %s", environment)
 		}
 	}
 
 	return nil
 }
 
-func configTenantMatchesAPITenants(tenant string, existingTenants []configClient.Environment) bool {
-	_, exists := lo.Find(existingTenants, func(et configClient.Environment) bool {
-		return tenant == et.Name
+func configEnvironmentMatchesAPIEnvironments(environment string, existingEnvironments []configClient.Environment) bool {
+	_, exists := lo.Find(existingEnvironments, func(ee configClient.Environment) bool {
+		return environment == ee.Name
 	})
 	return exists
 }

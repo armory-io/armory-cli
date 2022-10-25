@@ -30,9 +30,9 @@ func CreateRoleRequest(config *model.RoleConfig) (*configClient.CreateRoleReques
 	return &req, nil
 }
 
-func CreateTenantRequest(tenant string) (configClient.CreateTenantRequest, error) {
-	req := configClient.CreateTenantRequest{
-		Name: tenant,
+func CreateEnvironmentRequest(environment string) (configClient.CreateEnvironmentRequest, error) {
+	req := configClient.CreateEnvironmentRequest{
+		Name: environment,
 	}
 	return req, nil
 }

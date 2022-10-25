@@ -41,7 +41,7 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyCreateTenant() {
 	getEnvironmentsExpected := []configClient.Environment{{
 		Name: "testTenant",
 	}}
-	postExpected := configClient.CreateTenantResponse{
+	postExpected := configClient.CreateEnvironmentResponse{
 		ID:   "04f1a35f-4f55-4d3b-875d-26e35413ba76",
 		Name: "testTenant2",
 	}
@@ -49,7 +49,7 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyCreateTenant() {
 	if err := registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet); err != nil {
 		suite.T().Fatal(err)
 	}
-	if err := registerResponder(postExpected, http.StatusCreated, "/tenants", http.MethodPost); err != nil {
+	if err := registerResponder(postExpected, http.StatusCreated, "/environments", http.MethodPost); err != nil {
 		suite.T().Fatal(err)
 	}
 
@@ -68,7 +68,7 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyCreateTenant() {
 	}
 	callCount := httpmock.GetCallCountInfo()
 	suite.Equal(1, callCount["GET /environments"])
-	suite.Equal(1, callCount["POST /tenants"])
+	suite.Equal(1, callCount["POST /environments"])
 }
 
 func (suite *ConfigApplyTestSuite) TestConfigApplyCreateRole() {
