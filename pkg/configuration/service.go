@@ -30,9 +30,8 @@ func CreateRoleRequest(config *model.RoleConfig) (*configClient.CreateRoleReques
 	return &req, nil
 }
 
-func CreateEnvironmentRequest(environment string) (configClient.CreateEnvironmentRequest, error) {
-	req := configClient.CreateEnvironmentRequest{
+func CreateEnvironmentRequest(environment string) configClient.CreateEnvironmentRequest {
+	return configClient.CreateEnvironmentRequest{
 		Name: environment,
 	}
-	return req, nil
 }

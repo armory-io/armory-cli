@@ -3,7 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
-	_nethttp "net/http"
+	"net/http"
 	"os"
 	"time"
 
@@ -75,7 +75,7 @@ func get(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Configu
 
 type FormattableConfiguration struct {
 	Configuration model.ConfigurationOutput `json:"roles" yaml:"roles"`
-	httpResponse  *_nethttp.Response
+	httpResponse  *http.Response
 	err           error
 }
 
@@ -83,7 +83,7 @@ func (u FormattableConfiguration) Get() interface{} {
 	return u.Configuration
 }
 
-func (u FormattableConfiguration) GetHttpResponse() *_nethttp.Response {
+func (u FormattableConfiguration) GetHttpResponse() *http.Response {
 	return u.httpResponse
 }
 
@@ -91,7 +91,7 @@ func (u FormattableConfiguration) GetFetchError() error {
 	return u.err
 }
 
-func newGetConfigWrapper(rawEnvironments []configClientModel.Environment, rawRoles []model.RoleConfig, response *_nethttp.Response, err error) FormattableConfiguration {
+func newGetConfigWrapper(rawEnvironments []configClientModel.Environment, rawRoles []model.RoleConfig, response *http.Response, err error) FormattableConfiguration {
 	userOnlyRoles := make([]model.RoleConfig, 0)
 	for _, role := range rawRoles {
 		if !role.SystemDefined {

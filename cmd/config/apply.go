@@ -97,11 +97,7 @@ func processEnvironments(configClient *configuration.ConfigClient, environments 
 			ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 			defer cancel()
 
-			req, err := configuration.CreateEnvironmentRequest(environment)
-			if err != nil {
-				return errorUtils.NewWrappedError(ErrCreatingEnvironment, err)
-			}
-			_, _, err = configClient.CreateEnvironment(ctx, req)
+			_, _, err = configClient.CreateEnvironment(ctx, configuration.CreateEnvironmentRequest(environment))
 			if err != nil {
 				return errorUtils.NewWrappedError(ErrCreatingEnvironment, err)
 			}
