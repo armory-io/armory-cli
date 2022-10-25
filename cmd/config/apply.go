@@ -69,8 +69,8 @@ func apply(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Confi
 		return errorUtils.NewWrappedError(ErrInvalidConfigurationObject, err)
 	}
 	cc := configuration.NewClient(cli)
-	if payload.Tenants != nil {
-		if err = processEnvironments(cc, payload.Tenants); err != nil {
+	if payload.Environments != nil {
+		if err = processEnvironments(cc, payload.Environments); err != nil {
 			return err
 		}
 	}

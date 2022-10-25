@@ -2,13 +2,13 @@ package model
 
 type ConfigurationConfig struct {
 	AllowAutoDelete bool         `yaml:"allowAutoDelete"`
-	Tenants         []string     `yaml:"tenants,omitempty"`
+	Environments    []string     `yaml:"tenants,omitempty"`
 	Roles           []RoleConfig `yaml:"roles,omitempty"`
 }
 
 type ConfigurationOutput struct {
-	Tenants []string     `yaml:"tenants,omitempty"`
-	Roles   []RoleConfig `yaml:"roles,omitempty"`
+	Environments []string     `yaml:"tenants,omitempty"`
+	Roles        []RoleConfig `yaml:"roles,omitempty"`
 }
 
 type RoleConfig struct {

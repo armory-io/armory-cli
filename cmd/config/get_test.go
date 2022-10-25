@@ -108,7 +108,7 @@ func (suite *ConfigGetTestSuite) TestConfigGetTenants() {
 	suite.Equal(1, callCount["GET /roles"])
 	result := model.ConfigurationConfig{}
 	json.Unmarshal(jsonContent, &result)
-	if len(result.Tenants) != 1 {
+	if len(result.Environments) != 1 {
 		suite.T().Fatalf("expected one tenant to be retured!")
 	}
 }

@@ -99,14 +99,14 @@ func newGetConfigWrapper(rawEnvironments []configClientModel.Environment, rawRol
 		}
 	}
 
-	tenants := lo.Map(rawEnvironments, func(environment configClientModel.Environment, _ int) string {
+	environments := lo.Map(rawEnvironments, func(environment configClientModel.Environment, _ int) string {
 		return environment.Name
 	})
 
 	wrapper := FormattableConfiguration{
 		Configuration: model.ConfigurationOutput{
-			Tenants: tenants,
-			Roles:   userOnlyRoles,
+			Environments: environments,
+			Roles:        userOnlyRoles,
 		},
 		httpResponse: response,
 		err:          err,
