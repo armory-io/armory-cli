@@ -9,10 +9,9 @@ import (
 	"github.com/armory/armory-cli/pkg/config"
 	deployment "github.com/armory/armory-cli/pkg/deploy"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
-	"github.com/armory/armory-cli/pkg/model"
 	"github.com/spf13/cobra"
 	log "go.uber.org/zap"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	_nethttp "net/http"
 	"os"
@@ -94,7 +93,6 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	if *configuration.GetIsTest() {
 		utils.ConfigureLoggingForTesting(cmd)
 	}
-	payload := model.OrchestrationConfig{}
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
@@ -108,25 +106,9 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	}
 	cmd.SilenceUsage = true
 	// unmarshall data into struct
-	err = yaml.UnmarshalStrict(file, &payload)
-	if err != nil {
+	var payload map[string]any
+	if err = yaml.Unmarshal(file, &payload); err != nil {
 		return errorUtils.NewWrappedError(ErrInvalidDeploymentObject, err)
-	}
-	applicationOpt := options.application
-	var application string
-	if len(applicationOpt) > 0 {
-		application = applicationOpt
-	} else {
-		application = payload.Application
-	}
-
-	if len(application) < 1 {
-		return ErrNoApplicationNameDefined
-	}
-
-	dep, err := deployment.CreateDeploymentRequest(application, &payload, options.context)
-	if err != nil {
-		return errorUtils.NewWrappedError(ErrDeploymentObjectConversion, err)
 	}
 
 	deployClient := deployment.GetDeployClient(configuration)
@@ -134,7 +116,11 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Minute)
 	defer cancel()
 	// execute request
-	raw, response, err := deployClient.StartPipeline(ctx, dep)
+	raw, response, err := deployClient.StartPipeline(ctx, deployment.StartPipelineOptions{
+		UnstructuredDeployment:  payload,
+		ApplicationNameOverride: options.application,
+		ContextOverrides:        options.context,
+	})
 	// create response object
 	deploy := newDeployStartResponse(raw, response, err)
 	// format response

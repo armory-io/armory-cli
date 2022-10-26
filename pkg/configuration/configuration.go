@@ -28,7 +28,7 @@ func NewClient(configuration *cliconfig.Configuration) *ConfigClient {
 
 func (c *ConfigClient) CreateRole(ctx context.Context, request *configClient.CreateRoleRequest) (*configClient.CreateRoleResponse, *http.Response, error) {
 	reqBytes, err := json.Marshal(request)
-	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodPost, fmt.Sprintf("/roles"), bytes.NewReader(reqBytes))
+	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodPost, fmt.Sprintf("/roles"), bytes.NewReader(reqBytes))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -56,7 +56,7 @@ func (c *ConfigClient) CreateRole(ctx context.Context, request *configClient.Cre
 
 func (c *ConfigClient) UpdateRole(ctx context.Context, request *configClient.UpdateRoleRequest) (*configClient.UpdateRoleResponse, *http.Response, error) {
 	reqBytes, err := json.Marshal(request)
-	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodPut, fmt.Sprintf("/roles/%s", request.ID), bytes.NewReader(reqBytes))
+	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodPut, fmt.Sprintf("/roles/%s", request.ID), bytes.NewReader(reqBytes))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -83,7 +83,7 @@ func (c *ConfigClient) UpdateRole(ctx context.Context, request *configClient.Upd
 }
 
 func (c *ConfigClient) GetRoles(ctx context.Context) ([]model.RoleConfig, *http.Response, error) {
-	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodGet, fmt.Sprintf("/roles"), nil)
+	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodGet, fmt.Sprintf("/roles"), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -123,7 +123,7 @@ func (d *configError) Error() string {
 
 func (c *ConfigClient) DeleteRole(ctx context.Context, request *configClient.DeleteRoleRequest) (*http.Response, error) {
 	reqBytes, err := json.Marshal(request)
-	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodDelete, fmt.Sprintf("/roles/%s", request.ID), bytes.NewReader(reqBytes))
+	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodDelete, fmt.Sprintf("/roles/%s", request.ID), bytes.NewReader(reqBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (c *ConfigClient) DeleteRole(ctx context.Context, request *configClient.Del
 }
 
 func (c *ConfigClient) GetEnvironments(ctx context.Context) ([]configClient.Environment, error) {
-	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodGet, "/environments", nil)
+	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodGet, "/environments", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func (c *ConfigClient) GetEnvironments(ctx context.Context) ([]configClient.Envi
 
 func (c *ConfigClient) CreateEnvironment(ctx context.Context, request configClient.CreateEnvironmentRequest) (*configClient.CreateEnvironmentResponse, *http.Response, error) {
 	reqBytes, err := json.Marshal(request)
-	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodPost, "/environments", bytes.NewReader(reqBytes))
+	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodPost, "/environments", bytes.NewReader(reqBytes))
 	if err != nil {
 		return nil, nil, err
 	}

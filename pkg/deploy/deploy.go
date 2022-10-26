@@ -28,7 +28,7 @@ func GetDeployClient(configuration *config.Configuration) *DeployClient {
 var source = "armory-cli"
 
 func (c *DeployClient) PipelineStatus(ctx context.Context, pipelineID string) (*api.PipelineStatusResponse, *http.Response, error) {
-	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodGet, fmt.Sprintf("/pipelines/%s", pipelineID), nil)
+	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodGet, fmt.Sprintf("/pipelines/%s", pipelineID), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -55,7 +55,7 @@ func (c *DeployClient) PipelineStatus(ctx context.Context, pipelineID string) (*
 }
 
 func (c *DeployClient) DeploymentStatus(ctx context.Context, deploymentID string) (*api.DeploymentStatusResponse, *http.Response, error) {
-	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodGet, fmt.Sprintf("/deployments/%s", deploymentID), nil)
+	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodGet, fmt.Sprintf("/deployments/%s", deploymentID), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -81,13 +81,24 @@ func (c *DeployClient) DeploymentStatus(ctx context.Context, deploymentID string
 	return &deployment, resp, nil
 }
 
-func (c *DeployClient) StartPipeline(ctx context.Context, request *api.StartPipelineRequest) (*api.StartPipelineResponse, *http.Response, error) {
+func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineOptions) (*api.StartPipelineResponse, *http.Response, error) {
+	request, err := convertPipelineOptionsToAPIRequest(options)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	reqBytes, err := json.Marshal(request)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	req, err := c.ArmoryCloudClient.Request(ctx, http.MethodPost, "/pipelines/kubernetes", bytes.NewReader(reqBytes))
+	req, err := c.ArmoryCloudClient.Request(ctx,
+		armoryCloud.WithMethod(http.MethodPost),
+		armoryCloud.WithPath("/pipelines/kubernetes"),
+		armoryCloud.WithHeader("Content-Type", "application/vnd.start.kubernetes.pipeline.v2+json"),
+		armoryCloud.WithHeader("Accept", "application/vnd.start.kubernetes.pipeline.v2+json"),
+		armoryCloud.WithBody(bytes.NewReader(reqBytes)),
+	)
 	if err != nil {
 		return nil, nil, err
 	}
