@@ -170,11 +170,11 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnE
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
 	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
-	err = cmd.Execute()
-	if err == nil {
-		suite.T().Fatal("TestWhenTheManifestAndFlagDoNotHaveAppNameAnErrorIsRaised failed with: error should not be null")
-	}
-	suite.EqualError(err, "application name must be defined in deployment file or by application opt")
+	cmd.Execute()
+
+	msg, err := io.ReadAll(outWriter)
+	suite.NoError(err)
+	suite.Contains(string(msg), "application name must be defined in deployment file or by application opt")
 }
 
 func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameButFlagIsSuppliedAnErrorIsNotRaised() {
