@@ -105,7 +105,12 @@ func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineO
 
 	resp, err := c.ArmoryCloudClient.Http.Do(req)
 	if err != nil {
-		return nil, resp, &deployError{response: resp}
+		if resp != nil {
+			return nil, resp, &deployError{response: resp}
+		} else {
+			return nil, nil, &networkError{}
+		}
+
 	}
 
 	if resp.StatusCode != http.StatusAccepted {
@@ -134,4 +139,11 @@ func (d *deployError) Error() string {
 		return fmt.Sprintf("could not read HTTP response body: %s", err)
 	}
 	return string(responseBytes)
+}
+
+type networkError struct {
+}
+
+func (d *networkError) Error() string {
+	return "Unable to reach Armory Continuous Delivery as A Service. Please check your internet connection and try again. "
 }

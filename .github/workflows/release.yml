@@ -1,9 +1,10 @@
+name: Release
+
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
 
-name: Build and Release
 jobs:
   setup:
     env:
@@ -12,7 +13,7 @@ jobs:
       GRGIT_PASS: ${{ secrets.GITHUB_TOKEN }}
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.push_tag.outputs.new_tag }}
+      version: ${{ github.ref }}
       changelog: ${{ steps.changelog.outputs.CHANGELOG }}
     steps:
       - name: Checkout Code
@@ -21,28 +22,15 @@ jobs:
       - name: Fetch full history
         run: git fetch --prune --tags --unshallow
 
-      - name: Create Tag
-        id: push_tag
-        uses: mathieudutour/github-tag-action@v5.3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          default_bump: patch
-          release_branches: main
-          create_annotated_tag: false
-          append_to_pre_release_tag: rc
-
-      - name: Fetch Refresh
-        run: git fetch --prune --tags
-
       - name: Generate Changelog
         id: changelog
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          export NEW_TAG="${{ steps.push_tag.outputs.new_tag }}"
+          export NEW_TAG="${{ github.ref }}"
           echo "NEW_TAG=$NEW_TAG"
 
-          export PREVIOUS_TAG="${{ steps.push_tag.outputs.previous_tag }}"
+          export PREVIOUS_TAG=$(git describe --abbrev=0 --tags "${NEW_TAG}"^ --match 'v[0-9]*')
           echo "PREVIOUS_TAG=$PREVIOUS_TAG"
 
           export CHANGELOG=`git log $NEW_TAG...$PREVIOUS_TAG --oneline`
@@ -60,7 +48,7 @@ jobs:
       - setup
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.push_tag.outputs.new_tag }}
+      version: ${{ github.ref }}
       changelog: ${{ steps.changelog.outputs.CHANGELOG }}
     steps:
       - name: Get GitHub App Installation Token for Private Go Repos
@@ -75,12 +63,10 @@ jobs:
         with:
           fetch-depth: 1
 
-      # TODO: remove when Go 1.18 has been released.
       - name: Setup Go environment
         uses: actions/setup-go@v2.1.4
         with:
-          go-version: '1.18.0-rc1'
-          stable: false
+          go-version: '1.18.1'
 
       - name: Cache Dependencies
         uses: actions/cache@v2
@@ -158,12 +144,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      # TODO: remove when Go 1.18 has been released.
       - name: Setup Go environment
         uses: actions/setup-go@v2.1.4
         with:
-          go-version: '1.18.0-rc1'
-          stable: false
+          go-version: '1.18.1'
 
       - name: Cache Dependencies
         uses: actions/cache@v2
@@ -176,7 +160,6 @@ jobs:
         env:
           TOKEN: ${{ steps.get_token.outputs.app_token }}
         run: git config --global url."https://x-access-token:${TOKEN}@github.com".insteadOf "https://github.com"
-
 
       - name: Build CLI
         env:
@@ -192,7 +175,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create-release.outputs.release-url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
+          upload_url: ${{ needs.create-release.outputs.release-url }} # This pulls from the CREATE RELEASE step above, referencing its ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: ./build/dist/${{ matrix.os }}_${{ matrix.arch }}/armory${{ matrix.ext }}
           asset_name: armory-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
           asset_content_type: binary/octet-stream
@@ -275,6 +258,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILD_PATH=./build/dist/linux_amd64/armory
+
   scan-image:
     name: CVE Image Scan
     needs:
