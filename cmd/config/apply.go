@@ -14,7 +14,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	log "go.uber.org/zap"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -65,7 +65,7 @@ func apply(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Confi
 	}
 	cmd.SilenceUsage = true
 	// unmarshal data into struct
-	if err := yaml.UnmarshalStrict(file, &payload); err != nil {
+	if err := yaml.Unmarshal(file, &payload); err != nil {
 		return errorUtils.NewWrappedError(ErrInvalidConfigurationObject, err)
 	}
 	cc := configuration.NewClient(cli)
