@@ -13,7 +13,7 @@ jobs:
       GRGIT_PASS: ${{ secrets.GITHUB_TOKEN }}
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ github.ref }}
+      version: ${{ github.ref_name }}
       changelog: ${{ steps.changelog.outputs.CHANGELOG }}
     steps:
       - name: Checkout Code
@@ -27,7 +27,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          export NEW_TAG="${{ github.ref }}"
+          export NEW_TAG="${{ github.ref_name }}"
           echo "NEW_TAG=$NEW_TAG"
 
           export PREVIOUS_TAG=$(git describe --abbrev=0 --tags "${NEW_TAG}"^ --match 'v[0-9]*')
@@ -48,7 +48,7 @@ jobs:
       - setup
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ github.ref }}
+      version: ${{ github.ref_name }}
       changelog: ${{ steps.changelog.outputs.CHANGELOG }}
     steps:
       - name: Get GitHub App Installation Token for Private Go Repos
