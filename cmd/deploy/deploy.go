@@ -26,7 +26,8 @@ func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
-			if configuration.GetOutputType() == output.Text {
+			dryRun := cmd.Context().Value("dryRun")
+			if dryRun != true && configuration.GetOutputType() == output.Text {
 				deploymentId := cmd.Context().Value("deploymentId").(string)
 				armoryConfig := configuration.GetArmoryCloudEnvironmentConfiguration()
 				url := armoryConfig.CloudConsoleBaseUrl

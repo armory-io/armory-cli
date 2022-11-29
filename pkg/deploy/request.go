@@ -37,7 +37,7 @@ const (
 	envVarGithubWorkspace = "GITHUB_WORKSPACE"
 )
 
-func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[string]any, error) {
+func ConvertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[string]any, error) {
 	deployment := options.UnstructuredDeployment
 
 	var structured structuredConfig

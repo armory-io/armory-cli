@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/api"
 	"github.com/armory/armory-cli/cmd/utils"
@@ -28,6 +29,7 @@ type deployStartOptions struct {
 	deploymentFile string
 	application    string
 	context        map[string]string
+	dryRun         bool
 }
 
 type FormattableDeployStartResponse struct {
@@ -83,6 +85,7 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
+	cmd.Flags().BoolVarP(&options.dryRun, "dryRun", "d", false, "outputs the request payload")
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
 	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{}, "add context values to be used in strategy steps")
 	cmd.MarkFlagRequired("file")
@@ -116,6 +119,24 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Minute)
 	defer cancel()
 	// execute request
+	if options.dryRun {
+		request, err := deployment.ConvertPipelineOptionsToAPIRequest(deployment.StartPipelineOptions{
+			UnstructuredDeployment:  payload,
+			ApplicationNameOverride: options.application,
+			ContextOverrides:        options.context,
+		})
+		if err != nil {
+			return err
+		}
+
+		reqBytes, err := json.Marshal(request)
+		if err != nil {
+			return err
+		}
+		log.S().Info(string(reqBytes))
+		cmd.SetContext(context.WithValue(ctx, "dryRun", true))
+		return err
+	}
 	raw, response, err := deployClient.StartPipeline(ctx, deployment.StartPipelineOptions{
 		UnstructuredDeployment:  payload,
 		ApplicationNameOverride: options.application,

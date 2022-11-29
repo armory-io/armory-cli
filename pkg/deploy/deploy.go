@@ -82,7 +82,7 @@ func (c *DeployClient) DeploymentStatus(ctx context.Context, deploymentID string
 }
 
 func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineOptions) (*api.StartPipelineResponse, *http.Response, error) {
-	request, err := convertPipelineOptionsToAPIRequest(options)
+	request, err := ConvertPipelineOptionsToAPIRequest(options)
 	if err != nil {
 		return nil, nil, err
 	}
