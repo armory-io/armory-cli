@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/api"
 	"github.com/armory/armory-cli/cmd/utils"
@@ -25,6 +26,7 @@ const (
 )
 
 type deployStartOptions struct {
+	dryRun         bool
 	deploymentFile string
 	application    string
 	context        map[string]string
@@ -82,6 +84,7 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 			return start(cmd, configuration, options)
 		},
 	}
+	cmd.Flags().BoolVarP(&options.dryRun, "dryRun", "d", false, "output the json of the deployment request without submitting it")
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
 	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{}, "add context values to be used in strategy steps")
@@ -120,7 +123,12 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 		UnstructuredDeployment:  payload,
 		ApplicationNameOverride: options.application,
 		ContextOverrides:        options.context,
-	})
+	}, options.dryRun)
+
+	if err != nil && errors.Is(deployment.ErrAbortOnDryRun, err) {
+		cmd.SetContext(context.WithValue(ctx, "dryRun", true))
+		return nil
+	}
 	// create response object
 	deploy := newDeployStartResponse(raw, response, err)
 	// format response

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/armory-io/deploy-engine/api"
 	"github.com/armory/armory-cli/pkg/armoryCloud"
@@ -25,7 +26,10 @@ func GetDeployClient(configuration *config.Configuration) *DeployClient {
 	}
 }
 
-var source = "armory-cli"
+var (
+	source           = "armory-cli"
+	ErrAbortOnDryRun = errors.New("dry run requested. Exiting...")
+)
 
 func (c *DeployClient) PipelineStatus(ctx context.Context, pipelineID string) (*api.PipelineStatusResponse, *http.Response, error) {
 	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodGet, fmt.Sprintf("/pipelines/%s", pipelineID), nil)
@@ -81,15 +85,20 @@ func (c *DeployClient) DeploymentStatus(ctx context.Context, deploymentID string
 	return &deployment, resp, nil
 }
 
-func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineOptions) (*api.StartPipelineResponse, *http.Response, error) {
+func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineOptions, dryRun bool) (*api.StartPipelineResponse, *http.Response, error) {
 	request, err := convertPipelineOptionsToAPIRequest(options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	reqBytes, err := json.Marshal(request)
+	reqBytes, err := json.MarshalIndent(request, "", " ")
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if dryRun {
+		fmt.Printf(string(reqBytes) + "\n")
+		return nil, nil, ErrAbortOnDryRun
 	}
 
 	req, err := c.ArmoryCloudClient.Request(ctx,
