@@ -96,7 +96,12 @@ func status(cmd *cobra.Command, configuration *config.Configuration, deploymentI
 	if *configuration.GetIsTest() {
 		utils.ConfigureLoggingForTesting(cmd)
 	}
-	cmd.SetContext(context.WithValue(cmd.Context(), "deploymentId", deploymentId))
+	result := deploymentCmdStatus{
+		deploymentID:    deploymentId,
+		executionResult: nil,
+	}
+	cmd.SetContext(context.WithValue(cmd.Context(), "deployStatus", &result))
+
 	deployClient := deployment.GetDeployClient(configuration)
 	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Second*5)
 	defer cancel()

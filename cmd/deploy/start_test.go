@@ -205,6 +205,73 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameBut
 	}
 }
 
+func (suite *DeployStartTestSuite) TestDeployStartJsonAndWaitForCompletionSuccess() {
+	expected := &de.StartPipelineResponse{
+		PipelineID: "456678",
+	}
+	err := registerResponder(expected, http.StatusAccepted)
+	if err != nil {
+		suite.T().Fatalf("TestDeployAndWaitForCompletionSuccess failed with: %s", err)
+	}
+	err = registerStatusResponder([]de.WorkflowStatus{de.WorkflowStatusUnknown, de.WorkflowStatusRunning, de.WorkflowStatusSucceeded}, expected.PipelineID)
+	if err != nil {
+		suite.T().Fatalf("TestDeployAndWaitForCompletionSuccess : Failed to register status responder: %s", err)
+	}
+	tempFile := util.TempAppFile("", "app", testAppYamlStr)
+	if tempFile == nil {
+		suite.T().Fatal("TestDeployStartJsonSuccess failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
+	outWriter := bytes.NewBufferString("")
+	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "json", "-w")
+	err = cmd.Execute()
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	}
+	output, err := ioutil.ReadAll(outWriter)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+	}
+	var received = FormattableDeployStartResponse{}
+	json.Unmarshal(output, &received)
+	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
+	suite.Equal(string(de.WorkflowStatusSucceeded), received.ExecutionStatus, "status should be SUCCESS")
+}
+
+func (suite *DeployStartTestSuite) TestDeployStartYAMLAndWaitForCompletionSuccess() {
+	expected := &de.StartPipelineResponse{
+		PipelineID: "23456",
+	}
+	err := registerResponder(expected, http.StatusAccepted)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+	}
+	err = registerStatusResponder([]de.WorkflowStatus{de.WorkflowStatusUnknown, de.WorkflowStatusRunning, de.WorkflowStatusCancelled}, expected.PipelineID)
+	if err != nil {
+		suite.T().Fatalf("TestDeployAndWaitForCompletionSuccess : Failed to register status responder: %s", err)
+	}
+
+	tempFile := util.TempAppFile("", "app", testAppYamlStr)
+	if tempFile == nil {
+		suite.T().Fatal("TestDeployStartYAMLSuccess failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
+	outWriter := bytes.NewBufferString("")
+	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml", "-w")
+	err = cmd.Execute()
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+	}
+	output, err := ioutil.ReadAll(outWriter)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+	}
+	var received = FormattableDeployStartResponse{}
+	yaml.Unmarshal(output, &received)
+	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
+	suite.Equal(string(de.WorkflowStatusCancelled), received.ExecutionStatus, "pipeline status should be cancelled")
+}
+
 func registerResponder(body interface{}, status int) error {
 	responder, err := httpmock.NewJsonResponder(status, body)
 	if err != nil {
@@ -214,7 +281,21 @@ func registerResponder(body interface{}, status int) error {
 	return nil
 }
 
-func getDeployCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output string) *cobra.Command {
+func registerStatusResponder(statuses []de.WorkflowStatus, pipelineID string) error {
+	var responses []*http.Response
+	for _, status := range statuses {
+		r, err := httpmock.NewJsonResponse(200, map[string]string{"status": string(status)})
+		if err != nil {
+			return err
+		}
+		responses = append(responses, r)
+	}
+	rep := httpmock.ResponderFromMultipleResponses(responses)
+	httpmock.RegisterResponder("GET", "https://localhost/pipelines/"+pipelineID, rep)
+	return nil
+}
+
+func getDeployCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output string, additionalOpts ...string) *cobra.Command {
 	token := "some-token"
 	addr := "https://localhost"
 	clientId := ""
@@ -234,6 +315,7 @@ func getDeployCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output strin
 		"start",
 		"--file=" + tmpFile.Name(),
 	}
+	args = append(args, additionalOpts...)
 	deployCmd.SetArgs(args)
 	return deployCmd
 }
