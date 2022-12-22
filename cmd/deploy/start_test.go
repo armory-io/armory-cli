@@ -16,9 +16,11 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDeployStartTestSuite(t *testing.T) {
+	statusCheckTick = time.Second
 	suite.Run(t, new(DeployStartTestSuite))
 }
 

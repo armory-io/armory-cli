@@ -33,11 +33,6 @@ type deployStartOptions struct {
 	waitForCompletion bool
 }
 
-type deploymentCmdStatus struct {
-	deploymentID    string
-	executionResult chan string
-}
-
 type FormattableDeployStartResponse struct {
 	// The deployment's ID.
 	DeploymentId    string `json:"deploymentId,omitempty" yaml:"deploymentId,omitempty"`
@@ -45,6 +40,12 @@ type FormattableDeployStartResponse struct {
 	httpResponse    *_nethttp.Response
 	err             error
 }
+
+const (
+	DeployResultDeploymentID = "DEPLOYMENT_ID"
+	DeployResultLink         = "LINK"
+	DeployResultSyncStatus   = "RUN_RESULT"
+)
 
 var statusCheckTick = time.Second * 10
 
@@ -75,7 +76,7 @@ func (u FormattableDeployStartResponse) GetFetchError() error {
 }
 
 func (u FormattableDeployStartResponse) String() string {
-	return fmt.Sprintf("[%v] Pipeline ID: %s", time.Now().Format(time.RFC3339), u.DeploymentId)
+	return fmt.Sprintf("[%v] Deployment ID: %s", time.Now().Format(time.RFC3339), u.DeploymentId)
 }
 
 func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
@@ -111,9 +112,6 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	if present && !isATest {
 		options.deploymentFile = gitWorkspace + options.deploymentFile
 	}
-	if isATest {
-		statusCheckTick = time.Second
-	}
 	// read yaml file
 	file, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
@@ -138,46 +136,44 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	})
 	// create response object
 	deploy := newDeployStartResponse(raw, response, err)
-	// format response
-
-	result := deploymentCmdStatus{
-		deploymentID: deploy.DeploymentId,
-	}
-	cmd.SetContext(context.WithValue(ctx, "deployStatus", &result))
+	storeCommandResult(cmd, DeployResultDeploymentID, deploy.DeploymentId)
 
 	if options.waitForCompletion {
-		result.executionResult = make(chan string)
-		canWriteProgress := configuration.GetOutputType() == output.Text
-		if canWriteProgress {
-			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "[%v] Waiting for deployment pipeline '%s' to complete...\n", time.Now().Format(time.RFC3339), deploy.DeploymentId)
-		}
-		go func() {
-			var (
-				status         de.WorkflowStatus
-				reportedStatus string
-				err            error
-			)
-
-			if status, err = waitForCompletion(deployClient, deploy.DeploymentId, canWriteProgress, cmd.OutOrStdout()); err != nil {
-				reportedStatus = de.WorkflowStatusUnknown + " (error)"
-			} else {
-				reportedStatus = string(status)
-			}
-			deploy.ExecutionStatus = reportedStatus
-			_ = outputCommandResult(deploy, configuration)
-			result.executionResult <- reportedStatus
-		}()
-	} else {
-		return outputCommandResult(deploy, configuration)
+		beginTrackingDeployment(cmd, configuration, &deploy, deployClient)
 	}
-	return err
+	// format response
+	return outputCommandResult(deploy, configuration)
 }
 
-func waitForCompletion(deployClient *deployment.DeployClient, pipelineID string, canWriteProgress bool, stdout io.Writer) (de.WorkflowStatus, error) {
+func beginTrackingDeployment(cmd *cobra.Command, configuration *config.Configuration, deploy *FormattableDeployStartResponse, deployClient *deployment.DeployClient) {
+	canWriteProgress := configuration.GetOutputType() == output.Text
+	if canWriteProgress {
+		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "[%v] Waiting for deployment to complete. Status UI: %s\n", time.Now().Format(time.RFC3339), buildMonitoringUrl(configuration, deploy.DeploymentId))
+	}
+	var (
+		status         de.WorkflowStatus
+		reportedStatus string
+		err            error
+	)
+
+	if status, err = waitForCompletion(deployClient, deploy.DeploymentId, canWriteProgress, cmd.OutOrStdout()); err != nil {
+		reportedStatus = de.WorkflowStatusUnknown + " (error)"
+	} else {
+		reportedStatus = string(status)
+	}
+	if canWriteProgress {
+		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "[%v] Deployment %s completed with status: %s\n", time.Now().Format(time.RFC3339), deploy.DeploymentId, reportedStatus)
+	}
+
+	deploy.ExecutionStatus = reportedStatus
+	storeCommandResult(cmd, DeployResultSyncStatus, reportedStatus)
+}
+
+func waitForCompletion(deployClient *deployment.DeployClient, pipelineID string, canWriteProgress bool, out io.Writer) (de.WorkflowStatus, error) {
 	var lastStatus de.WorkflowStatus
 	for range time.Tick(statusCheckTick) {
 		if canWriteProgress {
-			_, _ = fmt.Fprintf(stdout, ".")
+			_, _ = fmt.Fprintf(out, ".")
 		}
 
 		status, err := queryStatus(deployClient, pipelineID)
@@ -186,7 +182,7 @@ func waitForCompletion(deployClient *deployment.DeployClient, pipelineID string,
 		}
 
 		if lastStatus != status && canWriteProgress {
-			_, _ = fmt.Fprintf(stdout, "\n[%v] Pipeline status changed: %s\n", time.Now().Format(time.RFC3339), status)
+			_, _ = fmt.Fprintf(out, "\n[%v] Deployment status changed: %s\n", time.Now().Format(time.RFC3339), status)
 		}
 
 		lastStatus = status
