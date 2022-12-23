@@ -138,7 +138,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	deploy := newDeployStartResponse(raw, response, err)
 	storeCommandResult(cmd, DeployResultDeploymentID, deploy.DeploymentId)
 
-	if options.waitForCompletion {
+	if options.waitForCompletion && err == nil {
 		beginTrackingDeployment(cmd, configuration, &deploy, deployClient)
 	}
 	// format response
