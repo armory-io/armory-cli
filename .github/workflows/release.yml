@@ -115,6 +115,7 @@ jobs:
             ${{ needs.setup.outputs.changelog }}
           draft: false
           prerelease: false
+          allowUpdates: true
 
   compile:
     name: Compile Binaries and Upload to Release
