@@ -2,9 +2,11 @@ package deploy
 
 import (
 	"fmt"
+	"github.com/armory/armory-cli/cmd/utils"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/output"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"time"
 )
@@ -26,13 +28,23 @@ func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
-			if configuration.GetOutputType() == output.Text {
-				deploymentId := cmd.Context().Value("deploymentId").(string)
-				armoryConfig := configuration.GetArmoryCloudEnvironmentConfiguration()
-				url := armoryConfig.CloudConsoleBaseUrl
-				url += "/deployments/pipeline/" + deploymentId + "?environmentId=" + configuration.GetCustomerEnvironmentId()
-				fmt.Fprintf(cmd.OutOrStdout(), "[%v] See the deployment status UI: %s\n", time.Now().Format(time.RFC3339), url)
+
+			deploymentID := fetchCommandResult(cmd, DeployResultDeploymentID)
+			url := buildMonitoringUrl(configuration, deploymentID)
+
+			reportableStatus := []string{DeployResultDeploymentID, deploymentID, DeployResultLink, url}
+
+			syncRunStatus := fetchCommandResult(cmd, DeployResultSyncStatus)
+			if syncRunStatus != "" {
+				reportableStatus = append(reportableStatus, DeployResultSyncStatus, syncRunStatus)
 			}
+
+			if configuration.GetOutputType() == output.Text {
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "[%v] See the deployment status UI: %s\n", time.Now().Format(time.RFC3339), url)
+			}
+
+			utils.TryWriteGitHubStepSummary(url)
+			utils.TryWriteGitHubContext(reportableStatus...)
 		},
 	}
 
@@ -46,4 +58,12 @@ func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 	cmdUtils.SetPersistentFlagsFromEnvVariables(command.Commands())
 
 	return command
+}
+
+func buildMonitoringUrl(configuration *config.Configuration, deploymentID string) (string string) {
+	armoryConfig := configuration.GetArmoryCloudEnvironmentConfiguration()
+	url := armoryConfig.CloudConsoleBaseUrl
+	env := lo.If(lo.FromPtrOr[bool](configuration.GetIsTest(), false), "").ElseF(configuration.GetCustomerEnvironmentId)
+	url += "/deployments/pipeline/" + deploymentID + "?environmentId=" + env
+	return url
 }

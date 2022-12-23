@@ -15,15 +15,13 @@ require (
 	github.com/manifoldco/promptui v0.8.0
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/pkg/browser v0.0.0-20210706143420-7d21f8c997e2
-	github.com/r3labs/diff v1.1.0
-	github.com/samber/lo v1.11.0
+	github.com/samber/lo v1.37.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.1-0.20220417210457-68b6b24f0c99
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/zap v1.23.0
 	gopkg.in/square/go-jose.v2 v2.5.1
-	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
 )
