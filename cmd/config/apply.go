@@ -74,7 +74,7 @@ func apply(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Confi
 			return err
 		}
 	}
-	if payload.Roles != nil {
+	if payload.Roles != nil || payload.AllowAutoDelete {
 		return processRoles(cc, payload.Roles, payload.AllowAutoDelete)
 	}
 	return err
