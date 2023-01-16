@@ -46,9 +46,11 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyCreateTenant() {
 		ID:   "04f1a35f-4f55-4d3b-875d-26e35413ba76",
 		Name: "testTenant2",
 	}
+	getExpected := []model.RoleConfig{}
 
 	assert.NoError(suite.T(), registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet))
 	assert.NoError(suite.T(), registerResponder(postExpected, http.StatusCreated, "/environments", http.MethodPost))
+	assert.NoError(suite.T(), registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet))
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForCreateTenants)
 	if tempFile == nil {
@@ -64,8 +66,9 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyCreateTenant() {
 		suite.T().Fatal(err)
 	}
 	callCount := httpmock.GetCallCountInfo()
-	suite.Equal(1, callCount["GET /environments"])
+	suite.Equal(2, callCount["GET /environments"])
 	suite.Equal(1, callCount["POST /environments"])
+	suite.Equal(1, callCount["GET /roles"])
 }
 
 func (suite *ConfigApplyTestSuite) TestConfigApplyCreateRole() {
