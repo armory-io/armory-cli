@@ -46,9 +46,11 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyCreateTenant() {
 		ID:   "04f1a35f-4f55-4d3b-875d-26e35413ba76",
 		Name: "testTenant2",
 	}
+	getExpected := []model.RoleConfig{}
 
 	assert.NoError(suite.T(), registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet))
 	assert.NoError(suite.T(), registerResponder(postExpected, http.StatusCreated, "/environments", http.MethodPost))
+	assert.NoError(suite.T(), registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet))
 
 	tempFile := util.TempAppFile("", "app", testConfigYamlStrForCreateTenants)
 	if tempFile == nil {
@@ -64,8 +66,9 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyCreateTenant() {
 		suite.T().Fatal(err)
 	}
 	callCount := httpmock.GetCallCountInfo()
-	suite.Equal(1, callCount["GET /environments"])
+	suite.Equal(2, callCount["GET /environments"])
 	suite.Equal(1, callCount["POST /environments"])
+	suite.Equal(1, callCount["GET /roles"])
 }
 
 func (suite *ConfigApplyTestSuite) TestConfigApplyCreateRole() {
@@ -307,6 +310,69 @@ func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleAllowAutoDelete() {
 	suite.Equal(1, callCount["PUT /roles/role-id-1"])
 }
 
+func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleAllowAutoDeleteButNoRolesInConfigFile() {
+	getExpected := []model.RoleConfig{{
+		ID:            "role-id-1",
+		Name:          "test",
+		EnvID:         "env-id",
+		Tenant:        "testTenant",
+		SystemDefined: true,
+		Grants: []model.GrantConfig{{
+			Type:       "api",
+			Resource:   "org",
+			Permission: "all",
+		}},
+	},
+		{
+			ID:            "role-id-2",
+			Name:          "test2",
+			EnvID:         "env-id",
+			Tenant:        "testTenant",
+			SystemDefined: false,
+			Grants: []model.GrantConfig{{
+				Type:       "api",
+				Resource:   "org",
+				Permission: "all",
+			}},
+		},
+	}
+	getEnvironmentsExpected := []configClient.Environment{{
+		Name: "testTenant",
+		ID:   "env-id",
+	}}
+	deleteExpected := model.RoleConfig{
+		Name:   "test2",
+		Tenant: "testTenant",
+		Grants: []model.GrantConfig{{
+			Type:       "api",
+			Resource:   "org",
+			Permission: "all",
+		},
+		}}
+
+	assert.NoError(suite.T(), registerResponder(getExpected, http.StatusOK, "/roles", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(getEnvironmentsExpected, http.StatusOK, "/environments", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder(deleteExpected, http.StatusNoContent, "/roles/role-id-2", http.MethodDelete))
+
+	tempFile := util.TempAppFile("", "app", testConfigYamlStrForDeleteAllowAutoDeleteButNoRolesProvided)
+	if tempFile == nil {
+		suite.T().Fatal("TestDeployStartJsonSuccess failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
+	outWriter := bytes.NewBufferString("")
+	cmd := getConfigApplyCmdWithTmpFile(outWriter, tempFile, "json")
+	if err := cmd.Execute(); err != nil {
+		suite.T().Fatal(err)
+	}
+	if _, err := io.ReadAll(outWriter); err != nil {
+		suite.T().Fatal(err)
+	}
+	callCount := httpmock.GetCallCountInfo()
+	suite.Equal(1, callCount["DELETE /roles/role-id-2"])
+	suite.Equal(1, callCount["GET /roles"])
+	suite.Equal(1, callCount["GET /environments"])
+}
+
 func (suite *ConfigApplyTestSuite) TestConfigApplyDeleteRoleDontAllowAutoDelete() {
 	getExpected := []model.RoleConfig{
 		{
@@ -452,4 +518,8 @@ roles:
 
 const testConfigYamlStrForDeleteSystemRoles = `
 roles: []
+`
+
+const testConfigYamlStrForDeleteAllowAutoDeleteButNoRolesProvided = `
+allowAutoDelete: true
 `
