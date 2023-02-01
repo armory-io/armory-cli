@@ -12,6 +12,8 @@ const (
 	pathToTestManifest1 = "testdata/testManifest1.yaml"
 	pathToTestManifest2 = "testdata/testManifest2.yaml"
 	pathToNestedDir     = "testdata/nested"
+	httpPath            = "http://my.hosted.yamls.armory.io/test.yaml"
+	httpsPath           = "https://my.hosted.yamls.armory.io/test.yaml"
 )
 
 func TestConvertRequestTestSuite(t *testing.T) {
@@ -48,6 +50,12 @@ func (s *ConvertRequestTestSuite) TestGetManifestsFromPaths() {
 		{
 			Path: pathToNestedDir,
 		},
+		{
+			Path: httpPath,
+		},
+		{
+			Path: httpsPath,
+		},
 	}
 	files, err := getManifestFiles(manifests)
 	s.NoError(err)
@@ -67,6 +75,12 @@ func (s *ConvertRequestTestSuite) TestGetManifestsFromGithubPath() {
 		},
 		{
 			Path: pathToNestedDir,
+		},
+		{
+			Path: "http://my.hosted.yamls.armory.io/test.yaml",
+		},
+		{
+			Path: "https://my.hosted.yamls.armory.io/test.yaml",
 		},
 	}
 	files, err := getManifestFiles(manifests)

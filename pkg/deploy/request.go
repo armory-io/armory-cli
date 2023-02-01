@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type (
@@ -68,11 +69,13 @@ func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[strin
 func getManifestFiles(manifests []manifest) (map[string][]string, error) {
 	allManifests := make(map[string][]string)
 	for _, m := range manifests {
+		if isHTTPUrl(m.Path) {
+			continue
+		}
 		fileNames, err := getFileNamesFromPath(m.Path)
 		if err != nil {
 			return nil, err
 		}
-
 		files, err := getFiles(fileNames)
 		if err != nil {
 			return nil, err
@@ -109,6 +112,10 @@ func getFiles(dirFileNames []string) ([]string, error) {
 		files = append(files, string(file))
 	}
 	return files, nil
+}
+
+func isHTTPUrl(fileName string) bool {
+	return strings.Index(fileName, "http://") == 0 || strings.Index(fileName, "https://") == 0
 }
 
 func getFileNames(path string) ([]string, error) {
