@@ -5,9 +5,9 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"io/fs"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type (
@@ -69,7 +69,7 @@ func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[strin
 func getManifestFiles(manifests []manifest) (map[string][]string, error) {
 	allManifests := make(map[string][]string)
 	for _, m := range manifests {
-		if isHTTPUrl(m.Path) {
+		if isUrl(m.Path) {
 			continue
 		}
 		fileNames, err := getFileNamesFromPath(m.Path)
@@ -114,8 +114,9 @@ func getFiles(dirFileNames []string) ([]string, error) {
 	return files, nil
 }
 
-func isHTTPUrl(fileName string) bool {
-	return strings.Index(fileName, "http://") == 0 || strings.Index(fileName, "https://") == 0
+func isUrl(fileName string) bool {
+	u, err := url.Parse(fileName)
+	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
 func getFileNames(path string) ([]string, error) {
