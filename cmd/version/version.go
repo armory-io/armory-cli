@@ -9,8 +9,8 @@ import (
 var Version = "development"
 
 const (
-	versionShort   = "Print the version information for Armory Cli"
-	versionLong    = "Print the version information for Armory Cli"
+	versionShort   = "Print armory's version"
+	versionLong    = "Print armory's version"
 	versionExample = "armory version"
 )
 

@@ -3,7 +3,7 @@ package deploy
 import (
 	"context"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/api"
+	de "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/cmd/utils"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
@@ -21,8 +21,9 @@ import (
 )
 
 const (
-	deployStartShort   = "Start deployment with Armory CD-as-a-Service"
-	deployStartLong    = "Start deployment with Armory CD-as-a-Service"
+	deployStartShort = "Start a deployment"
+	deployStartLong  = "Start a deployment\n\n" +
+		"For deployment configuration YAML documentation, visit https://docs.armory.io/cd-as-a-service/reference/ref-deployment-file"
 	deployStartExample = "armory deploy start [options]"
 )
 

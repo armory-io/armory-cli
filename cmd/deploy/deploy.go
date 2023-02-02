@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	deployShort   = ""
-	deployLong    = ""
+	deployShort = "Manage your deployments"
+	deployLong  = "Manage your deployments\n\n" +
+		"For deployment configuration YAML documentation, visit https://docs.armory.io/cd-as-a-service/reference/ref-deployment-file"
 	deployExample = ""
 )
 
@@ -24,6 +25,7 @@ func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 		Short:   deployShort,
 		Long:    deployLong,
 		Example: deployExample,
+		GroupID: "deployment",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},

@@ -3,7 +3,7 @@ package deploy
 import (
 	"bytes"
 	"encoding/json"
-	de "github.com/armory-io/deploy-engine/api"
+	de "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/jarcoal/httpmock"
