@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	configApplyShort   = "Sync configuration file with Armory CD-as-a-Service"
-	configApplyLong    = "Sync configuration file with Armory CD-as-a-Service"
+	configApplyShort = "Sync an RBAC configuration file"
+	configApplyLong  = "Sync an RBAC configuration file\n\n" +
+		"For usage documentation, visit https://docs.armory.io/cd-as-a-service/concepts/iam/rbac"
 	configApplyExample = "armory config apply [options]"
 )
 

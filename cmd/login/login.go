@@ -23,9 +23,9 @@ import (
 )
 
 const (
-	loginShort   = "Log in as User to Armory CD-as-a-Service"
-	loginLong    = ""
-	loginExample = ""
+	loginShort   = "Log in to Armory CD-as-a-Service"
+	loginLong    = "Log in to Armory CD-as-a-Service"
+	loginExample = "armory login"
 )
 
 const scope = "openid profile email offline_access"
@@ -38,6 +38,7 @@ func NewLoginCmd(configuration *config.Configuration) *cobra.Command {
 		Short:   loginShort,
 		Long:    loginLong,
 		Example: loginExample,
+		GroupID: "admin",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
