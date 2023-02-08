@@ -416,12 +416,21 @@ func (o *AgentOptions) apply(namespace, resourceFile string) error {
 }
 
 // waitForConnection poll for agents to determine if the agent has connected.
-func (o *AgentOptions) waitForConnection() {
+func (o *AgentOptions) waitForConnection() error {
 	fmt.Print("Waiting for agent to connect.")
 	for range time.Tick(agentConnectedPollRate) {
 		_, _ = fmt.Print(".")
-		//	TODO
+
+		agentConnected, err := o.ArmoryClient.Agents().Get(o.Context, o.Name)
+		if err != nil {
+			return err
+		}
+
+		if agentConnected != nil {
+			break
+		}
 	}
+	return nil
 }
 
 // Validate validates required fields are set to support structured generation
