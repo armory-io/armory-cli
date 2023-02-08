@@ -11,7 +11,6 @@ import (
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/output"
 	"github.com/spf13/cobra"
-	log "go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
@@ -214,7 +213,7 @@ func isDeploymentInFinalState(status de.WorkflowStatus) bool {
 
 func outputCommandResult(deploy FormattableDeployStartResponse, configuration *config.Configuration) error {
 	if dataFormat, err := configuration.GetOutputFormatter()(deploy); err == nil {
-		log.S().Info(dataFormat)
+		_, _ = os.Stdout.WriteString(dataFormat)
 		return nil
 	} else {
 		return err

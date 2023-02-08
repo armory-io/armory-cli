@@ -12,8 +12,8 @@ import (
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/output"
 	"github.com/spf13/cobra"
-	log "go.uber.org/zap"
 	_nethttp "net/http"
+	"os"
 	"time"
 )
 
@@ -128,7 +128,7 @@ func status(cmd *cobra.Command, configuration *config.Configuration, deploymentI
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrDeploymentStatusResponseParse, err)
 	}
-	log.S().Info(dataFormat)
+	os.Stdout.WriteString(dataFormat)
 	return err
 }
 

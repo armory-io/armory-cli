@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"context"
+	"fmt"
 	configCmd "github.com/armory/armory-cli/cmd/config"
 	"github.com/armory/armory-cli/cmd/deploy"
 	"github.com/armory/armory-cli/cmd/login"
@@ -20,6 +21,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -103,6 +105,7 @@ func configureLogging(verboseFlag, isTest bool, cmd *cobra.Command) {
 	loggerConfig.Encoding = "console"
 	loggerConfig.Level = log.NewAtomicLevelAt(lvl)
 	loggerConfig.EncoderConfig = encodingConfig
+
 	logger, err := loggerConfig.Build()
 
 	if isTest {
@@ -135,7 +138,7 @@ func CheckForUpdate(cli *config.Configuration) {
 	}
 	if ((*currentRelease.TagName != currentVersion) || (currentVersion == "development")) && cli.GetOutputType() == output.Text {
 		color.Set(color.FgGreen)
-		log.S().Infof("\nA new version of the Armory CLI is available. Please upgrade to %s by running `avm install`.\n", *currentRelease.TagName)
+		os.Stderr.WriteString(fmt.Sprintf("\nA new version of the Armory CLI is available. Please upgrade to %s by running `avm install`.\n", *currentRelease.TagName))
 		color.Unset()
 	}
 }
