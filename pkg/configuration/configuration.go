@@ -190,3 +190,15 @@ func (c *ConfigClient) CreateEnvironment(ctx context.Context, request configClie
 	}
 	return &environment, resp, nil
 }
+
+func (c *ConfigClient) Agents() AgentInterface {
+	return newAgents(c)
+}
+
+func (c *ConfigClient) Credentials() CredentialInterface {
+	return newCredentials(c)
+}
+
+func (c *ConfigClient) Roles() RolInterface {
+	return newRoles(c)
+}
