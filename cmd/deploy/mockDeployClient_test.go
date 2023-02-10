@@ -3,7 +3,7 @@ package deploy
 import (
 	"context"
 	"fmt"
-	"github.com/armory-io/deploy-engine/api"
+	"github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/deploy"
