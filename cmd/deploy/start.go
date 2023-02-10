@@ -17,7 +17,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
-	_nethttp "net/http"
+	nethttp "net/http"
 	"os"
 	"time"
 )
@@ -43,14 +43,14 @@ type FormattableDeployStartResponse struct {
 	// The deployment's ID.
 	DeploymentId    string `json:"deploymentId,omitempty" yaml:"deploymentId,omitempty"`
 	ExecutionStatus string `json:"status,omitempty" yaml:"status,omitempty"`
-	httpResponse    *_nethttp.Response
+	httpResponse    *nethttp.Response
 	err             error
 }
 
 type ArmoryDeployClient interface {
-	PipelineStatus(ctx context.Context, pipelineID string) (*de.PipelineStatusResponse, *_nethttp.Response, error)
-	DeploymentStatus(ctx context.Context, deploymentID string) (*de.DeploymentStatusResponse, *_nethttp.Response, error)
-	StartPipeline(ctx context.Context, options deployment.StartPipelineOptions) (*de.StartPipelineResponse, *_nethttp.Response, error)
+	PipelineStatus(ctx context.Context, pipelineID string) (*de.PipelineStatusResponse, *nethttp.Response, error)
+	DeploymentStatus(ctx context.Context, deploymentID string) (*de.DeploymentStatusResponse, *nethttp.Response, error)
+	StartPipeline(ctx context.Context, options deployment.StartPipelineOptions) (*de.StartPipelineResponse, *nethttp.Response, error)
 	GetArmoryCloudClient() *armoryCloud.Client
 }
 
@@ -62,7 +62,7 @@ const (
 
 var statusCheckTick = time.Second * 10
 
-func newDeployStartResponse(raw *de.StartPipelineResponse, response *_nethttp.Response, err error) FormattableDeployStartResponse {
+func newDeployStartResponse(raw *de.StartPipelineResponse, response *nethttp.Response, err error) FormattableDeployStartResponse {
 	var pipelineID string
 	if raw != nil {
 		pipelineID = raw.PipelineID
@@ -80,7 +80,7 @@ func (u FormattableDeployStartResponse) Get() interface{} {
 	return u
 }
 
-func (u FormattableDeployStartResponse) GetHttpResponse() *_nethttp.Response {
+func (u FormattableDeployStartResponse) GetHttpResponse() *nethttp.Response {
 	return u.httpResponse
 }
 
@@ -122,7 +122,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	}
 	deployClient := deployment.GetDeployClient(configuration)
 	var startResp *de.StartPipelineResponse
-	var rawResp *_nethttp.Response
+	var rawResp *nethttp.Response
 	var err error
 	if deployment.IsURL(options.deploymentFile) {
 		startResp, rawResp, err = WithURL(options, deployClient)
@@ -144,7 +144,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	return outputCommandResult(deploy, configuration)
 }
 
-func WithURL(options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *_nethttp.Response, error) {
+func WithURL(options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
 	if options.application != "" {
 		return nil, nil, ErrApplicationNameOverrideNotSupported
 	}
@@ -167,7 +167,7 @@ func WithURL(options *deployStartOptions, deployClient ArmoryDeployClient) (*de.
 	return raw, response, err
 }
 
-func FromLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *_nethttp.Response, error) {
+func FromLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")

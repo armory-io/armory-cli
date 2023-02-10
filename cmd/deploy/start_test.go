@@ -102,21 +102,15 @@ func (suite *DeployStartTestSuite) TestDeployStartWithURLSuccess() {
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
 	}
-	err := registerResponder(expected, http.StatusAccepted)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartWithURLSuccess failed with: %s", err)
-	}
+	suite.NoError(registerResponder(expected, http.StatusAccepted))
+
 	outWriter := bytes.NewBufferString("")
 	cmd := getDeployCmdWithFileName(outWriter, "https://myhostedfile.example.com/deploy.yaml", "yaml")
-	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
-	}
+	suite.NoError(cmd.Execute())
+
 	output, err := ioutil.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
-	}
-	var received = FormattableDeployStartResponse{}
+	suite.NoError(err)
+	var received FormattableDeployStartResponse
 	yaml.Unmarshal(output, &received)
 	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
 }
@@ -125,10 +119,7 @@ func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
 	}
-	err := registerResponder(expected, http.StatusAccepted)
-	if err != nil {
-		suite.T().Fatalf("TestDeployWithURLUsesExpectedOptions failed with: %s", err)
-	}
+	suite.NoError(registerResponder(expected, http.StatusAccepted))
 	configuration := getDefaultConfiguration("json")
 	deployClient := GetMockDeployClient(configuration)
 	deployClient.MockStartPipelineResponse(func() (*de.StartPipelineResponse, *http.Response, error) {
@@ -142,10 +133,7 @@ func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
 		deployClient,
 	)
 
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
-	}
-
+	suite.NoError(err)
 	suite.Equal("200", rawResp.Status, "rawResp should be returned by WithURL")
 	suite.Equal(expected.PipelineID, pipelineResp.PipelineID, "they should be equal")
 	suite.Equal(deployClient.RecordedStartPipelineOptions.UnstructuredDeployment, map[string]any{"account": "jimbob-dev"}, "there should be body/deployment specification for the request WithURL")
