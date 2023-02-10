@@ -130,7 +130,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 		startResp, rawResp, err = FromLocalFile(cmd, options, deployClient)
 	}
 
-	if err != nil && errors.Is(err, ErrYamlFileRead) {
+	if err != nil && errors.Is(err, ErrYAMLFileRead) {
 		return err
 	}
 	// create response object
@@ -177,7 +177,7 @@ func FromLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 	// read yaml file
 	file, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
-		return nil, nil, errorUtils.NewWrappedError(ErrYamlFileRead, err)
+		return nil, nil, errorUtils.NewWrappedError(ErrYAMLFileRead, err)
 	}
 	cmd.SilenceUsage = true
 	// unmarshall data into struct

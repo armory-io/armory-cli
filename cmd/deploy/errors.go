@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	ErrYamlFileRead                        = errors.New("error trying to read the YAML file")
+	ErrYAMLFileRead                        = errors.New("error trying to read the YAML file")
 	ErrInvalidDeploymentObject             = errors.New("error invalid deployment object")
 	ErrDeploymentStatusResponseParse       = errors.New("error trying to parse response")
 	ErrDeploymentStatusRequest             = errors.New("request returned an error")
