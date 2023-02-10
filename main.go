@@ -7,6 +7,9 @@ import (
 )
 
 func main() {
+	// Disabling EnableCommandSorting allows us to set our own command sort order.
+	cobra.EnableCommandSorting = false
+
 	rootCmd := cmd.NewCmdRoot(os.Stdout, os.Stderr)
 	// required so errors aren't double printed
 	rootCmd.SilenceErrors = true

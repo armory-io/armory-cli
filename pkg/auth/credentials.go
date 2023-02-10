@@ -56,9 +56,12 @@ func LoadCredentials(fileLocation string) (Credentials, error) {
 }
 
 func (c *Credentials) GetEnvironmentId() (string, error) {
-	tok, _ := jwt.ParseSigned(c.Token)
+	tok, err := jwt.ParseSigned(c.Token)
+	if err != nil {
+		return "", err
+	}
 	var claims map[string]interface{}
-	err := tok.UnsafeClaimsWithoutVerification(&claims) //we've already obtained what we know to be a valid token from Auth0
+	err = tok.UnsafeClaimsWithoutVerification(&claims) //we've already obtained what we know to be a valid token from Auth0
 	if err != nil {
 		return "", err
 	}

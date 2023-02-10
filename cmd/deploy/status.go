@@ -3,7 +3,7 @@ package deploy
 import (
 	"context"
 	"fmt"
-	deploy "github.com/armory-io/deploy-engine/api"
+	deploy "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/cmd/utils"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	deployStatusShort   = "Watch deployment on Armory CD-as-a-Service"
-	deployStatusLong    = "Watch deployment on Armory CD-as-a-Service"
+	deployStatusShort   = "Get a deployment's status"
+	deployStatusLong    = "Get a deployment's status"
 	deployStatusExample = "armory deploy status [options]"
 )
 
@@ -96,7 +96,9 @@ func status(cmd *cobra.Command, configuration *config.Configuration, deploymentI
 	if *configuration.GetIsTest() {
 		utils.ConfigureLoggingForTesting(cmd)
 	}
-	cmd.SetContext(context.WithValue(cmd.Context(), "deploymentId", deploymentId))
+
+	storeCommandResult(cmd, DeployResultDeploymentID, deploymentId)
+
 	deployClient := deployment.GetDeployClient(configuration)
 	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Second*5)
 	defer cancel()

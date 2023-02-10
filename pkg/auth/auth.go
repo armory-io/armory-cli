@@ -134,7 +134,7 @@ func (a *Auth) GetEnvironmentId() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return creds.Token, nil
+		return NewCredentials("", "", "", "", creds.Token, "").GetEnvironmentId()
 	}
 
 	dirname, err := os.UserHomeDir()
@@ -159,7 +159,7 @@ func (a *Auth) GetOrganizationId() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return creds.Token, nil
+		return NewCredentials("", "", "", "", creds.Token, "").GetOrganizationId()
 	}
 
 	dirname, err := os.UserHomeDir()

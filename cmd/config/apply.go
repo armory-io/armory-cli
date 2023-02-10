@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	configApplyShort   = "Sync configuration file with Armory CD-as-a-Service"
-	configApplyLong    = "Sync configuration file with Armory CD-as-a-Service"
+	configApplyShort = "Sync an RBAC configuration file"
+	configApplyLong  = "Sync an RBAC configuration file\n\n" +
+		"For usage documentation, visit https://docs.armory.io/cd-as-a-service/concepts/iam/rbac"
 	configApplyExample = "armory config apply [options]"
 )
 
@@ -74,10 +75,7 @@ func apply(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Confi
 			return err
 		}
 	}
-	if payload.Roles != nil {
-		return processRoles(cc, payload.Roles, payload.AllowAutoDelete)
-	}
-	return err
+	return processRoles(cc, payload.Roles, payload.AllowAutoDelete)
 }
 
 func processEnvironments(configClient *configuration.ConfigClient, environments []string) error {

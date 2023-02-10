@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/armory-io/deploy-engine/api"
+	"github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/config"
 	"io"
