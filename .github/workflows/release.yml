@@ -275,4 +275,16 @@ jobs:
           password: ${{ secrets.AQUA_PASSWORD }}
           image: armory/armory-cli:${{needs.build-push.outputs.docker-version}}
 
-
+  update-brew-tap:
+    name: Update Brew Tap
+    needs:
+      - setup
+      - create-release
+      - compile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch update event to Brew tap
+        run: |
+          export VERSION=${GITHUB_REF_NAME#v}
+          echo "VERSION=$VERSION"
+          curl -XPOST -u "${{ secrets.USERNAME }}:${{ secrets.TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/armory-io/homebrew-armory/dispatches --data "{\"event_type\": \"UpdateCliFormula\", \"client_payload\": {\"version\": \"${VERSION}\"}}"
