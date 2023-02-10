@@ -1,4 +1,4 @@
-package create
+package agent
 
 import (
 	"context"
@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubectl/pkg/cmd/apply"
 	"k8s.io/kubectl/pkg/cmd/delete"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"sort"
 	"time"
 )
 
@@ -31,7 +32,7 @@ const (
 	agentLong    = "Create an agent"
 	agentExample = `
 	  # Create a new agent
-	  armory create agent`
+	  armory agent create`
 
 	defaultNamespaceName = "armory-rna"
 	defaultSecretName    = "rna-client-credentials"
@@ -55,17 +56,17 @@ type AgentOptions struct {
 	KubernetesClient  corev1client.CoreV1Interface
 }
 
-// NewAgentOptions creates a new *AgentOptions with sane defaults
-func NewAgentOptions() *AgentOptions {
+// newAgentOptions creates a new *AgentOptions
+func newAgentOptions() *AgentOptions {
 	return &AgentOptions{}
 }
 
 func NewCmdCreateAgent(configuration *config.Configuration) *cobra.Command {
 
-	o := NewAgentOptions()
+	o := newAgentOptions()
 
 	cmd := &cobra.Command{
-		Use:     "agent",
+		Use:     "create",
 		Aliases: []string{},
 		Short:   agentShort,
 		Long:    agentLong,
@@ -85,6 +86,7 @@ func NewCmdCreateAgent(configuration *config.Configuration) *cobra.Command {
 			}
 			return nil
 		},
+		SilenceUsage: true,
 	}
 	return cmd
 }
@@ -115,7 +117,7 @@ func (o *AgentOptions) Complete(cfg *config.Configuration) error {
 	return nil
 }
 
-// Run performs the execution of 'create agent' sub command
+// Run performs the execution of 'agent create' sub command
 func (o *AgentOptions) Run() error {
 	promptSelectAgent := promptui.Select{
 		Label:  "Please select a context. Your agent will be deployed into the cluster you choose",
@@ -128,13 +130,11 @@ func (o *AgentOptions) Run() error {
 		return errors.New(fmt.Sprintf("failed to select a context to deploy to; %v\n", err))
 	}
 
-	err = o.useContext(requestedContext)
-	if err != nil {
-		return errors.New(fmt.Sprintf("failed to set context %s; %v\n", requestedContext, err))
+	if err := o.useContext(requestedContext); err != nil {
+		return fmt.Errorf("failed to set context %s; %v\n", requestedContext, err)
 	}
 
-	ctx, cancel := context.WithTimeout(o.Context, time.Minute)
-	defer cancel()
+	ctx := context.Background()
 
 	// fetch the list of agents
 	existingAgents, err := o.ArmoryClient.Agents().List(ctx)
@@ -151,10 +151,13 @@ func (o *AgentOptions) Run() error {
 
 	// set agent name
 	promptSetAgentName := promptui.Prompt{
-		Label: fmt.Sprintf("Provide an agent identifier %s", lo.Ternary(agentNameAlreadyExistFunc(requestedContext), "", fmt.Sprintf("[default=%s]", requestedContext))),
+		Label: fmt.Sprintf("Provide an agent identifier%s", lo.Ternary(agentNameAlreadyExistFunc(requestedContext), "", fmt.Sprintf(" [default=%s]", requestedContext))),
 		Validate: func(name string) error {
+			if agentNameAlreadyExistFunc(requestedContext) && lo.IsEmpty(name) {
+				return errors.New("you need to provide an agent identifier")
+			}
 			if agentNameAlreadyExistFunc(name) {
-				return errors.New("sorry, there's already an agent with that name in your tenant")
+				return ErrDuplicateAgent
 			}
 			return nil
 		},
@@ -162,7 +165,7 @@ func (o *AgentOptions) Run() error {
 
 	agentName, err := promptSetAgentName.Run()
 	if err != nil {
-		return errors.New(fmt.Sprintf("failed to set the agent name; %v\n", err))
+		return fmt.Errorf("failed to set the agent name; %v\n", err)
 	}
 
 	if lo.IsEmpty(agentName) {
@@ -203,7 +206,7 @@ func (o *AgentOptions) Run() error {
 	if credentialsExists {
 		// recreate credentials
 		promptRecreateCredentials := promptui.Prompt{
-			Label:     fmt.Sprintf("A Client Credential named %s already exists. Do you want to generate a new Client Credentials?", o.Name),
+			Label:     fmt.Sprintf("A client credential named %s already exists. Do you want to generate new client credential", o.Name),
 			IsConfirm: true,
 			Default:   "Y",
 			Stdout:    &util.BellSkipper{},
@@ -230,15 +233,15 @@ func (o *AgentOptions) Run() error {
 	}
 
 	// add the RNA role to the newly created credentials
-	rol, rolExists := lo.Find(existingRoles, func(c model.RoleConfig) bool {
+	role, roleExists := lo.Find(existingRoles, func(c model.RoleConfig) bool {
 		return "Remote Network Agent" == c.Name
 	})
 
-	if !rolExists {
-		return errors.New("The default role Remote Network Agent role was missing, please ask your tenant admins to recreate it.")
+	if !roleExists {
+		return ErrRoleMissing
 	}
 
-	_, err = o.ArmoryClient.Credentials().AddRoles(ctx, credentials, []string{rol.ID})
+	_, err = o.ArmoryClient.Credentials().AddRoles(ctx, credentials, []string{role.ID})
 	if err != nil {
 		return err
 	}
@@ -251,6 +254,11 @@ func (o *AgentOptions) Run() error {
 		if err != nil {
 			return errors.New(fmt.Sprintf("failed to create namespace; %v\n", err))
 		}
+	}
+
+	// verify is agent already exist in the cluster
+	if exist, _ := o.secretExist(); exist {
+		return ErrAgentAlreadyInstalled
 	}
 
 	// create new secret
@@ -267,8 +275,10 @@ func (o *AgentOptions) Run() error {
 		return errors.New(fmt.Sprintf("failed to apply manifests; %v\n", err))
 	}
 
-	// poll
-	o.waitForConnection()
+	// wait for agent connection
+	if err := o.waitForConnection(); err != nil {
+		return errors.New(fmt.Sprintf("failed to wait for agent to connect; %v\n", err))
+	}
 	return nil
 }
 
@@ -304,6 +314,8 @@ func (o *AgentOptions) getContexts() ([]string, error) {
 	for name := range kubeconfig.Contexts {
 		contexts = append(contexts, name)
 	}
+	// keep a consistent list sort
+	sort.Slice(contexts, func(i int, j int) bool { return contexts[i] > contexts[j] })
 	return contexts, nil
 }
 
@@ -358,7 +370,7 @@ func (o *AgentOptions) createSecret() *corev1.Secret {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      defaultSecretName,
-			Namespace: defaultNamespaceName,
+			Namespace: o.Namespace,
 		},
 		Type: "string",
 		StringData: map[string]string{
@@ -415,11 +427,30 @@ func (o *AgentOptions) apply(namespace, resourceFile string) error {
 	return applyOptions.Run()
 }
 
+// secretExist check if agent is already installed on the cluster
+func (o *AgentOptions) secretExist() (bool, error) {
+	secretExistOptions := metav1.ListOptions{}
+	secret, err := o.KubernetesClient.Secrets(o.Namespace).List(o.Context, secretExistOptions)
+	if err != nil {
+		return false, err
+	}
+	_, exists := lo.Find(secret.Items, func(n corev1.Secret) bool {
+		return defaultSecretName == n.Name
+	})
+	return exists, nil
+}
+
 // waitForConnection poll for agents to determine if the agent has connected.
 func (o *AgentOptions) waitForConnection() error {
-	fmt.Print("Waiting for agent to connect.")
-	for range time.Tick(agentConnectedPollRate) {
-		_, _ = fmt.Print(".")
+	waitForConnectionExpiresTime := time.Now().Add(agentConnectedPollRate)
+	fmt.Println("Waiting for agent to connect.")
+	for {
+		if time.Now().After(waitForConnectionExpiresTime) {
+			return errors.New("waiting for the agent to connect has expired")
+		}
+
+		fmt.Print(".")
+		time.Sleep(1 * time.Second)
 
 		agentConnected, err := o.ArmoryClient.Agents().Get(o.Context, o.Name)
 		if err != nil {
@@ -430,6 +461,7 @@ func (o *AgentOptions) waitForConnection() error {
 			break
 		}
 	}
+	fmt.Println("\nYour agent has connected!")
 	return nil
 }
 

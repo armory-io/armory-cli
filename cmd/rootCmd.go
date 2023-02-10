@@ -3,8 +3,8 @@ package cmd
 import (
 	"bufio"
 	"context"
+	"github.com/armory/armory-cli/cmd/agent"
 	configCmd "github.com/armory/armory-cli/cmd/config"
-	"github.com/armory/armory-cli/cmd/create"
 	"github.com/armory/armory-cli/cmd/deploy"
 	"github.com/armory/armory-cli/cmd/login"
 	"github.com/armory/armory-cli/cmd/logout"
@@ -81,7 +81,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 		logout.NewLogoutCmd(),
 		configCmd.NewConfigCmd(configuration),
 		version.NewCmdVersion(),
-		create.NewCmdCreate(configuration),
+		agent.NewCmdAgent(configuration),
 	)
 
 	cmdUtils.SetPersistentFlagsFromEnvVariables(rootCmd.Commands())
