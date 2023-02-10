@@ -18,11 +18,11 @@ var CdConDemo = GithubQuickStartProject{
 }
 
 const (
-	quickStartShort = "Download and run a sample application"
-	quickStartLong  = "Download and run a sample application from Armory's Github"
-	loginExample    = "armory quick-start -i"
-	githubZipSuffix = "/archive/refs/heads/main.zip"
-	githubBaseUrl   = "https://github.com/armory/"
+	quickStartShort   = "Deploy a sample application"
+	quickStartLong    = "Deploy a sample application"
+	quickStartExample = "armory quick-start"
+	githubZipSuffix   = "/archive/refs/heads/main.zip"
+	githubBaseUrl     = "https://github.com/armory/"
 )
 
 type quickStartOptions struct {
@@ -37,7 +37,8 @@ func NewQuickStartCmd(configuration *config.Configuration) *cobra.Command {
 		Aliases: []string{"quick-start"},
 		Short:   quickStartShort,
 		Long:    quickStartLong,
-		Example: loginExample,
+		Example: quickStartExample,
+		GroupID: "deployment",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},

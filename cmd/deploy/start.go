@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/api"
+	de "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/cmd/utils"
 	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
@@ -23,9 +23,10 @@ import (
 )
 
 const (
-	deployStartShort           = "Start deployment with Armory CD-as-a-Service"
-	deployStartLong            = "Start deployment with Armory CD-as-a-Service"
-	deployStartExample         = "armory deploy start [options]"
+	deployStartShort           = "Start a deployment"
+	deployStartLong  = "Start a deployment\n\n" +
+		"For deployment configuration YAML documentation, visit https://docs.armory.io/cd-as-a-service/reference/ref-deployment-file"
+	deployStartExample = "armory deploy start [options]"
 	armoryConfigLocationHeader = "X-Armory-Config-Location"
 	mediaTypePipelineV2        = "application/vnd.start.kubernetes.pipeline.v2+json"
 	mediaTypePipelineV2Link    = "application/vnd.start.kubernetes.pipeline.v2.link+json"

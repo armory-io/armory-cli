@@ -26,23 +26,26 @@ import (
 func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "armory",
-		Short: "A CLI for using Armory CD-as-a-Service",
+		Short: "CLI for Armory CD-as-a-Service",
 	}
 
 	addr := rootCmd.PersistentFlags().StringP("addr", "", "https://api.cloud.armory.io", "")
-	err := rootCmd.PersistentFlags().MarkHidden("addr")
+	if err := rootCmd.PersistentFlags().MarkHidden("addr"); err != nil {
+		return nil
+	}
 	test := rootCmd.PersistentFlags().BoolP("test", "", false, "")
-	err = rootCmd.PersistentFlags().MarkHidden("test")
-
-	if err != nil {
+	if err := rootCmd.PersistentFlags().MarkHidden("test"); err != nil {
+		return nil
+	}
+	accessToken := rootCmd.PersistentFlags().StringP("authToken", "a", "", "Authenticate using a raw JWT token")
+	if err := rootCmd.PersistentFlags().MarkHidden("authToken"); err != nil {
 		return nil
 	}
 
-	clientId := rootCmd.PersistentFlags().StringP("clientId", "c", "", "configure oidc client credentials for Armory CD-as-a-Service API")
-	clientSecret := rootCmd.PersistentFlags().StringP("clientSecret", "s", "", "configure oidc client credentials for Armory CD-as-a-Service API")
-	accessToken := rootCmd.PersistentFlags().StringP("authToken", "a", "", "use an existing access token, rather than client id and secret or user login")
-	verbose := rootCmd.PersistentFlags().BoolP("verbose", "v", false, "show more details")
-	outFormat := rootCmd.PersistentFlags().StringP("output", "o", "text", "Set the output type. Available options: [json, yaml, text].")
+	clientId := rootCmd.PersistentFlags().StringP("clientId", "c", "", "Authenticate using an Armory CD-as-a-Service client ID")
+	clientSecret := rootCmd.PersistentFlags().StringP("clientSecret", "s", "", "Authenticate using an Armory CD-as-a-Service client secret")
+	verbose := rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
+	outFormat := rootCmd.PersistentFlags().StringP("output", "o", "text", "Set the output type. Available options: [json, yaml, text]")
 	rootCmd.SetOut(outWriter)
 	rootCmd.SetErr(errWriter)
 
@@ -58,14 +61,27 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 	})
 
 	CheckForUpdate(configuration)
+	rootCmd.AddGroup(
+		&cobra.Group{
+			ID:    "deployment",
+			Title: "Deployment Commands:",
+		},
+		&cobra.Group{
+			ID:    "admin",
+			Title: "Administrative Commands:",
+		},
+	)
 
-	rootCmd.AddCommand(version.NewCmdVersion())
-	rootCmd.AddCommand(deploy.NewDeployCmd(configuration))
-	rootCmd.AddCommand(quickStart.NewQuickStartCmd(configuration))
-	rootCmd.AddCommand(template.NewTemplateCmd())
-	rootCmd.AddCommand(login.NewLoginCmd(configuration))
-	rootCmd.AddCommand(logout.NewLogoutCmd())
-	rootCmd.AddCommand(configCmd.NewConfigCmd(configuration))
+	rootCmd.AddCommand(
+		deploy.NewDeployCmd(configuration),
+		quickStart.NewQuickStartCmd(configuration),
+		template.NewTemplateCmd(),
+		login.NewLoginCmd(configuration),
+		logout.NewLogoutCmd(),
+		configCmd.NewConfigCmd(configuration),
+		version.NewCmdVersion(),
+	)
+
 	cmdUtils.SetPersistentFlagsFromEnvVariables(rootCmd.Commands())
 	cmdUtils.SetPersistentFlagsFromEnvVariables([]*cobra.Command{rootCmd})
 	return rootCmd
@@ -119,7 +135,7 @@ func CheckForUpdate(cli *config.Configuration) {
 	}
 	if ((*currentRelease.TagName != currentVersion) || (currentVersion == "development")) && cli.GetOutputType() == output.Text {
 		color.Set(color.FgGreen)
-		log.S().Infof("\nA new version of the Armory CLI, %s, is available. Please upgrade your cli by running avm install \n", *currentRelease.TagName)
+		log.S().Infof("\nA new version of the Armory CLI is available. Please upgrade to %s by running `avm install`.\n", *currentRelease.TagName)
 		color.Unset()
 	}
 }

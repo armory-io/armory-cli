@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	templateShort   = "Generate a deployment template that you can customize."
-	templateLong    = ""
-	templateExample = ""
+	templateShort   = "Generate a customizable deployment template"
+	templateLong    = "Generate a customizable deployment template"
+	templateExample = "armory template"
 )
 
 func NewTemplateCmd() *cobra.Command {
@@ -18,6 +18,7 @@ func NewTemplateCmd() *cobra.Command {
 		Short:   templateShort,
 		Long:    templateLong,
 		Example: templateExample,
+		GroupID: "deployment",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},

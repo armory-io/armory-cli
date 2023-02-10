@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	configGetShort   = "Get the current configuration from Armory CD-as-a-Service"
-	configGetLong    = "Get the current configuration from Armory CD-as-a-Service"
+	configGetShort   = "Get your current RBAC configuration"
+	configGetLong    = "Get your current RBAC configuration"
 	configGetExample = "armory config get"
 )
 

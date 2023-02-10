@@ -3,7 +3,7 @@ package deploy
 import (
 	"context"
 	"fmt"
-	deploy "github.com/armory-io/deploy-engine/api"
+	deploy "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/cmd/utils"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	deployStatusShort   = "Watch deployment on Armory CD-as-a-Service"
-	deployStatusLong    = "Watch deployment on Armory CD-as-a-Service"
+	deployStatusShort   = "Get a deployment's status"
+	deployStatusLong    = "Get a deployment's status"
 	deployStatusExample = "armory deploy status [options]"
 )
 

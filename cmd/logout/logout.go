@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	logoutShort   = "Log out from Armory CD-as-a-Service."
-	logoutLong    = "Log out from Armory CD-as-a-Service and delete any credentials stored."
+	logoutShort   = "Log out of Armory CD-as-a-Service"
+	logoutLong    = "Log out of Armory CD-as-a-Service and delete any stored credentials"
 	logoutExample = "armory logout"
 )
 
@@ -22,6 +22,7 @@ func NewLogoutCmd() *cobra.Command {
 		Short:   logoutShort,
 		Long:    logoutLong,
 		Example: logoutExample,
+		GroupID: "admin",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
