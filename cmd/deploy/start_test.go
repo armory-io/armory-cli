@@ -135,6 +135,7 @@ func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
 		return expected, &http.Response{Status: "200"}, nil
 	})
 	pipelineResp, rawResp, err := WithURL(&deployStartOptions{
+		account:           "jimbob-dev",
 		deploymentFile:    "http://mytesturl.com/deploy.yml",
 		waitForCompletion: false,
 	},
@@ -147,7 +148,7 @@ func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
 
 	suite.Equal("200", rawResp.Status, "rawResp should be returned by WithURL")
 	suite.Equal(expected.PipelineID, pipelineResp.PipelineID, "they should be equal")
-	suite.Nil(deployClient.RecordedStartPipelineOptions.UnstructuredDeployment, "there should be body/deployment specification for the request WithURL")
+	suite.Equal(deployClient.RecordedStartPipelineOptions.UnstructuredDeployment, map[string]any{"account": "jimbob-dev"}, "there should be body/deployment specification for the request WithURL")
 	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers["Content-Type"], mediaTypePipelineV2Link, "they should be equal")
 	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers["Accept"], mediaTypePipelineV2, "they should be equal")
 	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers[armoryConfigLocationHeader], "http://mytesturl.com/deploy.yml", "they should be equal")

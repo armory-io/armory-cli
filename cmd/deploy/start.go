@@ -32,6 +32,7 @@ const (
 )
 
 type deployStartOptions struct {
+	account           string
 	deploymentFile    string
 	application       string
 	context           map[string]string
@@ -106,6 +107,7 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 			return start(cmd, configuration, options)
 		},
 	}
+	cmd.Flags().StringVarP(&options.account, "account", "", "", "override the deployment YAML account field for each target when --file is a URL")
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
 	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{}, "add context values to be used in strategy steps")
@@ -157,6 +159,10 @@ func WithURL(options *deployStartOptions, deployClient ArmoryDeployClient) (*de.
 			"Accept":                   mediaTypePipelineV2,
 			armoryConfigLocationHeader: options.deploymentFile,
 		},
+		UnstructuredDeployment: map[string]any{
+			"account": options.account,
+		},
+		IsURL: true,
 	})
 	return raw, response, err
 }

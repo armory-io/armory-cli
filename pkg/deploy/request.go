@@ -17,6 +17,7 @@ type (
 		ApplicationNameOverride string
 		ContextOverrides        map[string]string
 		Headers                 map[string]string
+		IsURL                   bool
 	}
 
 	structuredConfig struct {
@@ -40,8 +41,8 @@ const (
 )
 
 func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[string]any, error) {
-	if options.UnstructuredDeployment == nil {
-		return map[string]any{}, nil
+	if options.IsURL {
+		return options.UnstructuredDeployment, nil
 	}
 	deployment := options.UnstructuredDeployment
 
