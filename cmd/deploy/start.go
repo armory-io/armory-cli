@@ -2,9 +2,11 @@ package deploy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	de "github.com/armory-io/deploy-engine/api"
 	"github.com/armory/armory-cli/cmd/utils"
+	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	deployment "github.com/armory/armory-cli/pkg/deploy"
@@ -15,18 +17,22 @@ import (
 	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
-	_nethttp "net/http"
+	nethttp "net/http"
 	"os"
 	"time"
 )
 
 const (
-	deployStartShort   = "Start deployment with Armory CD-as-a-Service"
-	deployStartLong    = "Start deployment with Armory CD-as-a-Service"
-	deployStartExample = "armory deploy start [options]"
+	deployStartShort           = "Start deployment with Armory CD-as-a-Service"
+	deployStartLong            = "Start deployment with Armory CD-as-a-Service"
+	deployStartExample         = "armory deploy start [options]"
+	armoryConfigLocationHeader = "X-Armory-Config-Location"
+	mediaTypePipelineV2        = "application/vnd.start.kubernetes.pipeline.v2+json"
+	mediaTypePipelineV2Link    = "application/vnd.start.kubernetes.pipeline.v2.link+json"
 )
 
 type deployStartOptions struct {
+	account           string
 	deploymentFile    string
 	application       string
 	context           map[string]string
@@ -37,8 +43,15 @@ type FormattableDeployStartResponse struct {
 	// The deployment's ID.
 	DeploymentId    string `json:"deploymentId,omitempty" yaml:"deploymentId,omitempty"`
 	ExecutionStatus string `json:"status,omitempty" yaml:"status,omitempty"`
-	httpResponse    *_nethttp.Response
+	httpResponse    *nethttp.Response
 	err             error
+}
+
+type ArmoryDeployClient interface {
+	PipelineStatus(ctx context.Context, pipelineID string) (*de.PipelineStatusResponse, *nethttp.Response, error)
+	DeploymentStatus(ctx context.Context, deploymentID string) (*de.DeploymentStatusResponse, *nethttp.Response, error)
+	StartPipeline(ctx context.Context, options deployment.StartPipelineOptions) (*de.StartPipelineResponse, *nethttp.Response, error)
+	GetArmoryCloudClient() *armoryCloud.Client
 }
 
 const (
@@ -49,7 +62,7 @@ const (
 
 var statusCheckTick = time.Second * 10
 
-func newDeployStartResponse(raw *de.StartPipelineResponse, response *_nethttp.Response, err error) FormattableDeployStartResponse {
+func newDeployStartResponse(raw *de.StartPipelineResponse, response *nethttp.Response, err error) FormattableDeployStartResponse {
 	var pipelineID string
 	if raw != nil {
 		pipelineID = raw.PipelineID
@@ -67,7 +80,7 @@ func (u FormattableDeployStartResponse) Get() interface{} {
 	return u
 }
 
-func (u FormattableDeployStartResponse) GetHttpResponse() *_nethttp.Response {
+func (u FormattableDeployStartResponse) GetHttpResponse() *nethttp.Response {
 	return u.httpResponse
 }
 
@@ -94,6 +107,7 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 			return start(cmd, configuration, options)
 		},
 	}
+	cmd.Flags().StringVarP(&options.account, "account", "", "", "override the deployment YAML account field for each target when --file is a URL")
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
 	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{}, "add context values to be used in strategy steps")
@@ -106,6 +120,54 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	if *configuration.GetIsTest() {
 		utils.ConfigureLoggingForTesting(cmd)
 	}
+	deployClient := deployment.GetDeployClient(configuration)
+	var startResp *de.StartPipelineResponse
+	var rawResp *nethttp.Response
+	var err error
+	if deployment.IsURL(options.deploymentFile) {
+		startResp, rawResp, err = WithURL(options, deployClient)
+	} else {
+		startResp, rawResp, err = FromLocalFile(cmd, options, deployClient)
+	}
+
+	if err != nil && errors.Is(err, ErrYAMLFileRead) {
+		return err
+	}
+	// create response object
+	deploy := newDeployStartResponse(startResp, rawResp, err)
+	storeCommandResult(cmd, DeployResultDeploymentID, deploy.DeploymentId)
+
+	if options.waitForCompletion && err == nil {
+		beginTrackingDeployment(cmd, configuration, &deploy, deployClient)
+	}
+	// format response
+	return outputCommandResult(deploy, configuration)
+}
+
+func WithURL(options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
+	if options.application != "" {
+		return nil, nil, ErrApplicationNameOverrideNotSupported
+	}
+	ctx, cancel := context.WithTimeout(deployClient.GetArmoryCloudClient().Context, time.Minute)
+	defer cancel()
+	// execute request
+	raw, response, err := deployClient.StartPipeline(ctx, deployment.StartPipelineOptions{
+		ApplicationNameOverride: options.application,
+		ContextOverrides:        options.context,
+		Headers: map[string]string{
+			"Content-Type":             mediaTypePipelineV2Link,
+			"Accept":                   mediaTypePipelineV2,
+			armoryConfigLocationHeader: options.deploymentFile,
+		},
+		UnstructuredDeployment: map[string]any{
+			"account": options.account,
+		},
+		IsURL: true,
+	})
+	return raw, response, err
+}
+
+func FromLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
@@ -115,34 +177,28 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	// read yaml file
 	file, err := ioutil.ReadFile(options.deploymentFile)
 	if err != nil {
-		return errorUtils.NewWrappedError(ErrYamlFileRead, err)
+		return nil, nil, errorUtils.NewWrappedError(ErrYAMLFileRead, err)
 	}
 	cmd.SilenceUsage = true
 	// unmarshall data into struct
 	var payload map[string]any
 	if err = yaml.Unmarshal(file, &payload); err != nil {
-		return errorUtils.NewWrappedError(ErrInvalidDeploymentObject, err)
+		return nil, nil, errorUtils.NewWrappedError(ErrInvalidDeploymentObject, err)
 	}
 
-	deployClient := deployment.GetDeployClient(configuration)
-
-	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Minute)
+	ctx, cancel := context.WithTimeout(deployClient.GetArmoryCloudClient().Context, time.Minute)
 	defer cancel()
 	// execute request
 	raw, response, err := deployClient.StartPipeline(ctx, deployment.StartPipelineOptions{
 		UnstructuredDeployment:  payload,
 		ApplicationNameOverride: options.application,
 		ContextOverrides:        options.context,
+		Headers: map[string]string{
+			"Content-Type": mediaTypePipelineV2,
+			"Accept":       mediaTypePipelineV2,
+		},
 	})
-	// create response object
-	deploy := newDeployStartResponse(raw, response, err)
-	storeCommandResult(cmd, DeployResultDeploymentID, deploy.DeploymentId)
-
-	if options.waitForCompletion && err == nil {
-		beginTrackingDeployment(cmd, configuration, &deploy, deployClient)
-	}
-	// format response
-	return outputCommandResult(deploy, configuration)
+	return raw, response, err
 }
 
 func beginTrackingDeployment(cmd *cobra.Command, configuration *config.Configuration, deploy *FormattableDeployStartResponse, deployClient *deployment.DeployClient) {

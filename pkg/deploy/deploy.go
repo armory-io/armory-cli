@@ -20,9 +20,7 @@ type (
 
 func GetDeployClient(configuration *config.Configuration) *DeployClient {
 	armoryCloudClient := configuration.GetArmoryCloudClient()
-	return &DeployClient{
-		ArmoryCloudClient: armoryCloudClient,
-	}
+	return &DeployClient{armoryCloudClient}
 }
 
 var source = "armory-cli"
@@ -88,17 +86,20 @@ func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineO
 	}
 
 	reqBytes, err := json.Marshal(request)
+
 	if err != nil {
 		return nil, nil, err
 	}
-
-	req, err := c.ArmoryCloudClient.Request(ctx,
+	requestOptions := []armoryCloud.RequestOption{
 		armoryCloud.WithMethod(http.MethodPost),
 		armoryCloud.WithPath("/pipelines/kubernetes"),
-		armoryCloud.WithHeader("Content-Type", "application/vnd.start.kubernetes.pipeline.v2+json"),
-		armoryCloud.WithHeader("Accept", "application/vnd.start.kubernetes.pipeline.v2+json"),
-		armoryCloud.WithBody(bytes.NewReader(reqBytes)),
-	)
+	}
+	for key, val := range options.Headers {
+		requestOptions = append(requestOptions, armoryCloud.WithHeader(key, val))
+	}
+	requestOptions = append(requestOptions, armoryCloud.WithBody(bytes.NewReader(reqBytes)))
+
+	req, err := c.ArmoryCloudClient.Request(ctx, requestOptions...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -127,6 +128,10 @@ func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineO
 		return nil, resp, err
 	}
 	return &startResponse, resp, nil
+}
+
+func (c *DeployClient) GetArmoryCloudClient() *armoryCloud.Client {
+	return c.ArmoryCloudClient
 }
 
 type deployError struct {

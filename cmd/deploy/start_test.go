@@ -56,7 +56,7 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "json")
+	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "json")
 	err = cmd.Execute()
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
@@ -84,7 +84,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
+	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
 	err = cmd.Execute()
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
@@ -98,6 +98,60 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
 }
 
+func (suite *DeployStartTestSuite) TestDeployStartWithURLSuccess() {
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
+	suite.NoError(registerResponder(expected, http.StatusAccepted))
+
+	outWriter := bytes.NewBufferString("")
+	cmd := getDeployCmdWithFileName(outWriter, "https://myhostedfile.example.com/deploy.yaml", "yaml")
+	suite.NoError(cmd.Execute())
+
+	output, err := ioutil.ReadAll(outWriter)
+	suite.NoError(err)
+	var received FormattableDeployStartResponse
+	yaml.Unmarshal(output, &received)
+	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
+}
+
+func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
+	suite.NoError(registerResponder(expected, http.StatusAccepted))
+	configuration := getDefaultConfiguration("json")
+	deployClient := GetMockDeployClient(configuration)
+	deployClient.MockStartPipelineResponse(func() (*de.StartPipelineResponse, *http.Response, error) {
+		return expected, &http.Response{Status: "200"}, nil
+	})
+	pipelineResp, rawResp, err := WithURL(&deployStartOptions{
+		account:           "jimbob-dev",
+		deploymentFile:    "http://mytesturl.com/deploy.yml",
+		waitForCompletion: false,
+	},
+		deployClient,
+	)
+
+	suite.NoError(err)
+	suite.Equal("200", rawResp.Status, "rawResp should be returned by WithURL")
+	suite.Equal(expected.PipelineID, pipelineResp.PipelineID, "they should be equal")
+	suite.Equal(deployClient.RecordedStartPipelineOptions.UnstructuredDeployment, map[string]any{"account": "jimbob-dev"}, "there should be body/deployment specification for the request WithURL")
+	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers["Content-Type"], mediaTypePipelineV2Link, "they should be equal")
+	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers["Accept"], mediaTypePipelineV2, "they should be equal")
+	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers[armoryConfigLocationHeader], "http://mytesturl.com/deploy.yml", "they should be equal")
+
+	pipelineResp, rawResp, err = WithURL(&deployStartOptions{
+		application:       "this will cause a failure",
+		deploymentFile:    "http://mytesturl.com/deploy.yml",
+		waitForCompletion: false,
+	},
+		deployClient,
+	)
+
+	suite.ErrorIs(err, ErrApplicationNameOverrideNotSupported)
+}
+
 func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
 	err := registerResponder(`{"code":2, "message":"invalid operation", "details":[]}`, 500)
 	if err != nil {
@@ -109,7 +163,7 @@ func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
+	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
 
 	err = cmd.Execute()
 	if err != nil {
@@ -139,8 +193,20 @@ func (suite *DeployStartTestSuite) TestDeployStartFlagFileRequired() {
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartBadPath() {
+	token := "some-token"
+	addr := "https://localhost"
+	clientId := ""
+	clientSecret := ""
+	output := "json"
 	isTest := true
-	configuration := config.New(&config.Input{IsTest: &isTest})
+	configuration := config.New(&config.Input{
+		AccessToken:  &token,
+		ApiAddr:      &addr,
+		ClientId:     &clientId,
+		ClientSecret: &clientSecret,
+		OutFormat:    &output,
+		IsTest:       &isTest,
+	})
 	deployCmd := NewDeployCmd(configuration)
 	outWriter := bytes.NewBufferString("")
 	deployCmd.SetOut(outWriter)
@@ -171,7 +237,7 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnE
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
+	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
 	cmd.Execute()
 
 	msg, err := io.ReadAll(outWriter)
@@ -193,7 +259,7 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameBut
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml")
+	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
 	args := []string{
 		"start",
 		"--file=" + tempFile.Name(),
@@ -225,7 +291,7 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonAndWaitForCompletionSucces
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "json", "-w")
+	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "json", "-w")
 	err = cmd.Execute()
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
@@ -259,7 +325,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLAndWaitForCompletionSucces
 	}
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
-	cmd := getDeployCmdWithTmpFile(outWriter, tempFile, "yaml", "-w")
+	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml", "-w")
 	err = cmd.Execute()
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
@@ -297,7 +363,20 @@ func registerStatusResponder(statuses []de.WorkflowStatus, pipelineID string) er
 	return nil
 }
 
-func getDeployCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output string, additionalOpts ...string) *cobra.Command {
+func getDeployCmdWithFileName(outWriter io.Writer, fileName string, output string, additionalOpts ...string) *cobra.Command {
+	configuration := getDefaultConfiguration(output)
+	deployCmd := NewDeployCmd(configuration)
+	deployCmd.SetOut(outWriter)
+	args := []string{
+		"start",
+		"--file=" + fileName,
+	}
+	args = append(args, additionalOpts...)
+	deployCmd.SetArgs(args)
+	return deployCmd
+}
+
+func getDefaultConfiguration(output string) *config.Configuration {
 	token := "some-token"
 	addr := "https://localhost"
 	clientId := ""
@@ -311,15 +390,7 @@ func getDeployCmdWithTmpFile(outWriter io.Writer, tmpFile *os.File, output strin
 		OutFormat:    &output,
 		IsTest:       &isTest,
 	})
-	deployCmd := NewDeployCmd(configuration)
-	deployCmd.SetOut(outWriter)
-	args := []string{
-		"start",
-		"--file=" + tmpFile.Name(),
-	}
-	args = append(args, additionalOpts...)
-	deployCmd.SetArgs(args)
-	return deployCmd
+	return configuration
 }
 
 const testAppYamlStr = `
