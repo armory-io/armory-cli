@@ -11,14 +11,6 @@ import (
 	"net/http"
 )
 
-// CredentialInterface has methods to work with Credentials resources.
-type CredentialInterface interface {
-	AddRoles(ctx context.Context, request *model.Credential, roles []string) (*[]model.RoleConfig, error)
-	Create(ctx context.Context, credential *model.Credential) (*model.Credential, error)
-	Delete(ctx context.Context, credential *model.Credential) error
-	List(ctx context.Context) ([]*model.Credential, error)
-}
-
 // credentials implements CredentialInterface
 type credentials struct {
 	ArmoryCloudClient *armoryCloud.Client
@@ -102,6 +94,29 @@ func (c *credentials) Delete(ctx context.Context, credential *model.Credential) 
 	}
 
 	return nil
+}
+
+func (c *credentials) GetRoles(ctx context.Context, credential *model.Credential) (*[]model.RoleConfig, error) {
+	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodGet, fmt.Sprintf("/credentials/%s/roles", credential.ID), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.ArmoryCloudClient.Http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, &configError{response: resp}
+	}
+
+	var roles *[]model.RoleConfig
+	if err := json.NewDecoder(resp.Body).Decode(&roles); err != nil {
+		return nil, err
+	}
+
+	return roles, nil
 }
 
 func (c *credentials) List(ctx context.Context) ([]*model.Credential, error) {

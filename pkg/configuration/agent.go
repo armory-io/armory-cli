@@ -9,13 +9,7 @@ import (
 	"net/http"
 )
 
-// AgentInterface has methods to work with Agent resources.
-type AgentInterface interface {
-	Get(ctx context.Context, agentIdentifier string) (*model.Agent, error)
-	List(ctx context.Context) ([]model.Agent, error)
-}
-
-// agents implements AgentInterface
+// agents implements AgentClient
 type agents struct {
 	ArmoryCloudClient *armoryCloud.Client
 }

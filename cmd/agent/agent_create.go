@@ -239,7 +239,10 @@ func (o *AgentOptions) Run() error {
 
 	// add the RNA role to the newly created credentials
 	role, roleExists := lo.Find(existingRoles, func(c model.RoleConfig) bool {
-		return "Remote Network Agent" == c.Name
+		_, hasRightPermissions := lo.Find(c.Grants, func(g model.GrantConfig) bool {
+			return g.Type == "api" && g.Resource == "agentHub" && g.Permission == "full"
+		})
+		return hasRightPermissions && c.SystemDefined
 	})
 
 	if !roleExists {

@@ -9,11 +9,6 @@ import (
 	"net/http"
 )
 
-// RolInterface has methods to work with Rol resources.
-type RolInterface interface {
-	ListForMachinePrincipals(ctx context.Context, environmentId string) ([]model.RoleConfig, error)
-}
-
 // roles implements RolInterface
 type roles struct {
 	ArmoryCloudClient *armoryCloud.Client
