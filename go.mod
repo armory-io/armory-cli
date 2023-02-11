@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
 	github.com/armory-io/deploy-engine v0.96.15
+	github.com/cbroglie/mustache v1.4.0
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1
 	github.com/fatih/color v1.13.0
 	github.com/google/go-github/v48 v48.0.0

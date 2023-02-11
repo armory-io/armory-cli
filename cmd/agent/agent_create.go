@@ -8,9 +8,11 @@ import (
 	"github.com/armory/armory-cli/pkg/configuration"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/util"
+	"github.com/cbroglie/mustache"
 	"github.com/manifoldco/promptui"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -23,6 +25,8 @@ import (
 	"k8s.io/kubectl/pkg/cmd/apply"
 	"k8s.io/kubectl/pkg/cmd/delete"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
+	"net/http"
+	"os"
 	"sort"
 	"time"
 )
@@ -34,11 +38,12 @@ const (
 	  # Create a new agent
 	  armory agent create`
 
-	defaultNamespaceName = "armory-rna"
-	defaultSecretName    = "rna-client-credentials"
+	defaultNamespaceName        = "armory-rna"
+	defaultSecretName           = "rna-client-credentials"
+	manifestTemplateDownloadUrl = "https://static.cloud.armory.io/templates/rna/v1/agent-manifests.yaml.mustache"
 )
 
-var agentConnectedPollRate = time.Second * 10
+var agentConnectedPollRate = time.Minute * 10
 
 type AgentOptions struct {
 	// Name of resource being created
@@ -269,8 +274,14 @@ func (o *AgentOptions) Run() error {
 		return errors.New(fmt.Sprintf("failed to create secret; %v\n", err))
 	}
 
+	// generate manifest
+	pathToManifests, err := o.generateManifests()
+	if err != nil {
+		return errors.New(fmt.Sprintf("failed to generate manifests; %v\n", err))
+	}
+
 	// apply manifests
-	err = o.apply(o.Namespace, fmt.Sprintf("%s/kubernetes/agent/manifest?agentIdentifier=%s&namespace=%s", o.configuration.GetArmoryCloudAddr(), o.Name, o.Namespace))
+	err = o.apply(o.Namespace, pathToManifests)
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to apply manifests; %v\n", err))
 	}
@@ -438,6 +449,59 @@ func (o *AgentOptions) secretExist() (bool, error) {
 		return defaultSecretName == n.Name
 	})
 	return exists, nil
+}
+
+func (o *AgentOptions) generateManifests() (string, error) {
+	// create temp file
+	f, err := os.CreateTemp("", "rna-*.yaml")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	// download manifests
+	resp, err := http.Get(manifestTemplateDownloadUrl)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// check response
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("there was an error trying to download manifests; %s", resp.Status)
+	}
+
+	// write the template into the temp file
+	_, err = io.Copy(f, resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	// open the file
+	templateContent, err := os.ReadFile(f.Name())
+	if err != nil {
+		return "", err
+	}
+
+	var cntxt any = map[string]any{
+		"NAMESPACE":               o.Namespace,
+		"RNA_IDENTIFIER":          o.Name,
+		"APPLICATION_ENVIRONMENT": "prod",
+	}
+	parsedTemplate, err := mustache.ParseString(string(templateContent))
+	if err != nil {
+		return "", errors.New("unable to parse the manifest template")
+	}
+	renderedTemplate, err := parsedTemplate.Render(cntxt)
+	if err != nil {
+		return "", errors.New("unable to parse the manifest template")
+	}
+
+	err = os.WriteFile(f.Name(), []byte(renderedTemplate), 777)
+	if err != nil {
+		return "", errors.New("unable to parse the render template")
+	}
+	return f.Name(), nil
 }
 
 // waitForConnection poll for agents to determine if the agent has connected.
