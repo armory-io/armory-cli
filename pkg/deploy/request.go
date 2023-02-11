@@ -5,6 +5,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"io/fs"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 )
@@ -15,6 +16,8 @@ type (
 		UnstructuredDeployment  map[string]any
 		ApplicationNameOverride string
 		ContextOverrides        map[string]string
+		Headers                 map[string]string
+		IsURL                   bool
 	}
 
 	structuredConfig struct {
@@ -38,6 +41,9 @@ const (
 )
 
 func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[string]any, error) {
+	if options.IsURL {
+		return options.UnstructuredDeployment, nil
+	}
 	deployment := options.UnstructuredDeployment
 
 	var structured structuredConfig
@@ -68,11 +74,13 @@ func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[strin
 func getManifestFiles(manifests []manifest) (map[string][]string, error) {
 	allManifests := make(map[string][]string)
 	for _, m := range manifests {
+		if IsURL(m.Path) {
+			continue
+		}
 		fileNames, err := getFileNamesFromPath(m.Path)
 		if err != nil {
 			return nil, err
 		}
-
 		files, err := getFiles(fileNames)
 		if err != nil {
 			return nil, err
@@ -109,6 +117,11 @@ func getFiles(dirFileNames []string) ([]string, error) {
 		files = append(files, string(file))
 	}
 	return files, nil
+}
+
+func IsURL(fileName string) bool {
+	u, err := url.Parse(fileName)
+	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
 func getFileNames(path string) ([]string, error) {

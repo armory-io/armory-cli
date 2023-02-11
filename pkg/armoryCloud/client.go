@@ -82,7 +82,7 @@ func (c *Client) Request(ctx context.Context, opts ...RequestOption) (*http.Requ
 	}
 
 	for key, value := range builder.headers {
-		request.Header.Add(key, value)
+		request.Header.Set(key, value)
 	}
 
 	return request, nil
