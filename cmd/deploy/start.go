@@ -29,7 +29,7 @@ const (
 )
 
 type deployStartOptions struct {
-	dryRun         bool
+	dryRun            bool
 	deploymentFile    string
 	application       string
 	context           map[string]string

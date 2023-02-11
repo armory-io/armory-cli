@@ -30,8 +30,11 @@ func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
-			if cmd.Context().Value("dryRun") != nil && cmd.Context().Value("dryRun").(bool) {
-				return
+			if cmd.Context().Value("dryRun") != nil {
+				dryRun, ok := cmd.Context().Value("dryRun").(bool)
+				if !ok || dryRun {
+					return
+				}
 			}
 
 			deploymentID := fetchCommandResult(cmd, DeployResultDeploymentID)
