@@ -13,6 +13,26 @@ import (
 	"net/http"
 )
 
+// AgentClient has methods to work with Agent resources.
+type AgentClient interface {
+	Get(ctx context.Context, agentIdentifier string) (*model.Agent, error)
+	List(ctx context.Context) ([]model.Agent, error)
+}
+
+// CredentialInterface has methods to work with Credentials resources.
+type CredentialInterface interface {
+	AddRoles(ctx context.Context, request *model.Credential, roles []string) (*[]model.RoleConfig, error)
+	Create(ctx context.Context, credential *model.Credential) (*model.Credential, error)
+	Delete(ctx context.Context, credential *model.Credential) error
+	GetRoles(ctx context.Context, credential *model.Credential) (*[]model.RoleConfig, error)
+	List(ctx context.Context) ([]*model.Credential, error)
+}
+
+// RolInterface has methods to work with Rol resources.
+type RolInterface interface {
+	ListForMachinePrincipals(ctx context.Context, environmentId string) ([]model.RoleConfig, error)
+}
+
 type (
 	ConfigClient struct {
 		ArmoryCloudClient *armoryCloud.Client
@@ -189,4 +209,16 @@ func (c *ConfigClient) CreateEnvironment(ctx context.Context, request configClie
 		return nil, resp, err
 	}
 	return &environment, resp, nil
+}
+
+func (c *ConfigClient) Agents() AgentClient {
+	return newAgents(c)
+}
+
+func (c *ConfigClient) Credentials() CredentialInterface {
+	return newCredentials(c)
+}
+
+func (c *ConfigClient) Roles() RolInterface {
+	return newRoles(c)
 }
