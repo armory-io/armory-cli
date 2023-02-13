@@ -32,11 +32,9 @@ import (
 )
 
 const (
-	agentShort   = "Create an agent"
-	agentLong    = "Create an agent"
-	agentExample = `
-	  # Create a new agent
-	  armory agent create`
+	agentShort = "Install a Remote Network Agent"
+	agentLong  = "Installs a Remote Network Agent in a Kubernetes cluster. The installed agent is suitable for demos or for evaluating CD-as-a-Service. \n\n" +
+		"When installing an agent in a production environment, please use our Helm chart: https://github.com/armory-io/remote-network-agent-helm-chart"
 
 	defaultNamespaceName        = "armory-rna"
 	defaultSecretName           = "rna-client-credentials"
@@ -75,7 +73,6 @@ func NewCmdCreateAgent(configuration *config.Configuration) *cobra.Command {
 		Aliases: []string{},
 		Short:   agentShort,
 		Long:    agentLong,
-		Example: agentExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
 			if err := o.Complete(configuration); err != nil {

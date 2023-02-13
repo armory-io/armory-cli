@@ -7,13 +7,14 @@ import (
 )
 
 const (
-	createShort = "Create a resource"
-	createLong  = "Create a resource."
+	createShort = "Manage your Remote Network Agents"
+	createLong  = "Manage your Remote Network Agents"
 )
 
 func NewCmdAgent(configuration *config.Configuration) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "agent",
+		GroupID:      "admin",
 		Aliases:      []string{},
 		Short:        createShort,
 		Long:         createLong,
