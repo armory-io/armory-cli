@@ -5,26 +5,27 @@ The CLI for Armory CD-as-a-Service.
 
 # Installation
 
-The CLI releases can be found on the [releases page](https://github.com/armory/armory-cli/releases/latest)
+Install `armory` on Mac OS using [Homebrew](https://brew.sh/):
 
-You can also use the [AVM (armory version manager) utility](https://github.com/armory/avm/releases/latest) to install and update the Armory CLI.
-
-Just download the bin for your os/arch and mark it as executable and place it in your path.
-
-```bash
-# Mac OS X Intel
-wget https://github.com/armory/avm/releases/download/v1.0.1/avm-darwin-amd64
-chmod +x avm-darwin-amd64
-mv avm-darwin-amd64 /usr/local/bin/avm
-avm install
+```shell
+brew tap armory-io/armory
+brew install armory-cli
 ```
 
-```bash
-# Mac OS X M1
-wget https://github.com/armory/avm/releases/download/v1.0.1/avm-darwin-arm64
-chmod +x avm-darwin-arm64
-mv avm-darwin-arm64 /usr/local/bin/avm
-avm install
+To install `armory` on Windows or Linux, run the following:
+
+```shell
+curl -sL go.armory.io/get-cli | bash
+```
+
+The script will install `armory` and `avm`. You can use `avm` (**A**rmory **V**ersion **M**anager) to manage your `armory` version. 
+
+# Release
+
+To make a public release, create a tag and push it to this repository:
+```shell
+git tag v1.10.0
+git push --tags
 ```
 
 # Local Development & Changing Environments
@@ -45,7 +46,7 @@ alias ac_dev='export ARMORY_ADDR=https://api.dev.cloud.armory.io'
 alias ac_staging='export ARMORY_ADDR=https://api.staging.cloud.armory.io'
 alias ac_prod='export ARMORY_ADDR=https://api.cloud.armory.io'
 ```
-You can switch environments easily with the above. 
+You can switch environments easily with the above.
 
 ## Building and Running Locally - Armory Cloud Dev
 ### IntelliJ IDEA
