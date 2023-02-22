@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"github.com/armory/armory-cli/cmd/agent"
+	"github.com/armory/armory-cli/cmd/cluster"
 	configCmd "github.com/armory/armory-cli/cmd/config"
 	"github.com/armory/armory-cli/cmd/deploy"
 	"github.com/armory/armory-cli/cmd/login"
@@ -84,6 +85,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, error) {
 		configCmd.NewConfigCmd(configuration),
 		version.NewCmdVersion(),
 		agent.NewCmdAgent(configuration),
+		cluster.NewClusterCmd(configuration),
 	)
 
 	cmdUtils.SetPersistentFlagsFromEnvVariables(rootCmd.Commands())

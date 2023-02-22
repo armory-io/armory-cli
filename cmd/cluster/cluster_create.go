@@ -2,24 +2,27 @@ package cluster
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/armory/armory-cli/cmd/agent"
 	"github.com/armory/armory-cli/cmd/login"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configuration"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/output"
+	"github.com/samber/lo"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"time"
 )
 
 const (
+	charset            = "abcdefghijklmnopqrstuvwxyz0123456789"
 	createClusterShort = "Creates a temporary kubernetes cluster"
 	createClusterLong  = "Creates a temporary kubernetes cluster for demo purposes. The created cluster is helpful for evaluating CD-as-a-Service and will be \n\n" +
 		"automatically deleted within two hours. Only the CD-as-a-Service sample application (potato-facts) and remote network agent can be installed."
@@ -32,12 +35,13 @@ var (
 )
 
 type CreateOptions struct {
-	Context context.Context
-
+	Context       context.Context
 	ArmoryClient  *configuration.ConfigClient
 	configuration *config.Configuration
 	contextNames  []string
 	credentials   *model.Credential
+	progressbar   *progressbar.ProgressBar
+	saveData      *model.SandboxClusterSaveData
 }
 
 func NewCreateClusterCmd(configuration *config.Configuration) *cobra.Command {
@@ -74,81 +78,117 @@ func (o *CreateOptions) Run(cmd *cobra.Command) error {
 	if o.configuration.GetOutputType() != output.Text {
 		return ErrOutputTypeNotSupported
 	}
-
-	ctx := context.Background()
-
-	credentials, err := o.ArmoryClient.Credentials().Create(ctx, o.createNamedCredential())
+	ctx := cmd.Context()
+	agentPrefix := randomString(6)
+	credentials, err := o.ArmoryClient.Credentials().Create(ctx, o.createNamedCredential(agentPrefix))
 	if err != nil {
 		return err
 	}
-
-	sandboxResponse, err := o.ArmoryClient.Sandbox().Create(ctx, o.createSandboxRequest(credentials))
+	err = AssignCredentialRNARole(ctx, credentials, o.ArmoryClient, o.configuration.GetCustomerEnvironmentId())
 	if err != nil {
 		return err
 	}
-
-	bar := progressbar.Default(100)
+	createSandboxRequest := o.createSandboxRequest(agentPrefix, credentials)
+	sandboxResponse, err := o.ArmoryClient.Sandbox().Create(ctx, createSandboxRequest)
+	if err != nil {
+		return err
+	}
+	//lastStatus := ""
+	o.CreateProgressBar()
+	o.saveData = &model.SandboxClusterSaveData{
+		SandboxCluster:        model.SandboxCluster{},
+		CreateSandboxRequest:  *createSandboxRequest,
+		CreateSandboxResponse: *sandboxResponse,
+	}
 	for {
-		cluster, err := o.ArmoryClient.Sandbox().Get(ctx, sandboxResponse.ClusterId)
+		done, err := o.UpdateProgressBar(ctx)
 		if err != nil {
 			return err
 		}
-		err = o.writeToSandboxFile(cluster)
-		if err != nil {
-			return err
-		}
-		if cluster.Status == "READY" {
-			_ = bar.Set(100)
+
+		if done {
 			break
-		}
-		progress := float64(cluster.PercentComplete) - bar.State().CurrentPercent
-		if progress > 0 {
-			err := bar.Add(int(progress))
-			if err != nil {
-				fmt.Printf(".")
-			}
 		}
 	}
 
 	return nil
 }
 
-// createCredentials outputs a credentials object using the configured fields
-func (o *CreateOptions) createNamedCredential() *model.Credential {
-	c := 6
-	prefix := make([]byte, c)
-	_, err := rand.Read(prefix)
+func (o *CreateOptions) UpdateProgressBar(ctx context.Context) (bool, error) {
+	cluster, err := o.ArmoryClient.Sandbox().Get(ctx, o.saveData.CreateSandboxResponse.ClusterId)
 	if err != nil {
-		prefix = []byte("a1b2bc")
+		return true, err
 	}
 
+	o.saveData.SandboxCluster = *cluster
+	o.progressbar.Describe(cluster.Status)
+	err = o.writeToSaveDataToSandboxFile()
+	if err != nil {
+		return true, err
+	}
+	err = o.progressbar.Set(int(cluster.PercentComplete))
+	if err != nil {
+		return true, err
+	}
+	return cluster.PercentComplete == 100, nil
+
+}
+
+func (o *CreateOptions) CreateProgressBar() {
+	o.progressbar = progressbar.NewOptions(100,
+		progressbar.OptionEnableColorCodes(true),
+		progressbar.OptionSetElapsedTime(true),
+		progressbar.OptionShowElapsedTimeOnFinish(),
+		progressbar.OptionShowBytes(false),
+		progressbar.OptionSetWidth(15),
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "[green]=[reset]",
+			SaucerHead:    "[green]>[reset]",
+			SaucerPadding: " ",
+			BarStart:      "[",
+			BarEnd:        "]",
+		}))
+}
+
+// createCredentials outputs a credentials object using the configured fields
+func (o *CreateOptions) createNamedCredential(prefix string) *model.Credential {
 	return &model.Credential{
 		Name: fmt.Sprintf("%s-temp-cluster-credentials", prefix),
 	}
 }
 
+func randomString(length int) string {
+	seededRand := rand.New(
+		rand.NewSource(time.Now().UnixNano()))
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 // createSandboxRequest outputs a sandboxRequest object using the configured fields
-func (o *CreateOptions) createSandboxRequest(credential *model.Credential) *model.CreateSandboxRequest {
+func (o *CreateOptions) createSandboxRequest(prefix string, credential *model.Credential) *model.CreateSandboxRequest {
 	return &model.CreateSandboxRequest{
-		AgentIdentifier: "default-sandbox-rna",
+		AgentIdentifier: fmt.Sprintf("%s-sandbox-rna", prefix),
 		ClientId:        credential.ClientId,
 		ClientSecret:    credential.ClientSecret,
 	}
 }
 
-func (o *CreateOptions) writeToSandboxFile(cluster *model.SandboxCluster) error {
+func (o *CreateOptions) writeToSaveDataToSandboxFile() error {
 	fileLocation, err := o.getSandboxFileLocation()
 	if err != nil {
 		return err
 	}
-	err = cluster.SaveData(fileLocation)
+	err = o.saveData.WriteToFile(fileLocation)
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrWritingSandboxSaveData, err)
 	}
 	return nil
 }
 
-func (o *CreateOptions) readSandboxFromFile() (*model.SandboxCluster, error) {
+func (o *CreateOptions) readSandboxFromFile() (*model.SandboxClusterSaveData, error) {
 	fileLocation, err := o.getSandboxFileLocation()
 	if err != nil {
 		return nil, err
@@ -157,7 +197,7 @@ func (o *CreateOptions) readSandboxFromFile() (*model.SandboxCluster, error) {
 	if err != nil {
 		return nil, err
 	}
-	var cluster model.SandboxCluster
+	var cluster model.SandboxClusterSaveData
 	err = json.Unmarshal(data, &cluster)
 	if err != nil {
 		return nil, err
@@ -171,4 +211,30 @@ func (o *CreateOptions) getSandboxFileLocation() (string, error) {
 		return "", errorUtils.NewWrappedError(login.ErrGettingHomeDirectory, err)
 	}
 	return dirname + "/.armory/sandbox", nil
+}
+
+func AssignCredentialRNARole(ctx context.Context, credential *model.Credential, armoryClient *configuration.ConfigClient, envId string) error {
+	existingRoles, err := armoryClient.Roles().ListForMachinePrincipals(ctx, envId)
+	if err != nil {
+		return err
+	}
+
+	// add the RNA role to the newly created credentials
+	role, roleExists := lo.Find(existingRoles, func(c model.RoleConfig) bool {
+		_, hasRightPermissions := lo.Find(c.Grants, func(g model.GrantConfig) bool {
+			return g.Type == "api" && g.Resource == "agentHub" && g.Permission == "full"
+		})
+		return hasRightPermissions && c.SystemDefined
+	})
+
+	if !roleExists {
+		return agent.ErrRoleMissing
+	}
+
+	_, err = armoryClient.Credentials().AddRoles(ctx, credential, []string{role.ID})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
