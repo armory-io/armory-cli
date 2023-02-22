@@ -26,10 +26,16 @@ type (
 	CreateSandboxResponse struct {
 		ClusterId string `json:"clusterId"`
 	}
+
+	SandboxClusterSaveData struct {
+		SandboxCluster        SandboxCluster        `json:"cluster"`
+		CreateSandboxRequest  CreateSandboxRequest  `json:"request"`
+		CreateSandboxResponse CreateSandboxResponse `json:"response"`
+	}
 )
 
-func (c *SandboxCluster) SaveData(fileLocation string) error {
-	data, err := json.MarshalIndent(c, "", " ")
+func (d *SandboxClusterSaveData) WriteToFile(fileLocation string) error {
+	data, err := json.MarshalIndent(d, "", " ")
 	if err != nil {
 		return err
 	}
