@@ -28,6 +28,11 @@ type CredentialInterface interface {
 	List(ctx context.Context) ([]*model.Credential, error)
 }
 
+type SandboxInterface interface {
+	Create(ctx context.Context, configuration *model.CreateSandboxRequest) (*model.CreateSandboxResponse, error)
+	Get(ctx context.Context, clusterId string) (*model.SandboxCluster, error)
+}
+
 // RolInterface has methods to work with Rol resources.
 type RolInterface interface {
 	ListForMachinePrincipals(ctx context.Context, environmentId string) ([]model.RoleConfig, error)
@@ -45,7 +50,6 @@ func NewClient(configuration *cliconfig.Configuration) *ConfigClient {
 		ArmoryCloudClient: armoryCloudClient,
 	}
 }
-
 func (c *ConfigClient) CreateRole(ctx context.Context, request *configClient.CreateRoleRequest) (*configClient.CreateRoleResponse, *http.Response, error) {
 	reqBytes, err := json.Marshal(request)
 	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodPost, fmt.Sprintf("/roles"), bytes.NewReader(reqBytes))
@@ -221,4 +225,8 @@ func (c *ConfigClient) Credentials() CredentialInterface {
 
 func (c *ConfigClient) Roles() RolInterface {
 	return newRoles(c)
+}
+
+func (c *ConfigClient) Sandbox() SandboxInterface {
+	return newSandbox(c)
 }
