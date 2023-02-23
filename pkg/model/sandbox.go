@@ -39,9 +39,5 @@ func (d *SandboxClusterSaveData) WriteToFile(fileLocation string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(fileLocation, data, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
+	return ioutil.WriteFile(fileLocation, data, 0644)
 }
