@@ -25,7 +25,7 @@ const (
 	sandboxFilePath    = "/.armory/sandbox"
 	charset            = "abcdefghijklmnopqrstuvwxyz0123456789"
 	createClusterShort = "Creates a temporary kubernetes cluster"
-	createClusterLong  = "Creates a temporary kubernetes cluster for demo purposes. The created cluster is helpful for evaluating CD-as-a-Service and will be \n\n" +
+	createClusterLong  = "Creates a temporary kubernetes cluster for demo purposes. The created cluster is helpful for evaluating CD-as-a-Service and will be \n" +
 		"automatically deleted within two hours. Only the CD-as-a-Service sample application (potato-facts) and Remote Network Agent can be installed."
 )
 
