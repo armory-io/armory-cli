@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	createShort = "Manage a temporary kubernetes cluster Armory provisions for you"
+	createShort = "Manage a temporary Kubernetes cluster provisioned by Armory"
 	createLong  = "Manage a temporary kubernetes cluster Armory provisions for you"
 )
 
