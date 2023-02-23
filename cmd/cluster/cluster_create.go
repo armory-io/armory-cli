@@ -55,9 +55,6 @@ func NewCreateClusterCmd(configuration *config.Configuration) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			o.InitializeConfiguration(configuration)
 			return o.Run(cmd)
-				return err
-			}
-			return nil
 		},
 		SilenceUsage: true,
 	}
@@ -202,11 +199,7 @@ func (o *CreateOptions) readSandboxFromFile() (*model.SandboxClusterSaveData, er
 		return nil, err
 	}
 	var cluster model.SandboxClusterSaveData
-	err = json.Unmarshal(data, &cluster)
-	if err != nil {
-		return nil, err
-	}
-	return &cluster, nil
+	return &cluster, json.Unmarshal(data, &cluster)
 }
 
 func (o *CreateOptions) getSandboxFileLocation() (string, error) {
@@ -244,9 +237,5 @@ func AssignCredentialRNARole(ctx context.Context, credential *model.Credential, 
 	}
 
 	_, err = armoryClient.Credentials().AddRoles(ctx, credential, []string{role.ID})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
