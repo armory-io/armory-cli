@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	createShort = "Manage a temporary cluster Armory provisions for you"
-	createLong  = "Manage a temporary cluster Armory provisions for you"
+	createShort = "Manage a temporary kubernetes cluster Armory provisions for you"
+	createLong  = "Manage a temporary kubernetes cluster Armory provisions for you"
 )
 
 func NewClusterCmd(configuration *config.Configuration) *cobra.Command {
@@ -21,7 +21,6 @@ func NewClusterCmd(configuration *config.Configuration) *cobra.Command {
 		SilenceUsage: true,
 	}
 
-	// agent subcommands
 	cmd.AddCommand(NewCreateClusterCmd(configuration))
 
 	cmdUtils.SetPersistentFlagsFromEnvVariables(cmd.Commands())
