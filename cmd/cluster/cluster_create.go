@@ -54,7 +54,7 @@ func NewCreateClusterCmd(configuration *config.Configuration) *cobra.Command {
 		Long:    createClusterLong,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			o.InitializeConfiguration(configuration)
-			if err := o.Run(cmd); err != nil {
+			return o.Run(cmd)
 				return err
 			}
 			return nil
