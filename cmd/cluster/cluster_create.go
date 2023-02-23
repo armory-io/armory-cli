@@ -97,7 +97,7 @@ func (o *CreateOptions) Run(cmd *cobra.Command) error {
 	o.InitializeProgressBar()
 	o.saveData = &model.SandboxClusterSaveData{
 		SandboxCluster:        model.SandboxCluster{},
-		CreateSandboxRequest:  *createSandboxRequest,
+		AgentIdentifier:       createSandboxRequest.AgentIdentifier,
 		CreateSandboxResponse: *sandboxResponse,
 	}
 	for {
