@@ -9,6 +9,7 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -51,6 +52,7 @@ func (suite *ClusterCreateTestSuite) TestCreateAndRunCommand() {
 	assert.NoError(suite.T(), registerResponder(model.SandboxCluster{PercentComplete: 100}, 200, "/sandbox/clusters/cluster-id", http.MethodGet))
 
 	cmd := NewClusterCmd(getDefaultAppConfiguration())
+	cmd.SetOut(io.Discard)
 	cmd.SetArgs([]string{
 		"create",
 	})
@@ -62,7 +64,8 @@ func (suite *ClusterCreateTestSuite) TestCreateAndRunCommand() {
 func (suite *ClusterCreateTestSuite) TestUpdateProgressBar() {
 	assert.NoError(suite.T(), registerResponder(model.SandboxCluster{PercentComplete: 20}, 200, "/sandbox/clusters/abcd", "GET"))
 	o := getDefaultCreateOptions()
-	o.InitializeProgressBar()
+	// The output of the progressbar interferes with the ability for the test reader to determine success or failure. Discarding output fixes it.
+	o.InitializeProgressBar(io.Discard)
 	o.saveData = &model.SandboxClusterSaveData{
 		CreateSandboxResponse: model.CreateSandboxResponse{ClusterId: "abcd"},
 	}
@@ -95,6 +98,7 @@ func (suite *ClusterCreateTestSuite) TestUpdateProgressBar() {
 		PercentComplete:     100,
 		NextPercentComplete: 100,
 	})
+
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), done)
 

@@ -15,6 +15,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -78,13 +79,14 @@ func (o *CreateOptions) Run(cmd *cobra.Command) error {
 	if o.configuration.GetOutputType() != output.Text {
 		return ErrOutputTypeNotSupported
 	}
+	isTest := o.configuration.GetIsTest()
 	ctx := cmd.Context()
 	agentPrefix := randomString(6)
 	credentials, err := o.ArmoryClient.Credentials().Create(ctx, o.createNamedCredential(agentPrefix))
 	if err != nil {
 		return err
 	}
-	environmentId := lo.If(lo.FromPtrOr[bool](o.configuration.GetIsTest(), false), "test-env").ElseF(o.configuration.GetCustomerEnvironmentId)
+	environmentId := lo.If(lo.FromPtrOr[bool](isTest, false), "test-env").ElseF(o.configuration.GetCustomerEnvironmentId)
 	err = AssignCredentialRNARole(ctx, credentials, o.ArmoryClient, environmentId)
 	if err != nil {
 		return err
@@ -94,7 +96,7 @@ func (o *CreateOptions) Run(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	o.InitializeProgressBar()
+	o.InitializeProgressBar(cmd.OutOrStdout())
 	o.saveData = &model.SandboxClusterSaveData{
 		SandboxCluster:        model.SandboxCluster{},
 		AgentIdentifier:       createSandboxRequest.AgentIdentifier,
@@ -135,8 +137,9 @@ func (o *CreateOptions) UpdateProgressBar(cluster *model.SandboxCluster) (bool, 
 }
 
 // InitializeProgressBar will create and display into StdOut the progress bar
-func (o *CreateOptions) InitializeProgressBar() {
+func (o *CreateOptions) InitializeProgressBar(writer io.Writer) {
 	o.progressbar = progressbar.NewOptions(100,
+		progressbar.OptionSetWriter(writer),
 		progressbar.OptionEnableColorCodes(true),
 		progressbar.OptionSetElapsedTime(true),
 		progressbar.OptionShowElapsedTimeOnFinish(),
