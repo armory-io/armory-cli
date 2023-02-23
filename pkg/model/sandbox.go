@@ -29,11 +29,12 @@ type (
 
 	SandboxClusterSaveData struct {
 		SandboxCluster        SandboxCluster        `json:"cluster"`
-		CreateSandboxRequest  CreateSandboxRequest  `json:"request"`
+		AgentIdentifier       string                `json:"agentIdentifier"`
 		CreateSandboxResponse CreateSandboxResponse `json:"response"`
 	}
 )
 
+// WriteToFile stores the data for debugging info or future use by other commands
 func (d *SandboxClusterSaveData) WriteToFile(fileLocation string) error {
 	data, err := json.MarshalIndent(d, "", " ")
 	if err != nil {
