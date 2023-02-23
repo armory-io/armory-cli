@@ -1,0 +1,229 @@
+package cluster
+
+import (
+	"context"
+	"encoding/json"
+	"github.com/armory/armory-cli/cmd/agent"
+	"github.com/armory/armory-cli/pkg/config"
+	"github.com/armory/armory-cli/pkg/model"
+	"github.com/jarcoal/httpmock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"net/http"
+	"os"
+	"strings"
+	"testing"
+)
+
+func TestClusterCreateSuite(t *testing.T) {
+	suite.Run(t, new(ClusterCreateTestSuite))
+}
+
+type ClusterCreateTestSuite struct {
+	suite.Suite
+}
+
+func (suite *ClusterCreateTestSuite) SetupSuite() {
+	assert.NoError(suite.T(), os.Setenv("ARMORY_CLI_TEST", "true"))
+	httpmock.Activate()
+}
+
+func (suite *ClusterCreateTestSuite) SetupTest() {
+	httpmock.Reset()
+}
+
+func (suite *ClusterCreateTestSuite) TearDownSuite() {
+	assert.NoError(suite.T(), os.Unsetenv("ARMORY_CLI_TEST"))
+	httpmock.DeactivateAndReset()
+}
+
+func (suite *ClusterCreateTestSuite) TestCreateAndRunCommand() {
+	credential := model.Credential{
+		ID:           "my-agent-identifier",
+		ClientSecret: "my-secret",
+		ClientId:     "my-id",
+	}
+
+	assert.NoError(suite.T(), registerResponder(credential, http.StatusCreated, "/credentials", http.MethodPost))
+	assert.NoError(suite.T(), registerResponder(rolesFromGrantStrings("my-role-id", []string{"api:agentHub:full"}, true), http.StatusOK, "/roles", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder([]model.RoleConfig{}, http.StatusOK, "/credentials/my-agent-identifier/roles", http.MethodPut))
+	assert.NoError(suite.T(), registerResponder(model.CreateSandboxResponse{ClusterId: "cluster-id"}, 200, "/sandbox/clusters", http.MethodPost))
+	assert.NoError(suite.T(), registerResponder(model.SandboxCluster{PercentComplete: 100}, 200, "/sandbox/clusters/cluster-id", http.MethodGet))
+
+	cmd := NewClusterCmd(getDefaultAppConfiguration())
+	cmd.SetArgs([]string{
+		"create",
+	})
+
+	err := cmd.Execute()
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *ClusterCreateTestSuite) TestUpdateProgressBar() {
+	assert.NoError(suite.T(), registerResponder(model.SandboxCluster{PercentComplete: 20}, 200, "/sandbox/clusters/abcd", "GET"))
+	o := getDefaultCreateOptions()
+	o.InitializeProgressBar()
+	o.saveData = &model.SandboxClusterSaveData{
+		CreateSandboxResponse: model.CreateSandboxResponse{ClusterId: "abcd"},
+	}
+	for i := 0; i <= 99; i += 10 {
+		done, err := o.UpdateProgressBar(&model.SandboxCluster{
+			ID:                  "some-id",
+			IP:                  "0.0.0.0",
+			DNS:                 "localhost",
+			Status:              "The cluster is being created",
+			CreatedAt:           "",
+			ExpiresAt:           "",
+			PercentComplete:     float32(i),
+			NextPercentComplete: float32(i + 1),
+		})
+		assert.NoError(suite.T(), err)
+		assert.False(suite.T(), done)
+
+		loadedData, err := o.readSandboxFromFile()
+		assert.NoError(suite.T(), err)
+		assert.Equal(suite.T(), float32(i), loadedData.SandboxCluster.PercentComplete)
+	}
+
+	done, err := o.UpdateProgressBar(&model.SandboxCluster{
+		ID:                  "some-id",
+		IP:                  "0.0.0.0",
+		DNS:                 "localhost",
+		Status:              "The cluster is being created",
+		CreatedAt:           "",
+		ExpiresAt:           "",
+		PercentComplete:     100,
+		NextPercentComplete: 100,
+	})
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), done)
+
+}
+
+func (suite *ClusterCreateTestSuite) TestCreateNamedCredential() {
+	o := getDefaultCreateOptions()
+	credential := o.createNamedCredential("xyz")
+	assert.Equal(suite.T(), "xyz-temp-cluster-credentials", credential.Name)
+}
+
+func (suite *ClusterCreateTestSuite) TestRandomString() {
+	assert.Len(suite.T(), randomString(6), 6)
+	assert.Len(suite.T(), randomString(11), 11)
+}
+
+func (suite *ClusterCreateTestSuite) TestAssignCredentialRNARole() {
+	ctx := context.Background()
+	cases := []struct {
+		name                  string
+		existingGrants        []string
+		rolesAreSystemDefined bool
+		expectedErr           error
+	}{
+		{
+			name:                  "happy path, role found and assigned",
+			existingGrants:        []string{"api:agentHub:full", "api:deployments:full"},
+			rolesAreSystemDefined: true,
+			expectedErr:           nil,
+		},
+		{
+			name:                  "role not system defined",
+			existingGrants:        []string{"api:agentHub:full", "api:deployments:full"},
+			rolesAreSystemDefined: false,
+			expectedErr:           agent.ErrRoleMissing,
+		},
+		{
+			name:           "role not found",
+			existingGrants: []string{"api:not:full", "api:deployments:full"},
+			expectedErr:    agent.ErrRoleMissing,
+		},
+	}
+
+	for _, c := range cases {
+		suite.Run(c.name, func() {
+			o := getDefaultCreateOptions()
+			credential := model.Credential{
+				ID: "my-agent-identifier",
+			}
+			reqBytes, err := json.Marshal([]string{})
+			assert.NoError(suite.T(), err)
+			assert.NoError(suite.T(), registerResponder(rolesFromGrantStrings("my-role-id", c.existingGrants, c.rolesAreSystemDefined), http.StatusOK, "/roles", http.MethodGet))
+			assert.NoError(suite.T(), registerResponder(reqBytes, http.StatusOK, "/credentials/my-agent-identifier/roles", http.MethodPut))
+
+			err = AssignCredentialRNARole(ctx, &credential, o.ArmoryClient, "x")
+			callCount := httpmock.GetCallCountInfo()
+			suite.Equal(1, callCount["GET /roles"])
+			if c.expectedErr != nil {
+				suite.ErrorIs(err, agent.ErrRoleMissing)
+				suite.Equal(0, callCount["PUT /credentials/my-agent-identifier/roles"])
+			} else {
+				suite.Equal(1, callCount["PUT /credentials/my-agent-identifier/roles"])
+			}
+		})
+
+	}
+}
+
+func (suite *ClusterCreateTestSuite) TestCreateSandboxRequest() {
+	o := getDefaultCreateOptions()
+	request := o.createSandboxRequest("a12x3v", &model.Credential{
+		ClientSecret: "super-secret",
+		ClientId:     "my-id",
+	})
+	assert.Equal(suite.T(), "a12x3v-sandbox-rna", request.AgentIdentifier)
+	assert.Equal(suite.T(), "my-id", request.ClientId)
+	assert.Equal(suite.T(), "super-secret", request.ClientSecret)
+}
+
+func getDefaultCreateOptions() *CreateOptions {
+	o := NewCreateOptions()
+	o.InitializeConfiguration(getDefaultAppConfiguration())
+	return o
+}
+
+func getDefaultAppConfiguration() *config.Configuration {
+	token := "some-token"
+	addr := "https://localhost"
+	clientId := ""
+	clientSecret := ""
+	output := "text"
+	isTest := true
+	return config.New(&config.Input{
+		AccessToken:  &token,
+		ApiAddr:      &addr,
+		ClientId:     &clientId,
+		ClientSecret: &clientSecret,
+		OutFormat:    &output,
+		IsTest:       &isTest,
+	})
+}
+
+func registerResponder(body any, status int, url, method string) error {
+	responder, err := httpmock.NewJsonResponder(status, body)
+	if err != nil {
+		return err
+	}
+	httpmock.RegisterResponder(method, url, responder)
+	return nil
+}
+
+func rolesFromGrantStrings(roleId string, grants []string, systemDefined bool) []model.RoleConfig {
+	var roles []model.RoleConfig
+	for _, grant := range grants {
+		g := strings.Split(grant, ":")
+		roles = append(roles, model.RoleConfig{
+			ID:            roleId,
+			EnvID:         "",
+			Name:          "",
+			Tenant:        "",
+			SystemDefined: systemDefined,
+			Grants: []model.GrantConfig{
+				{
+					Type:       g[0],
+					Resource:   g[1],
+					Permission: g[2],
+				},
+			},
+		})
+	}
+	return roles
+}
