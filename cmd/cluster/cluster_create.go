@@ -2,23 +2,18 @@ package cluster
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/armory/armory-cli/cmd/agent"
-	"github.com/armory/armory-cli/cmd/login"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configuration"
-	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/armory/armory-cli/pkg/output"
 	"github.com/samber/lo"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
 	"io"
-	"io/ioutil"
 	"math/rand"
-	"os"
 	"time"
 )
 
@@ -42,11 +37,11 @@ type CreateOptions struct {
 	contextNames  []string
 	credentials   *model.Credential
 	progressbar   *progressbar.ProgressBar
-	saveData      *model.SandboxClusterSaveData
+	saveData      SandboxStorage
 }
 
-func NewCreateClusterCmd(configuration *config.Configuration) *cobra.Command {
-	o := NewCreateOptions()
+func NewCreateClusterCmd(configuration *config.Configuration, store SandboxStorage) *cobra.Command {
+	o := NewCreateOptions(store)
 
 	cmd := &cobra.Command{
 		Use:     "create",
@@ -62,8 +57,10 @@ func NewCreateClusterCmd(configuration *config.Configuration) *cobra.Command {
 	return cmd
 }
 
-func NewCreateOptions() *CreateOptions {
-	return &CreateOptions{}
+func NewCreateOptions(store SandboxStorage) *CreateOptions {
+	return &CreateOptions{
+		saveData: store,
+	}
 }
 
 // InitializeConfiguration will fetch Auth info to configure the REST client, so initialization must be deferred to runtime
@@ -97,13 +94,10 @@ func (o *CreateOptions) Run(cmd *cobra.Command) error {
 		return err
 	}
 	o.InitializeProgressBar(cmd.OutOrStdout())
-	o.saveData = &model.SandboxClusterSaveData{
-		SandboxCluster:        model.SandboxCluster{},
-		AgentIdentifier:       createSandboxRequest.AgentIdentifier,
-		CreateSandboxResponse: *sandboxResponse,
-	}
+	o.saveData.setAgentIdentifier(createSandboxRequest.AgentIdentifier)
+	o.saveData.setCreateSandboxResponse(*sandboxResponse)
 	for {
-		cluster, err := o.ArmoryClient.Sandbox().Get(ctx, o.saveData.CreateSandboxResponse.ClusterId)
+		cluster, err := o.ArmoryClient.Sandbox().Get(ctx, o.saveData.getClusterId())
 		if err != nil {
 			return err
 		}
@@ -122,9 +116,9 @@ func (o *CreateOptions) Run(cmd *cobra.Command) error {
 }
 
 func (o *CreateOptions) UpdateProgressBar(cluster *model.SandboxCluster) (bool, error) {
-	o.saveData.SandboxCluster = *cluster
+	o.saveData.setClusterData(cluster)
 	o.progressbar.Describe(cluster.Status)
-	err := o.writeToSaveDataToSandboxFile()
+	err := o.saveData.writeToSandboxFile()
 	if err != nil {
 		return true, err
 	}
@@ -178,47 +172,6 @@ func (o *CreateOptions) createSandboxRequest(prefix string, credential *model.Cr
 		ClientId:        credential.ClientId,
 		ClientSecret:    credential.ClientSecret,
 	}
-}
-
-func (o *CreateOptions) writeToSaveDataToSandboxFile() error {
-	fileLocation, err := o.getSandboxFileLocation()
-	if err != nil {
-		return err
-	}
-	err = o.saveData.WriteToFile(fileLocation)
-	if err != nil {
-		return errorUtils.NewWrappedError(ErrWritingSandboxSaveData, err)
-	}
-	return nil
-}
-
-func (o *CreateOptions) readSandboxFromFile() (*model.SandboxClusterSaveData, error) {
-	fileLocation, err := o.getSandboxFileLocation()
-	if err != nil {
-		return nil, err
-	}
-	data, err := ioutil.ReadFile(fileLocation)
-	if err != nil {
-		return nil, err
-	}
-	var cluster model.SandboxClusterSaveData
-	return &cluster, json.Unmarshal(data, &cluster)
-}
-
-func (o *CreateOptions) getSandboxFileLocation() (string, error) {
-	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
-	var dirname string
-	var err error
-	if isATest {
-		return os.TempDir() + "dotarmory_sandbox", nil
-	}
-
-	dirname, err = os.UserHomeDir()
-	if err != nil {
-		return "", errorUtils.NewWrappedError(login.ErrGettingHomeDirectory, err)
-	}
-
-	return dirname + sandboxFilePath, nil
 }
 
 func AssignCredentialRNARole(ctx context.Context, credential *model.Credential, armoryClient *configuration.ConfigClient, envId string) error {

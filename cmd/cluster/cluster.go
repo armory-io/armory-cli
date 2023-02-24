@@ -11,7 +11,7 @@ const (
 	createLong  = "Manage a temporary kubernetes cluster Armory provisions for you"
 )
 
-func NewClusterCmd(configuration *config.Configuration) *cobra.Command {
+func NewClusterCmd(configuration *config.Configuration, store SandboxStorage) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "cluster",
 		GroupID:      "admin",
@@ -21,7 +21,7 @@ func NewClusterCmd(configuration *config.Configuration) *cobra.Command {
 		SilenceUsage: true,
 	}
 
-	cmd.AddCommand(NewCreateClusterCmd(configuration))
+	cmd.AddCommand(NewCreateClusterCmd(configuration, store))
 
 	cmdUtils.SetPersistentFlagsFromEnvVariables(cmd.Commands())
 

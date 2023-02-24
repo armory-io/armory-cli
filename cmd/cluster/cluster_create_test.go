@@ -51,7 +51,7 @@ func (suite *ClusterCreateTestSuite) TestCreateAndRunCommand() {
 	assert.NoError(suite.T(), registerResponder(model.CreateSandboxResponse{ClusterId: "cluster-id"}, 200, "/sandbox/clusters", http.MethodPost))
 	assert.NoError(suite.T(), registerResponder(model.SandboxCluster{PercentComplete: 100}, 200, "/sandbox/clusters/cluster-id", http.MethodGet))
 
-	cmd := NewClusterCmd(getDefaultAppConfiguration())
+	cmd := NewClusterCmd(getDefaultAppConfiguration(), getSandboxFileStore())
 	cmd.SetOut(io.Discard)
 	cmd.SetArgs([]string{
 		"create",
@@ -66,9 +66,9 @@ func (suite *ClusterCreateTestSuite) TestUpdateProgressBar() {
 	o := getDefaultCreateOptions()
 	// The output of the progressbar interferes with the ability for the test reader to determine success or failure. Discarding output fixes it.
 	o.InitializeProgressBar(io.Discard)
-	o.saveData = &model.SandboxClusterSaveData{
-		CreateSandboxResponse: model.CreateSandboxResponse{ClusterId: "abcd"},
-	}
+	o.saveData = getSandboxFileStore()
+	o.saveData.setCreateSandboxResponse(model.CreateSandboxResponse{ClusterId: "abcd"})
+
 	for i := 0; i <= 99; i += 10 {
 		done, err := o.UpdateProgressBar(&model.SandboxCluster{
 			ID:                  "some-id",
@@ -83,7 +83,7 @@ func (suite *ClusterCreateTestSuite) TestUpdateProgressBar() {
 		assert.NoError(suite.T(), err)
 		assert.False(suite.T(), done)
 
-		loadedData, err := o.readSandboxFromFile()
+		loadedData, err := o.saveData.readSandboxFromFile()
 		assert.NoError(suite.T(), err)
 		assert.Equal(suite.T(), float32(i), loadedData.SandboxCluster.PercentComplete)
 	}
@@ -179,9 +179,16 @@ func (suite *ClusterCreateTestSuite) TestCreateSandboxRequest() {
 }
 
 func getDefaultCreateOptions() *CreateOptions {
-	o := NewCreateOptions()
+	o := NewCreateOptions(getSandboxFileStore())
 	o.InitializeConfiguration(getDefaultAppConfiguration())
 	return o
+}
+
+func getSandboxFileStore() SandboxStorage {
+	if os.Getenv("CI") == "true" {
+		return &InMemorySandboxStorage{}
+	}
+	return &SandboxClusterFileStore{}
 }
 
 func getDefaultAppConfiguration() *config.Configuration {
@@ -230,4 +237,16 @@ func rolesFromGrantStrings(roleId string, grants []string, systemDefined bool) [
 		})
 	}
 	return roles
+}
+
+type InMemorySandboxStorage struct {
+	SandboxClusterFileStore
+}
+
+func (s *InMemorySandboxStorage) writeToSandboxFile() error {
+	return nil
+}
+
+func (s *InMemorySandboxStorage) readSandboxFromFile() (*model.SandboxSaveData, error) {
+	return &s.saveData, nil
 }

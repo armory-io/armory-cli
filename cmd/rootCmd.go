@@ -85,7 +85,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, error) {
 		configCmd.NewConfigCmd(configuration),
 		version.NewCmdVersion(),
 		agent.NewCmdAgent(configuration),
-		cluster.NewClusterCmd(configuration),
+		cluster.NewClusterCmd(configuration, &cluster.SandboxClusterFileStore{}),
 	)
 
 	cmdUtils.SetPersistentFlagsFromEnvVariables(rootCmd.Commands())
