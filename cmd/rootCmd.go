@@ -9,6 +9,7 @@ import (
 	"github.com/armory/armory-cli/cmd/deploy"
 	"github.com/armory/armory-cli/cmd/login"
 	"github.com/armory/armory-cli/cmd/logout"
+	"github.com/armory/armory-cli/cmd/preview"
 	"github.com/armory/armory-cli/cmd/quickStart"
 	"github.com/armory/armory-cli/cmd/template"
 	"github.com/armory/armory-cli/cmd/version"
@@ -86,6 +87,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, error) {
 		version.NewCmdVersion(),
 		agent.NewCmdAgent(configuration),
 		cluster.NewClusterCmd(configuration, &cluster.SandboxClusterFileStore{}),
+		preview.NewCmdPreview(configuration),
 	)
 
 	cmdUtils.SetPersistentFlagsFromEnvVariables(rootCmd.Commands())

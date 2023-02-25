@@ -8,7 +8,7 @@ import (
 
 const (
 	createShort = "Manage a temporary Kubernetes cluster provisioned by Armory"
-	createLong  = "Manage a temporary kubernetes cluster Armory provisions for you"
+	createLong  = "Manage a temporary Kubernetes cluster provisioned by Armory"
 )
 
 func NewClusterCmd(configuration *config.Configuration, store SandboxStorage) *cobra.Command {
