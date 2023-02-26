@@ -112,6 +112,7 @@ func (o *CreateOptions) Run(cmd *cobra.Command) error {
 		}
 	}
 
+	cmd.Printf("\n\nTo use your temporary sandbox cluster, create a cluster preview. Run: `armory preview create --duration 2h --type cluster --agent %s`\n", createSandboxRequest.AgentIdentifier)
 	return nil
 }
 
