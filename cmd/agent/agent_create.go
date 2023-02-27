@@ -58,10 +58,11 @@ var (
 
 type AgentOptions struct {
 	// Name of resource being created
-	Name        string
-	Namespace   string
-	ContextName string
-	Context     context.Context
+	Name              string
+	Namespace         string
+	UseCurrentContext bool
+	ContextName       string
+	Context           context.Context
 
 	ArmoryClient      *configuration.ConfigClient
 	configuration     *config.Configuration
@@ -103,6 +104,7 @@ func NewCmdCreateAgent(configuration *config.Configuration) *cobra.Command {
 		SilenceUsage: true,
 	}
 
+	cmd.Flags().BoolVarP(&options.UseCurrentContext, "use-current-context", "", false, "use the current kube config context. Skips prompt")
 	cmd.Flags().StringVarP(&options.ContextName, "context-name", "", "", "specify the name of the kubernetes context to select from your kube config. Skips prompt")
 	cmd.Flags().StringVarP(&options.Name, "name", "", "", "specify a unique name for the agent to be created. Skips prompt")
 	cmd.Flags().StringVarP(&options.Namespace, "namespace", "", "", "specify the namespace where the agent will be deployed. Skips prompt")
@@ -138,26 +140,9 @@ func (o *AgentOptions) WithConfiguration(cfg *config.Configuration) error {
 
 // Run performs the execution of 'agent create' sub command
 func (o *AgentOptions) Run() error {
-	var err error
-	requestedContext := o.ContextName
-	if lo.IsEmpty(requestedContext) {
-		promptSelectAgent := promptui.Select{
-			Label:  "Please select a context. Your agent will be deployed into the cluster you choose",
-			Items:  o.contextNames,
-			Stdout: &util.BellSkipper{},
-		}
-		_, requestedContext, err = promptSelectAgent.Run()
-		if err != nil {
-			return fmt.Errorf("%w: %s", ErrFailedToChooseContext, err)
-		}
-	} else {
-		if !lo.Contains(o.contextNames, requestedContext) {
-			return fmt.Errorf("%w: %s", ErrUnknownContextName, requestedContext)
-		}
-	}
-
-	if err := o.useContext(requestedContext); err != nil {
-		return fmt.Errorf("%w to %s: %s", ErrFailedToSetContext, requestedContext, err)
+	requestedContext, err := o.setKubeContext()
+	if err != nil {
+		return err
 	}
 
 	ctx := context.Background()
@@ -317,6 +302,39 @@ func (o *AgentOptions) Run() error {
 		return fmt.Errorf("%w: %s", ErrAgentConnectionTimeout, err)
 	}
 	return nil
+}
+
+func (o *AgentOptions) setKubeContext() (string, error) {
+	if o.UseCurrentContext {
+		kubeConfig, err := o.configAccess.GetStartingConfig()
+		if err != nil {
+			return "", err
+		}
+		return kubeConfig.CurrentContext, nil
+	}
+	var err error
+	requestedContext := o.ContextName
+	if lo.IsEmpty(requestedContext) {
+		promptSelectAgent := promptui.Select{
+			Label:  "Please select a context. Your agent will be deployed into the cluster you choose",
+			Items:  o.contextNames,
+			Stdout: &util.BellSkipper{},
+		}
+		_, requestedContext, err = promptSelectAgent.Run()
+		if err != nil {
+			return "", fmt.Errorf("%w: %s", ErrFailedToChooseContext, err)
+		}
+	} else {
+		if !lo.Contains(o.contextNames, requestedContext) {
+			return "", fmt.Errorf("%w: %s", ErrUnknownContextName, requestedContext)
+		}
+	}
+
+	if err := o.useContext(requestedContext); err != nil {
+		return "", fmt.Errorf("%w to %s: %s", ErrFailedToSetContext, requestedContext, err)
+	}
+
+	return requestedContext, nil
 }
 
 // getKubernetesFactory outputs the Kubernetes Factory
