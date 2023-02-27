@@ -23,15 +23,22 @@ const (
 
 type (
 	createPreviewOptions struct {
-		Type     string
-		Duration string
-		Agent    string
+		logger      *zap.SugaredLogger
+		client      *preview.Client
+		previewType string
+		duration    string
+		agent       string
 	}
 )
 
 func NewCmdCreate(configuration *config.Configuration) *cobra.Command {
 	logger := zap.S()
-	options := &createPreviewOptions{}
+	o := &createPreviewOptions{
+		logger: logger,
+		client: preview.NewClient(func(ctx context.Context) (string, error) {
+			return configuration.GetAuthToken(), nil
+		}, configuration.GetArmoryCloudAddr().String()),
+	}
 
 	cmd := &cobra.Command{
 		Use:     "create",
@@ -39,37 +46,14 @@ func NewCmdCreate(configuration *config.Configuration) *cobra.Command {
 		Short:   createShort,
 		Long:    createLong,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			assertEqual(logger, clusterPreviewType, options.Type, fmt.Sprintf("preview type must be %q, got %q", clusterPreviewType, options.Type))
-
-			client := preview.NewClient(func(ctx context.Context) (string, error) {
-				return configuration.GetAuthToken(), nil
-			}, configuration.GetArmoryCloudAddr().String())
-
-			duration, err := time.ParseDuration(options.Duration)
-			assertNil(logger, err, "Provided duration is not a valid Go duration string")
-
-			p, err := client.CreateClusterPreview(cmd.Context(), preview.ClusterPreviewParameters{
-				AgentIdentifier: options.Agent,
-				Duration:        duration,
-			})
-			assertNil(logger, err, "Could not create cluster preview")
-
-			home, err := homedir.Dir()
-			assertNil(logger, err, "Could not determine $HOME directory")
-			assertNil(
-				logger,
-				client.UpdateKubeconfigWithClusterPreview(*p, path.Join(home, ".kube", "config")),
-				"Could not update ~/.kube/config with cluster preview",
-			)
-			cmd.Println("Your Kubernetes config has been updated with the preview context.")
-			return nil
+			return o.Run(cmd.Context())
 		},
 	}
 
 	cmdUtils.SetPersistentFlagsFromEnvVariables(cmd.Commands())
 
 	cmd.Flags().StringVarP(
-		&options.Type,
+		&o.previewType,
 		"type",
 		"",
 		"",
@@ -78,7 +62,7 @@ func NewCmdCreate(configuration *config.Configuration) *cobra.Command {
 	assertNil(logger, cmd.MarkFlagRequired("type"), "Could not mark flag 'type' as required")
 
 	cmd.Flags().StringVarP(
-		&options.Duration,
+		&o.duration,
 		"duration",
 		"",
 		"",
@@ -87,7 +71,7 @@ func NewCmdCreate(configuration *config.Configuration) *cobra.Command {
 	assertNil(logger, cmd.MarkFlagRequired("duration"), "Could not mark flag 'duration' as required")
 
 	cmd.Flags().StringVarP(
-		&options.Agent,
+		&o.agent,
 		"agent",
 		"",
 		"",
@@ -96,6 +80,29 @@ func NewCmdCreate(configuration *config.Configuration) *cobra.Command {
 	assertNil(logger, cmd.MarkFlagRequired("agent"), "Could not mark flag 'agent' as required")
 
 	return cmd
+}
+
+func (o *createPreviewOptions) Run(ctx context.Context) error {
+	assertEqual(o.logger, clusterPreviewType, o.previewType, fmt.Sprintf("preview type must be %q, got %q", clusterPreviewType, o.previewType))
+
+	duration, err := time.ParseDuration(o.duration)
+	assertNil(o.logger, err, "Provided duration is not a valid Go duration string")
+
+	p, err := o.client.CreateClusterPreview(ctx, preview.ClusterPreviewParameters{
+		AgentIdentifier: o.agent,
+		Duration:        duration,
+	})
+	assertNil(o.logger, err, "Could not create cluster preview")
+
+	home, err := homedir.Dir()
+	assertNil(o.logger, err, "Could not determine $HOME directory")
+	assertNil(
+		o.logger,
+		o.client.UpdateKubeconfigWithClusterPreview(*p, path.Join(home, ".kube", "config")),
+		"Could not update ~/.kube/config with cluster preview",
+	)
+	o.logger.Info("Your Kubernetes config has been updated with the preview context.")
+	return nil
 }
 
 func assertNil(logger *zap.SugaredLogger, err error, msg string) {
