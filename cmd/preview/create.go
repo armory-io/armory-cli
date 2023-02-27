@@ -16,7 +16,7 @@ import (
 
 const (
 	createShort = "Create a network preview"
-	createLong  = "Create a network preview"
+	createLong  = "Create a network preview. Automatically updates your Kubernetes config file by adding the preview cluster connection and updating the current context"
 
 	clusterPreviewType = "cluster"
 )
