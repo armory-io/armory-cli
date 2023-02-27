@@ -31,8 +31,8 @@ func TestMain(m *testing.M) {
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "PWD="+dir, "GOARCH="+goarch, "GOOS="+goos, "VERSION="+version)
 	binaryPath = fmt.Sprintf("%s/build/dist/%s_%s/%s", dir, goos, goarch, binaryName)
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("could not make binary for %s: %v", binaryName, err)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		fmt.Printf("could not make binary for %s: error=%s, %s", binaryName, err, string(output))
 		os.Exit(1)
 	}
 	os.Exit(m.Run())
@@ -52,12 +52,10 @@ func TestVersionCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, tt.args...)
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				t.Fatalf("test run returned an error: %v\n%s", err, output)
-			}
+			output, err := cmd.Output()
+			assert.NoError(t, err)
 			actual := string(output)
-			assert.Contains(t, actual, version, "must contains the test version")
+			assert.Contains(t, actual, version, "must contain the test version")
 		})
 	}
 }
