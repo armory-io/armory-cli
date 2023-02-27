@@ -61,6 +61,7 @@ func NewCmdCreate(configuration *config.Configuration) *cobra.Command {
 				client.UpdateKubeconfigWithClusterPreview(*p, path.Join(home, ".kube", "config")),
 				"Could not update ~/.kube/config with cluster preview",
 			)
+			cmd.Println("Your Kubernetes config has been updated with the preview context.")
 			return nil
 		},
 	}
