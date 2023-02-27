@@ -235,7 +235,6 @@ func buildExposeServiceStepNode(serviceNames []string, comment string) *yaml.Nod
 		"Optional. Sets lifetime of the exposed service preview. After that period service preview automatically expires. Max lifetime cannot exceed 24 hours.")
 	ttlNodeValue.Content = append(ttlNodeValue.Content, util.BuildIntNode("duration", "30", "")...)
 	ttlNodeValue.Content = append(ttlNodeValue.Content, util.BuildStringNode("unit", "MINUTES", "SECONDS, MINUTES or HOURS")...)
-	//previewNode.Content = append(previewValuesNode.Content, util.BuildMapNode(""))
 
 	previewValuesNode.Content = append(previewValuesNode.Content, servicesNode, servicesValuesNode, ttlNode, ttlNodeValue)
 	preview.Content = append(preview.Content, previewNode, previewValuesNode)
