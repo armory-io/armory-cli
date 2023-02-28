@@ -35,9 +35,6 @@ func NewCmdCreate(configuration *config.Configuration) *cobra.Command {
 	logger := zap.S()
 	o := &createPreviewOptions{
 		logger: logger,
-		client: preview.NewClient(func(ctx context.Context) (string, error) {
-			return configuration.GetAuthToken(), nil
-		}, configuration.GetArmoryCloudAddr().String()),
 	}
 
 	cmd := &cobra.Command{
@@ -46,6 +43,9 @@ func NewCmdCreate(configuration *config.Configuration) *cobra.Command {
 		Short:   createShort,
 		Long:    createLong,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			o.client = preview.NewClient(func(ctx context.Context) (string, error) {
+				return configuration.GetAuthToken(), nil
+			}, configuration.GetArmoryCloudAddr().String())
 			return o.Run(cmd.Context())
 		},
 	}
