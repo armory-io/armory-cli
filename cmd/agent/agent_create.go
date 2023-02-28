@@ -113,7 +113,6 @@ func NewCmdCreateAgent(configuration *config.Configuration) *cobra.Command {
 }
 
 func (o *AgentOptions) WithConfiguration(cfg *config.Configuration) error {
-
 	o.configAccess = clientcmd.NewDefaultPathOptions()
 	o.configuration = cfg
 
@@ -530,7 +529,7 @@ func (o *AgentOptions) generateManifests() (string, error) {
 	var cntxt any = map[string]any{
 		"NAMESPACE":               o.Namespace,
 		"RNA_IDENTIFIER":          o.Name,
-		"APPLICATION_ENVIRONMENT": "prod",
+		"APPLICATION_ENVIRONMENT": o.configuration.GetArmoryCloudEnvironmentConfiguration().ApplicationEnvironment,
 	}
 	parsedTemplate, err := mustache.ParseString(string(templateContent))
 	if err != nil {
