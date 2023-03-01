@@ -41,14 +41,28 @@ const (
 	manifestTemplateDownloadUrl = "https://static.cloud.armory.io/templates/rna/v1/agent-manifests.yaml.mustache"
 )
 
-var agentConnectedPollRate = time.Minute * 10
+var (
+	agentConnectedPollRate         = time.Minute * 10
+	ErrUnknownContextName          = errors.New("provided kubernetes context name was not found in the kubernetes config")
+	ErrFailedToChooseContext       = errors.New("failed to select a kubernetes context to create the agent in")
+	ErrFailedToSetContext          = errors.New("failed to set the kubernetes context")
+	ErrFailedToSetNamespace        = errors.New("failed to set the namespace for the kubernetes context")
+	ErrAgentNameNotSpecified       = errors.New("please provide a name for the agent")
+	ErrFailedToRecreateCredentials = errors.New("failed to recreate credentials")
+	ErrFailedToCreateNamespace     = errors.New("failed to create namespace")
+	ErrFailedToCreateSecret        = errors.New("failed to create secret")
+	ErrFailedToGenerateManifests   = errors.New("failed to generate manifests")
+	ErrFailedToApplyManifests      = errors.New("failed to apply manifests")
+	ErrAgentConnectionTimeout      = errors.New("timed out waiting for agent to connect")
+)
 
 type AgentOptions struct {
 	// Name of resource being created
-	Name      string
-	Namespace string
-
-	Context context.Context
+	Name              string
+	Namespace         string
+	UseCurrentContext bool
+	ContextName       string
+	Context           context.Context
 
 	ArmoryClient      *configuration.ConfigClient
 	configuration     *config.Configuration
@@ -65,8 +79,7 @@ func newAgentOptions() *AgentOptions {
 }
 
 func NewCmdCreateAgent(configuration *config.Configuration) *cobra.Command {
-
-	o := newAgentOptions()
+	options := newAgentOptions()
 
 	cmd := &cobra.Command{
 		Use:     "create",
@@ -75,26 +88,31 @@ func NewCmdCreateAgent(configuration *config.Configuration) *cobra.Command {
 		Long:    agentLong,
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			if err := o.Complete(configuration); err != nil {
+			if err := options.WithConfiguration(configuration); err != nil {
 				return err
 			}
 
-			if err := o.Validate(); err != nil {
+			if err := options.Validate(); err != nil {
 				return err
 			}
 
-			if err := o.Run(); err != nil {
+			if err := options.Run(); err != nil {
 				return err
 			}
 			return nil
 		},
 		SilenceUsage: true,
 	}
+
+	cmd.Flags().BoolVarP(&options.UseCurrentContext, "use-current-context", "", false, "use the current kube config context. Skips prompt")
+	cmd.Flags().StringVarP(&options.ContextName, "context-name", "", "", "specify the name of the kubernetes context to select from your kube config. Skips prompt")
+	cmd.Flags().StringVarP(&options.Name, "name", "", "", "specify a unique name for the agent to be created. Skips prompt")
+	cmd.Flags().StringVarP(&options.Namespace, "namespace", "", "", "specify the namespace where the agent will be deployed. Skips prompt")
+
 	return cmd
 }
 
-func (o *AgentOptions) Complete(cfg *config.Configuration) error {
-
+func (o *AgentOptions) WithConfiguration(cfg *config.Configuration) error {
 	o.configAccess = clientcmd.NewDefaultPathOptions()
 	o.configuration = cfg
 
@@ -121,19 +139,9 @@ func (o *AgentOptions) Complete(cfg *config.Configuration) error {
 
 // Run performs the execution of 'agent create' sub command
 func (o *AgentOptions) Run() error {
-	promptSelectAgent := promptui.Select{
-		Label:  "Please select a context. Your agent will be deployed into the cluster you choose",
-		Items:  o.contextNames,
-		Stdout: &util.BellSkipper{},
-	}
-
-	_, requestedContext, err := promptSelectAgent.Run()
+	requestedContext, err := o.setKubeContext()
 	if err != nil {
-		return errors.New(fmt.Sprintf("failed to select a context to deploy to; %v\n", err))
-	}
-
-	if err := o.useContext(requestedContext); err != nil {
-		return fmt.Errorf("failed to set context %s; %v\n", requestedContext, err)
+		return err
 	}
 
 	ctx := context.Background()
@@ -151,47 +159,50 @@ func (o *AgentOptions) Run() error {
 		return exists
 	}
 
-	// set agent name
-	promptSetAgentName := promptui.Prompt{
-		Label: fmt.Sprintf("Provide an agent identifier%s", lo.Ternary(agentNameAlreadyExistFunc(requestedContext), "", fmt.Sprintf(" [default=%s]", requestedContext))),
-		Validate: func(name string) error {
-			if agentNameAlreadyExistFunc(requestedContext) && lo.IsEmpty(name) {
-				return errors.New("you need to provide an agent identifier")
-			}
-			if agentNameAlreadyExistFunc(name) {
-				return ErrDuplicateAgent
-			}
-			return nil
-		},
+	if lo.IsEmpty(o.Name) {
+		// set agent name
+		promptSetAgentName := promptui.Prompt{
+			Label: fmt.Sprintf("Provide an agent identifier%s", lo.Ternary(agentNameAlreadyExistFunc(requestedContext), "", fmt.Sprintf(" [default=%s]", requestedContext))),
+			Validate: func(name string) error {
+				if agentNameAlreadyExistFunc(requestedContext) && lo.IsEmpty(name) {
+					return ErrAgentNameNotSpecified
+				}
+				if agentNameAlreadyExistFunc(name) {
+					return ErrDuplicateAgent
+				}
+				return nil
+			},
+		}
+
+		agentName, err := promptSetAgentName.Run()
+		if err != nil {
+			return fmt.Errorf("%w: %s", ErrAgentNameNotSpecified, err)
+		}
+
+		if lo.IsEmpty(agentName) {
+			agentName = requestedContext
+		}
+		o.Name = agentName
 	}
 
-	agentName, err := promptSetAgentName.Run()
-	if err != nil {
-		return fmt.Errorf("failed to set the agent name; %v\n", err)
+	if lo.IsEmpty(o.Namespace) {
+		// set namespace
+		promptSetNamespace := promptui.Prompt{
+			Label:  fmt.Sprintf("Provide a namespace where the agent will be installed [default=%s]", defaultNamespaceName),
+			Stdout: &util.BellSkipper{},
+		}
+
+		namespaceName, err := promptSetNamespace.Run()
+		if err != nil {
+			return fmt.Errorf("%w: namespace: %s, context: %s, err: %s", ErrFailedToSetNamespace, namespaceName, requestedContext, err)
+		}
+
+		if lo.IsEmpty(namespaceName) {
+			namespaceName = defaultNamespaceName
+		}
+
+		o.Namespace = namespaceName
 	}
-
-	if lo.IsEmpty(agentName) {
-		agentName = requestedContext
-	}
-
-	o.Name = agentName
-
-	// set namespace
-	promptSetNamespace := promptui.Prompt{
-		Label:  fmt.Sprintf("Provide a namespace where the agent will be installed [default=%s]", defaultNamespaceName),
-		Stdout: &util.BellSkipper{},
-	}
-
-	namespaceName, err := promptSetNamespace.Run()
-	if err != nil {
-		return errors.New(fmt.Sprintf("failed to set the namespace; %v\n", err))
-	}
-
-	if lo.IsEmpty(namespaceName) {
-		namespaceName = defaultNamespaceName
-	}
-
-	o.Namespace = namespaceName
 
 	// fetch the list of credentials
 	existingCredentials, err := o.ArmoryClient.Credentials().List(ctx)
@@ -220,7 +231,7 @@ func (o *AgentOptions) Run() error {
 
 		err = o.ArmoryClient.Credentials().Delete(ctx, existingCredential)
 		if err != nil {
-			return errors.New(fmt.Sprintf("failed to delete credentials; %v\n", err))
+			return fmt.Errorf("%w: %s", ErrFailedToRecreateCredentials, err)
 		}
 	}
 
@@ -254,10 +265,9 @@ func (o *AgentOptions) Run() error {
 	o.credentials = credentials
 
 	// create new namespace if not exist
-	if exist, _ := o.namespaceExist(); !exist {
-		_, err := o.createNamespace()
-		if err != nil {
-			return errors.New(fmt.Sprintf("failed to create namespace; %v\n", err))
+	if exist, _ := o.namespaceExists(); !exist {
+		if _, err := o.createNamespace(); err != nil {
+			return fmt.Errorf("%w: %s", ErrFailedToCreateNamespace, err)
 		}
 	}
 
@@ -271,26 +281,59 @@ func (o *AgentOptions) Run() error {
 	secret := o.createSecret()
 	secret, err = o.KubernetesClient.Secrets(o.Namespace).Create(ctx, secret, createSecretOptions)
 	if err != nil {
-		return errors.New(fmt.Sprintf("failed to create secret; %v\n", err))
+		return fmt.Errorf("%w: %s", ErrFailedToCreateSecret, err)
 	}
 
 	// generate manifest
 	pathToManifests, err := o.generateManifests()
 	if err != nil {
-		return errors.New(fmt.Sprintf("failed to generate manifests; %v\n", err))
+		return fmt.Errorf("%w: %s", ErrFailedToGenerateManifests, err)
 	}
 
 	// apply manifests
 	err = o.apply(o.Namespace, pathToManifests)
 	if err != nil {
-		return errors.New(fmt.Sprintf("failed to apply manifests; %v\n", err))
+		return fmt.Errorf("%w: %s", ErrFailedToApplyManifests, err)
 	}
 
 	// wait for agent connection
 	if err := o.waitForConnection(); err != nil {
-		return errors.New(fmt.Sprintf("failed to wait for agent to connect; %v\n", err))
+		return fmt.Errorf("%w: %s", ErrAgentConnectionTimeout, err)
 	}
 	return nil
+}
+
+func (o *AgentOptions) setKubeContext() (string, error) {
+	if o.UseCurrentContext {
+		kubeConfig, err := o.configAccess.GetStartingConfig()
+		if err != nil {
+			return "", err
+		}
+		return kubeConfig.CurrentContext, nil
+	}
+	var err error
+	requestedContext := o.ContextName
+	if lo.IsEmpty(requestedContext) {
+		promptSelectAgent := promptui.Select{
+			Label:  "Please select a context. Your agent will be deployed into the cluster you choose",
+			Items:  o.contextNames,
+			Stdout: &util.BellSkipper{},
+		}
+		_, requestedContext, err = promptSelectAgent.Run()
+		if err != nil {
+			return "", fmt.Errorf("%w: %s", ErrFailedToChooseContext, err)
+		}
+	} else {
+		if !lo.Contains(o.contextNames, requestedContext) {
+			return "", fmt.Errorf("%w: %s", ErrUnknownContextName, requestedContext)
+		}
+	}
+
+	if err := o.useContext(requestedContext); err != nil {
+		return "", fmt.Errorf("%w to %s: %s", ErrFailedToSetContext, requestedContext, err)
+	}
+
+	return requestedContext, nil
 }
 
 // getKubernetesFactory outputs the Kubernetes Factory
@@ -359,8 +402,8 @@ func (o *AgentOptions) createNamespace() (*corev1.Namespace, error) {
 	return o.KubernetesClient.Namespaces().Create(o.Context, namespace, createNamespaceOptions)
 }
 
-// namespaceExist check if the provided namespace exists
-func (o *AgentOptions) namespaceExist() (bool, error) {
+// namespaceExists check if the provided namespace exists
+func (o *AgentOptions) namespaceExists() (bool, error) {
 	namespaceExistOptions := metav1.ListOptions{}
 	namespaces, err := o.KubernetesClient.Namespaces().List(o.Context, namespaceExistOptions)
 	if err != nil {
@@ -426,6 +469,7 @@ func (o *AgentOptions) apply(namespace, resourceFile string) error {
 		Recorder:          genericclioptions.NoopRecorder{},
 		Namespace:         namespace,
 		EnforceNamespace:  true,
+		ForceConflicts:    lo.Ternary(o.configuration.GetArmoryCloudEnvironmentConfiguration().ApplicationEnvironment != "prod", true, false),
 		Builder:           o.kubernetesFactory.NewBuilder(),
 		Mapper:            mapper,
 		DynamicClient:     dynamicClient,
@@ -452,6 +496,7 @@ func (o *AgentOptions) secretExist() (bool, error) {
 }
 
 func (o *AgentOptions) generateManifests() (string, error) {
+	fmt.Println("Attempting to generate manifests")
 	// create temp file
 	f, err := os.CreateTemp("", "rna-*.yaml")
 	if err != nil {
@@ -486,7 +531,7 @@ func (o *AgentOptions) generateManifests() (string, error) {
 	var cntxt any = map[string]any{
 		"NAMESPACE":               o.Namespace,
 		"RNA_IDENTIFIER":          o.Name,
-		"APPLICATION_ENVIRONMENT": "prod",
+		"APPLICATION_ENVIRONMENT": o.configuration.GetArmoryCloudEnvironmentConfiguration().ApplicationEnvironment,
 	}
 	parsedTemplate, err := mustache.ParseString(string(templateContent))
 	if err != nil {

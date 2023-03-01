@@ -62,8 +62,11 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 	pauseValuesNode.Content = append(pauseValuesNode.Content, util.BuildStringNode("unit", "seconds", "The unit of time to use for the pause. Can be seconds, minutes, or hours. Required if duration is set.")...)
 	pause.Content = append(pause.Content, pauseNode, pauseValuesNode)
 
-	// Weight nodes
+	// Weight node
 	weight := buildWeightStepNode("33", "The percentage of pods that should be running the canary version for this step. Set it to an integer between 0 and 100, inclusive.")
+	// Expose service preview node
+	expose := buildExposeServiceStepNode([]string{"your-service-01", "your-service-02"}, "Expose services step type. List of the k8s service resources from deployed manifest to expose for a preview.")
+	// Weight node
 	weight100 := buildWeightStepNode("100", "Setting weight to 100 is optional. Traffic automatically goes to 100 after passing the final step.")
 
 	// Pause UntilApproved root
@@ -79,7 +82,7 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 	for _, feature := range options.features {
 		switch feature {
 		case "manual":
-			stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, pauseUA)
+			stepsValuesNode.Content = append(stepsValuesNode.Content, pause, weight, expose, pauseUA)
 		case "traffic":
 			trafficNode, trafficValuesNode := util.BuildSequenceNode("trafficManagement", "")
 			trafficItemNode := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
@@ -101,7 +104,7 @@ func canary(cmd *cobra.Command, options *templateCanaryOptions, args []string) e
 		case "automated":
 			//automated uses an automated approval via canary analysis
 			pauseUA.Content = buildAutomatedAnalysisStep()
-			stepsValuesNode.Content = append(stepsValuesNode.Content, weight, pauseUA, weight100)
+			stepsValuesNode.Content = append(stepsValuesNode.Content, weight, expose, pauseUA, weight100)
 
 		case "webhook":
 			hook := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
@@ -213,4 +216,27 @@ func buildWeightStepNode(value string, comment string) *yaml.Node {
 	weightValuesNode.Content = append(weightValuesNode.Content, util.BuildIntNode("weight", value, comment)...)
 	weight.Content = append(weight.Content, weightNode, weightValuesNode)
 	return weight
+}
+
+func buildExposeServiceStepNode(serviceNames []string, comment string) *yaml.Node {
+	preview := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	previewNode, previewValuesNode := util.BuildMapNode("exposeServices", comment)
+	servicesNode, servicesValuesNode := util.BuildSequenceNodeWithTailComment("services", "")
+	for _, svcName := range serviceNames {
+		node := &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Tag:   "!!str",
+			Value: svcName,
+		}
+		servicesValuesNode.Content = append(servicesValuesNode.Content, node)
+	}
+
+	ttlNode, ttlNodeValue := util.BuildMapNode("ttl",
+		"Optional. Sets lifetime of the exposed service preview. After that period service preview automatically expires. Max lifetime cannot exceed 24 hours.")
+	ttlNodeValue.Content = append(ttlNodeValue.Content, util.BuildIntNode("duration", "30", "")...)
+	ttlNodeValue.Content = append(ttlNodeValue.Content, util.BuildStringNode("unit", "MINUTES", "SECONDS, MINUTES or HOURS")...)
+
+	previewValuesNode.Content = append(previewValuesNode.Content, servicesNode, servicesValuesNode, ttlNode, ttlNodeValue)
+	preview.Content = append(preview.Content, previewNode, previewValuesNode)
+	return preview
 }

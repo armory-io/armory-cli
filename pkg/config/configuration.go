@@ -38,11 +38,15 @@ type Input struct {
 }
 
 type ArmoryCloudEnv int64
+type ArmoryApplicationEnvironment string
 
 const (
 	dev ArmoryCloudEnv = iota
 	staging
 	prod
+	envDev     ArmoryApplicationEnvironment = "dev"
+	envStaging ArmoryApplicationEnvironment = "staging"
+	envProd    ArmoryApplicationEnvironment = "prod"
 )
 
 func (c *Configuration) GetArmoryCloudEnv() ArmoryCloudEnv {
@@ -169,10 +173,11 @@ func (c *Configuration) SetOutputFormatter(formatter string) {
 }
 
 type ArmoryCloudEnvironmentConfiguration struct {
-	CloudConsoleBaseUrl string
-	CliClientId         string
-	TokenIssuerUrl      string
-	Audience            string
+	CloudConsoleBaseUrl    string
+	CliClientId            string
+	TokenIssuerUrl         string
+	Audience               string
+	ApplicationEnvironment ArmoryApplicationEnvironment
 }
 
 func (c *Configuration) GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnvironmentConfiguration {
@@ -180,26 +185,29 @@ func (c *Configuration) GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnv
 	switch c.GetArmoryCloudEnv() {
 	case prod:
 		armoryCloudEnvironmentConfiguration = &ArmoryCloudEnvironmentConfiguration{
-			CloudConsoleBaseUrl: "https://console.cloud.armory.io",
-			CliClientId:         "GjHFCN83nbHZaUT4CR4mQ65QYk8uUAKy",
-			TokenIssuerUrl:      "https://auth.cloud.armory.io/oauth",
-			Audience:            "https://api.cloud.armory.io",
+			CloudConsoleBaseUrl:    "https://console.cloud.armory.io",
+			CliClientId:            "GjHFCN83nbHZaUT4CR4mQ65QYk8uUAKy",
+			TokenIssuerUrl:         "https://auth.cloud.armory.io/oauth",
+			Audience:               "https://api.cloud.armory.io",
+			ApplicationEnvironment: envProd,
 		}
 		break
 	case staging:
 		armoryCloudEnvironmentConfiguration = &ArmoryCloudEnvironmentConfiguration{
-			CloudConsoleBaseUrl: "https://console.staging.cloud.armory.io",
-			CliClientId:         "sjkd8ufTR3AxHHZz8XZLE0Y8UAIjTM1I",
-			TokenIssuerUrl:      "https://auth.staging.cloud.armory.io/oauth",
-			Audience:            "https://api.staging.cloud.armory.io",
+			CloudConsoleBaseUrl:    "https://console.staging.cloud.armory.io",
+			CliClientId:            "sjkd8ufTR3AxHHZz8XZLE0Y8UAIjTM1I",
+			TokenIssuerUrl:         "https://auth.staging.cloud.armory.io/oauth",
+			Audience:               "https://api.staging.cloud.armory.io",
+			ApplicationEnvironment: envStaging,
 		}
 		break
 	case dev:
 		armoryCloudEnvironmentConfiguration = &ArmoryCloudEnvironmentConfiguration{
-			CloudConsoleBaseUrl: "https://console.dev.cloud.armory.io:3000",
-			CliClientId:         "o2QghLMwgT1t1glzGaAOqEiIbbiHqUpc",
-			TokenIssuerUrl:      "https://auth.dev.cloud.armory.io/oauth",
-			Audience:            "https://api.dev.cloud.armory.io",
+			CloudConsoleBaseUrl:    "https://console.dev.cloud.armory.io:3000",
+			CliClientId:            "o2QghLMwgT1t1glzGaAOqEiIbbiHqUpc",
+			TokenIssuerUrl:         "https://auth.dev.cloud.armory.io/oauth",
+			Audience:               "https://api.dev.cloud.armory.io",
+			ApplicationEnvironment: envDev,
 		}
 		break
 	default:

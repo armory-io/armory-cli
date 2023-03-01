@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"context"
 	"github.com/armory/armory-cli/cmd/agent"
+	"github.com/armory/armory-cli/cmd/cluster"
 	configCmd "github.com/armory/armory-cli/cmd/config"
 	"github.com/armory/armory-cli/cmd/deploy"
 	"github.com/armory/armory-cli/cmd/login"
 	"github.com/armory/armory-cli/cmd/logout"
+	"github.com/armory/armory-cli/cmd/preview"
 	"github.com/armory/armory-cli/cmd/quickStart"
 	"github.com/armory/armory-cli/cmd/template"
 	"github.com/armory/armory-cli/cmd/version"
@@ -24,7 +26,7 @@ import (
 	"time"
 )
 
-func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
+func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, error) {
 	rootCmd := &cobra.Command{
 		Use:   "armory",
 		Short: "CLI for Armory CD-as-a-Service",
@@ -32,15 +34,15 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 
 	addr := rootCmd.PersistentFlags().StringP("addr", "", "https://api.cloud.armory.io", "")
 	if err := rootCmd.PersistentFlags().MarkHidden("addr"); err != nil {
-		return nil
+		return nil, err
 	}
 	test := rootCmd.PersistentFlags().BoolP("test", "", false, "")
 	if err := rootCmd.PersistentFlags().MarkHidden("test"); err != nil {
-		return nil
+		return nil, err
 	}
 	accessToken := rootCmd.PersistentFlags().StringP("authToken", "a", "", "Authenticate using a raw JWT token")
 	if err := rootCmd.PersistentFlags().MarkHidden("authToken"); err != nil {
-		return nil
+		return nil, err
 	}
 
 	clientId := rootCmd.PersistentFlags().StringP("clientId", "c", "", "Authenticate using an Armory CD-as-a-Service client ID")
@@ -50,7 +52,9 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 	rootCmd.SetOut(outWriter)
 	rootCmd.SetErr(errWriter)
 
-	configureLogging(*verbose, *test, rootCmd)
+	if err := configureLogging(*verbose, *test, rootCmd); err != nil {
+		return nil, err
+	}
 
 	configuration := config.New(&config.Input{
 		ApiAddr:      addr,
@@ -82,46 +86,62 @@ func NewCmdRoot(outWriter, errWriter io.Writer) *cobra.Command {
 		configCmd.NewConfigCmd(configuration),
 		version.NewCmdVersion(),
 		agent.NewCmdAgent(configuration),
+		cluster.NewClusterCmd(configuration, &cluster.SandboxClusterFileStore{}),
+		preview.NewCmdPreview(configuration),
 	)
 
 	cmdUtils.SetPersistentFlagsFromEnvVariables(rootCmd.Commands())
 	cmdUtils.SetPersistentFlagsFromEnvVariables([]*cobra.Command{rootCmd})
-	return rootCmd
+	return rootCmd, nil
 }
 
-func configureLogging(verboseFlag, isTest bool, cmd *cobra.Command) {
+func configureLogging(verboseFlag, isTest bool, cmd *cobra.Command) error {
 	lvl := log.InfoLevel
 	if verboseFlag {
 		lvl = log.DebugLevel
 	}
 
-	loggerConfig := log.NewProductionConfig()
-	encodingConfig := log.NewDevelopmentEncoderConfig()
-	encodingConfig.TimeKey = ""
-	encodingConfig.LevelKey = ""
-	encodingConfig.NameKey = ""
-	encodingConfig.CallerKey = ""
+	encoderConfig := zapcore.EncoderConfig{
+		FunctionKey:    zapcore.OmitKey,
+		MessageKey:     "M",
+		StacktraceKey:  "S",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
 
-	loggerConfig.Encoding = "console"
-	loggerConfig.Level = log.NewAtomicLevelAt(lvl)
-	loggerConfig.EncoderConfig = encodingConfig
-	logger, err := loggerConfig.Build()
+	logConfig := log.Config{
+		Level:       log.NewAtomicLevelAt(lvl),
+		Development: false,
+		Sampling: &log.SamplingConfig{
+			Initial:    100,
+			Thereafter: 100,
+		},
+		Encoding:         "console",
+		EncoderConfig:    encoderConfig,
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+
+	logger, err := logConfig.Build()
+	if err != nil {
+		return err
+	}
 
 	if isTest {
-		encoder := zapcore.NewConsoleEncoder(encodingConfig)
+		encoder := zapcore.NewConsoleEncoder(encoderConfig)
 		writer := bufio.NewWriter(cmd.OutOrStdout())
 
 		logger = log.New(
 			zapcore.NewCore(encoder, zapcore.AddSync(writer), zapcore.DebugLevel))
 	}
 
-	if err != nil {
-		panic(err)
-	}
-
 	defer logger.Sync()
 	log.ReplaceGlobals(logger)
 
+	return nil
 }
 
 func CheckForUpdate(cli *config.Configuration) {
