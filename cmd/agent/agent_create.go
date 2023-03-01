@@ -469,6 +469,7 @@ func (o *AgentOptions) apply(namespace, resourceFile string) error {
 		Recorder:          genericclioptions.NoopRecorder{},
 		Namespace:         namespace,
 		EnforceNamespace:  true,
+		ForceConflicts:    lo.Ternary(o.configuration.GetArmoryCloudEnvironmentConfiguration().ApplicationEnvironment != "prod", true, false),
 		Builder:           o.kubernetesFactory.NewBuilder(),
 		Mapper:            mapper,
 		DynamicClient:     dynamicClient,
@@ -495,6 +496,7 @@ func (o *AgentOptions) secretExist() (bool, error) {
 }
 
 func (o *AgentOptions) generateManifests() (string, error) {
+	fmt.Println("Attempting to generate manifests")
 	// create temp file
 	f, err := os.CreateTemp("", "rna-*.yaml")
 	if err != nil {
