@@ -113,7 +113,6 @@ func NewCmdCreateAgent(configuration *config.Configuration) *cobra.Command {
 }
 
 func (o *AgentOptions) WithConfiguration(cfg *config.Configuration) error {
-
 	o.configAccess = clientcmd.NewDefaultPathOptions()
 	o.configuration = cfg
 
@@ -470,6 +469,7 @@ func (o *AgentOptions) apply(namespace, resourceFile string) error {
 		Recorder:          genericclioptions.NoopRecorder{},
 		Namespace:         namespace,
 		EnforceNamespace:  true,
+		ForceConflicts:    lo.Ternary(o.configuration.GetArmoryCloudEnvironmentConfiguration().ApplicationEnvironment != "prod", true, false),
 		Builder:           o.kubernetesFactory.NewBuilder(),
 		Mapper:            mapper,
 		DynamicClient:     dynamicClient,
@@ -496,6 +496,7 @@ func (o *AgentOptions) secretExist() (bool, error) {
 }
 
 func (o *AgentOptions) generateManifests() (string, error) {
+	fmt.Println("Attempting to generate manifests")
 	// create temp file
 	f, err := os.CreateTemp("", "rna-*.yaml")
 	if err != nil {
@@ -530,7 +531,7 @@ func (o *AgentOptions) generateManifests() (string, error) {
 	var cntxt any = map[string]any{
 		"NAMESPACE":               o.Namespace,
 		"RNA_IDENTIFIER":          o.Name,
-		"APPLICATION_ENVIRONMENT": "prod",
+		"APPLICATION_ENVIRONMENT": o.configuration.GetArmoryCloudEnvironmentConfiguration().ApplicationEnvironment,
 	}
 	parsedTemplate, err := mustache.ParseString(string(templateContent))
 	if err != nil {
