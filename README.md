@@ -5,6 +5,12 @@ The CLI for Armory CD-as-a-Service.
 
 # Installation
 
+Install with [Homebrew](https://brew.sh/).
+```bash
+brew tap armory-io/armory
+brew install armory-cli
+```
+
 The CLI releases can be found on the [releases page](https://github.com/armory/armory-cli/releases/latest)
 
 You can also use the [AVM (armory version manager) utility](https://github.com/armory/avm/releases/latest) to install and update the Armory CLI.
