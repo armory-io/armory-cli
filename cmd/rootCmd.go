@@ -23,6 +23,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -52,7 +53,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, error) {
 	rootCmd.SetOut(outWriter)
 	rootCmd.SetErr(errWriter)
 
-	if err := configureLogging(*verbose, *test, rootCmd); err != nil {
+	if err := configureLogging(verbose, test, rootCmd); err != nil {
 		return nil, err
 	}
 
@@ -95,12 +96,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, error) {
 	return rootCmd, nil
 }
 
-func configureLogging(verboseFlag, isTest bool, cmd *cobra.Command) error {
-	lvl := log.InfoLevel
-	if verboseFlag {
-		lvl = log.DebugLevel
-	}
-
+func configureLogging(verboseFlag, isTest *bool, cmd *cobra.Command) error {
 	encoderConfig := zapcore.EncoderConfig{
 		FunctionKey:    zapcore.OmitKey,
 		MessageKey:     "M",
@@ -112,26 +108,42 @@ func configureLogging(verboseFlag, isTest bool, cmd *cobra.Command) error {
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
-	logConfig := log.Config{
-		Level:       log.NewAtomicLevelAt(lvl),
-		Development: false,
-		Sampling: &log.SamplingConfig{
-			Initial:    100,
-			Thereafter: 100,
-		},
-		Encoding:         "console",
-		EncoderConfig:    encoderConfig,
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
-	}
+	// info level enabler
+	infoLevel := log.LevelEnablerFunc(func(level zapcore.Level) bool {
+		return level == zapcore.InfoLevel
+	})
 
-	logger, err := logConfig.Build()
-	if err != nil {
-		return err
-	}
+	// error, fatal, warn, and debug level enabler
+	notInfoLevel := log.LevelEnablerFunc(func(level zapcore.Level) bool {
+		switch level {
+		case zapcore.FatalLevel:
+			return true
+		case zapcore.ErrorLevel:
+			return true
+		case zapcore.WarnLevel:
+			return true
+		case zapcore.DebugLevel:
+			// is verbose logging turned on?
+			return *verboseFlag
+		default:
+			return false
+		}
+	})
 
-	if isTest {
-		encoder := zapcore.NewConsoleEncoder(encoderConfig)
+	encoder := zapcore.NewConsoleEncoder(encoderConfig)
+
+	// write syncers
+	stdoutSyncer := zapcore.Lock(os.Stdout)
+	stderrSyncer := zapcore.Lock(os.Stderr)
+
+	core := zapcore.NewTee(
+		zapcore.NewCore(encoder, stdoutSyncer, infoLevel),
+		// insures that all other output goes to stderr
+		zapcore.NewCore(encoder, stderrSyncer, notInfoLevel),
+	)
+	logger := log.New(core)
+
+	if *isTest {
 		writer := bufio.NewWriter(cmd.OutOrStdout())
 
 		logger = log.New(
@@ -151,13 +163,14 @@ func CheckForUpdate(cli *config.Configuration) {
 		Timeout: 5 * time.Second,
 	}
 	ghClient := github.NewClient(http)
+	log.S().Debugf("Trying to contact github to find our current release...")
 	currentRelease, _, err := ghClient.Repositories.GetLatestRelease(ctx, "armory-io", "armory-cli")
 	if err != nil {
 		return
 	}
 	if ((*currentRelease.TagName != currentVersion) || (currentVersion == "development")) && cli.GetOutputType() == output.Text {
 		color.Set(color.FgGreen)
-		log.S().Infof("\nA new version of the Armory CLI is available. Please upgrade to %s by running `brew upgrade armory-cli` if installed with Homebrew or by running `avm install` if installed with AVM.\n", *currentRelease.TagName)
+		log.S().Warnf("\nA new version of the Armory CLI is available. Please upgrade to %s by running `brew upgrade armory-cli` if installed with Homebrew or by running `avm install` if installed with AVM.\n", *currentRelease.TagName)
 		color.Unset()
 	}
 }
