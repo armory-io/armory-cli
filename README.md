@@ -20,6 +20,8 @@ curl -sL go.armory.io/get-cli | bash
 
 The script will install `armory` and `avm`. You can use `avm` (**A**rmory **V**ersion **M**anager) to manage your `armory` version. 
 
+The CLI releases can be found on the [releases page](https://github.com/armory/armory-cli/releases/latest)
+
 # Release
 
 To make a public release, create a tag and push it to this repository:
