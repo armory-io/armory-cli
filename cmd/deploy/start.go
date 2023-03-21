@@ -23,10 +23,10 @@ import (
 )
 
 const (
-	deployStartShort           = "Start a deployment"
+	deployStartShort = "Start a deployment"
 	deployStartLong  = "Start a deployment\n\n" +
 		"For deployment configuration YAML documentation, visit https://docs.armory.io/cd-as-a-service/reference/ref-deployment-file"
-	deployStartExample = "armory deploy start [options]"
+	deployStartExample         = "armory deploy start [options]"
 	armoryConfigLocationHeader = "X-Armory-Config-Location"
 	mediaTypePipelineV2        = "application/vnd.start.kubernetes.pipeline.v2+json"
 	mediaTypePipelineV2Link    = "application/vnd.start.kubernetes.pipeline.v2.link+json"
@@ -154,7 +154,7 @@ func WithURL(options *deployStartOptions, deployClient ArmoryDeployClient) (*de.
 	// execute request
 	raw, response, err := deployClient.StartPipeline(ctx, deployment.StartPipelineOptions{
 		ApplicationNameOverride: options.application,
-		ContextOverrides:        options.context,
+		Context:                 options.context,
 		Headers: map[string]string{
 			"Content-Type":             mediaTypePipelineV2Link,
 			"Accept":                   mediaTypePipelineV2,
@@ -193,7 +193,7 @@ func FromLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 	raw, response, err := deployClient.StartPipeline(ctx, deployment.StartPipelineOptions{
 		UnstructuredDeployment:  payload,
 		ApplicationNameOverride: options.application,
-		ContextOverrides:        options.context,
+		Context:                 options.context,
 		Headers: map[string]string{
 			"Content-Type": mediaTypePipelineV2,
 			"Accept":       mediaTypePipelineV2,

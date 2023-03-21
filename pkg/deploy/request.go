@@ -15,7 +15,7 @@ type (
 		// UnstructuredDeployment is the user's raw deployment (likely unmarshalled from their YAML file).
 		UnstructuredDeployment  map[string]any
 		ApplicationNameOverride string
-		ContextOverrides        map[string]string
+		Context                 map[string]string
 		Headers                 map[string]string
 		IsURL                   bool
 	}
@@ -33,9 +33,9 @@ type (
 )
 
 const (
-	applicationKey      = "application"
-	filesKey            = "files"
-	contextOverridesKey = "contextOverrides"
+	applicationKey = "application"
+	filesKey       = "files"
+	contextKey     = "context"
 
 	envVarGithubWorkspace = "GITHUB_WORKSPACE"
 )
@@ -67,7 +67,7 @@ func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[strin
 
 	deployment[applicationKey] = application
 	deployment[filesKey] = manifestFiles
-	deployment[contextOverridesKey] = options.ContextOverrides
+	deployment[contextKey] = options.Context
 	return deployment, nil
 }
 
