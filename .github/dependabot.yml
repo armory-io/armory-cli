@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    registries:
+      - github-armory
+    schedule:
+      interval: "weekly"
+
+
+registries:
+  github-armory:
+    type: git
+    url: https://github.com
+    username: x-access-token
+    password: ${{ secrets.ARMORY_PLATFORM_GITHUB_PAT_TOKEN }}
