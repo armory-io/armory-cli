@@ -8,7 +8,7 @@ require (
 	github.com/armory-io/preview-service v0.5.0
 	github.com/cbroglie/mustache v1.4.0
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.15.0
 	github.com/google/go-github/v48 v48.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/iancoleman/strcase v0.2.0
