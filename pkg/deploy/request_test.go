@@ -119,7 +119,7 @@ func (s *ConvertRequestTestSuite) TestConvertPipelineOptionsToAPIRequest() {
 			assertion: func(t *testing.T, request map[string]any) {
 				assert.Equal(t, "dont-override-me", request[applicationKey])
 				assert.Len(t, request[filesKey].(map[string][]string)[pathToTestManifest1], 1)
-				assert.Equal(t, map[string]string{"choo": "choo"}, request[contextKey])
+				assert.Equal(t, map[string]any{"choo": "choo"}, request[contextKey])
 			},
 		},
 		{

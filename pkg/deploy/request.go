@@ -3,6 +3,7 @@ package deploy
 import (
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/mitchellh/mapstructure"
+	"github.com/samber/lo"
 	"io/fs"
 	"io/ioutil"
 	"net/url"
@@ -67,7 +68,10 @@ func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[strin
 
 	deployment[applicationKey] = application
 	deployment[filesKey] = manifestFiles
-	context := deployment[contextKey].(map[string]any)
+	context := map[string]any{}
+	if c, ok := deployment[contextKey].(map[string]any); ok {
+		context = lo.Assign(context, c)
+	}
 	for key, value := range options.Context {
 		context[key] = value
 	}
