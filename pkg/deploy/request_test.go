@@ -144,6 +144,32 @@ func (s *ConvertRequestTestSuite) TestConvertPipelineOptionsToAPIRequest() {
 		{
 			options: StartPipelineOptions{
 				UnstructuredDeployment: map[string]any{
+					"application": "please-override-me",
+					"context": map[string]any{
+						"foo": "bar",
+					},
+					"manifests": []map[string]any{
+						{
+							"path": pathToTestManifest1,
+						},
+					},
+				},
+				ApplicationNameOverride: "i-am-an-override!",
+				Context: map[string]string{
+					"choo": "choo",
+				},
+			},
+			assertion: func(t *testing.T, request map[string]any) {
+				expected := map[string]any{
+					"choo": "choo",
+					"foo":  "bar",
+				}
+				assert.Equal(t, expected, request[contextKey])
+			},
+		},
+		{
+			options: StartPipelineOptions{
+				UnstructuredDeployment: map[string]any{
 					"manifests": []map[string]any{
 						{
 							"path": pathToTestManifest1,

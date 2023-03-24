@@ -67,7 +67,11 @@ func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[strin
 
 	deployment[applicationKey] = application
 	deployment[filesKey] = manifestFiles
-	deployment[contextKey] = options.Context
+	context := deployment[contextKey].(map[string]any)
+	for key, value := range options.Context {
+		context[key] = value
+	}
+	deployment[contextKey] = context
 	return deployment, nil
 }
 
