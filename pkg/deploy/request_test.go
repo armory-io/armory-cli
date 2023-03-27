@@ -112,14 +112,14 @@ func (s *ConvertRequestTestSuite) TestConvertPipelineOptionsToAPIRequest() {
 					},
 				},
 				ApplicationNameOverride: "",
-				ContextOverrides: map[string]string{
+				Context: map[string]string{
 					"choo": "choo",
 				},
 			},
 			assertion: func(t *testing.T, request map[string]any) {
 				assert.Equal(t, "dont-override-me", request[applicationKey])
 				assert.Len(t, request[filesKey].(map[string][]string)[pathToTestManifest1], 1)
-				assert.Equal(t, map[string]string{"choo": "choo"}, request[contextOverridesKey])
+				assert.Equal(t, map[string]any{"choo": "choo"}, request[contextKey])
 			},
 		},
 		{
@@ -133,12 +133,38 @@ func (s *ConvertRequestTestSuite) TestConvertPipelineOptionsToAPIRequest() {
 					},
 				},
 				ApplicationNameOverride: "i-am-an-override!",
-				ContextOverrides: map[string]string{
+				Context: map[string]string{
 					"choo": "choo",
 				},
 			},
 			assertion: func(t *testing.T, request map[string]any) {
 				assert.Equal(t, "i-am-an-override!", request[applicationKey])
+			},
+		},
+		{
+			options: StartPipelineOptions{
+				UnstructuredDeployment: map[string]any{
+					"application": "please-override-me",
+					"context": map[string]any{
+						"foo": "bar",
+					},
+					"manifests": []map[string]any{
+						{
+							"path": pathToTestManifest1,
+						},
+					},
+				},
+				ApplicationNameOverride: "i-am-an-override!",
+				Context: map[string]string{
+					"choo": "choo",
+				},
+			},
+			assertion: func(t *testing.T, request map[string]any) {
+				expected := map[string]any{
+					"choo": "choo",
+					"foo":  "bar",
+				}
+				assert.Equal(t, expected, request[contextKey])
 			},
 		},
 		{
@@ -150,7 +176,7 @@ func (s *ConvertRequestTestSuite) TestConvertPipelineOptionsToAPIRequest() {
 						},
 					},
 				},
-				ContextOverrides: map[string]string{
+				Context: map[string]string{
 					"choo": "choo",
 				},
 			},
