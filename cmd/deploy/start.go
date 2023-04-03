@@ -36,7 +36,7 @@ const (
 type deployStartOptions struct {
 	account           string
 	deploymentFile    string
-	pipelineId        string
+	pipelineID        string
 	application       string
 	context           map[string]string
 	waitForCompletion bool
@@ -114,15 +114,19 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&options.account, "account", "", "", "override the deployment YAML account field for each target when --file is a URL")
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
-	cmd.Flags().StringVarP(&options.pipelineId, "pipelineId", "i", "", "the ID of a previously deployed pipeline. Request will automatically use the original deployment configuration for that pipeline including its manifests")
+	cmd.Flags().StringVarP(&options.pipelineID, "pipelineId", "i", "", "the ID of a previously deployed pipeline. Request will automatically use the original deployment configuration for that pipeline including its manifests")
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
 	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{}, "add context values to be used in strategy steps")
 	cmd.Flags().BoolVarP(&options.waitForCompletion, "watch", "w", false, "wait for deployment to complete")
-	cmd.MarkFlagRequired("file")
+
 	return cmd
 }
 
 func start(cmd *cobra.Command, configuration *config.Configuration, options *deployStartOptions) error {
+	if options.deploymentFile == "" && options.pipelineID == "" {
+		return ErrConfigurationRequired
+	}
+	
 	if *configuration.GetIsTest() {
 		utils.ConfigureLoggingForTesting(cmd)
 	}
@@ -131,13 +135,15 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	var rawResp *nethttp.Response
 	var err error
 
-	//TODO - Can we use cue to easily validate that deploymentFile and pipelineId are not both provided?
-	if options.deploymentFile != "" && options.pipelineId != "" {
+	//TODO - Can we use cue to easily validate that deploymentFile and pipelineID are not both provided?
+	if options.deploymentFile != "" && options.pipelineID != "" {
 		return ErrTwoDeploymentConfigurationsSpecified
 	}
 
 	var withConfiguration WithDeployConfiguration
-	if options.pipelineId != "" {
+	if options.pipelineID != "" {
+		options.deploymentFile =
+			fmt.Sprintf("armory::%s/pipelines/%s/config", configuration.GetArmoryCloudAddr().String(), options.pipelineID)
 		withConfiguration = WithPipelineId
 	} else if deployment.IsURL(options.deploymentFile) {
 		withConfiguration = WithURL
@@ -178,6 +184,8 @@ func WithURL(cmd *cobra.Command, options *deployStartOptions, deployClient Armor
 		},
 		UnstructuredDeployment: map[string]any{
 			"account": options.account,
+			//TODO - CDAAS-2230 add ability to specify specific targets by including
+			//	"targets": [...], // options.targets
 		},
 		IsURL: true,
 	})
@@ -189,31 +197,9 @@ func WithPipelineId(cmd *cobra.Command, options *deployStartOptions, deployClien
 	if options.account != "" {
 		return nil, nil, ErrAccountNameOverrideNotSupported
 	}
-	if options.application != "" {
-		return nil, nil, ErrApplicationNameOverrideNotSupported
-	}
-	if options.deploymentFile != "" {
-		return nil, nil, ErrTwoDeploymentConfigurationsSpecified
-	}
 	cmd.SilenceUsage = true
-	ctx, cancel := context.WithTimeout(deployClient.GetArmoryCloudClient().Context, time.Minute)
-	defer cancel()
 	// execute request
-	raw, response, err := deployClient.StartPipeline(ctx, deployment.StartPipelineOptions{
-		ApplicationNameOverride: options.application,
-		Context:                 options.context,
-		Headers: map[string]string{
-			"Content-Type":             mediaTypePipelineRedeploy,
-			"Accept":                   mediaTypePipelineV2,
-			armoryConfigLocationHeader: options.pipelineId,
-		},
-		//TODO - CDAAS-2230 add ability to specify specific targets
-		//UnstructuredDeployment: map[string]any{
-		//	"targets": [...],
-		//},
-		IsURL: true,
-	})
-	return raw, response, err
+	return WithURL(cmd, options, deployClient)
 }
 
 func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {

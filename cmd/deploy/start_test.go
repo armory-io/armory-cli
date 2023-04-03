@@ -7,6 +7,7 @@ import (
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/jarcoal/httpmock"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -167,7 +168,7 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineValidation() {
 			expectedErr: ErrApplicationNameOverrideNotSupported,
 			options: &deployStartOptions{
 				application:       "this will cause a failure",
-				pipelineId:        "12345",
+				pipelineID:        "12345",
 				waitForCompletion: false,
 			},
 		},
@@ -176,16 +177,7 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineValidation() {
 			expectedErr: ErrAccountNameOverrideNotSupported,
 			options: &deployStartOptions{
 				account:           "this will cause a failure",
-				pipelineId:        "12345",
-				waitForCompletion: false,
-			},
-		},
-		{
-			name:        "deploymentFile not allowed",
-			expectedErr: ErrTwoDeploymentConfigurationsSpecified,
-			options: &deployStartOptions{
-				deploymentFile:    "this will cause a failure",
-				pipelineId:        "12345",
+				pipelineID:        "12345",
 				waitForCompletion: false,
 			},
 		},
@@ -200,9 +192,11 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineValidation() {
 }
 
 func (suite *DeployStartTestSuite) TestDeployWithPipelineIdUsesExpectedOptions() {
-	var expectedBody map[string]any // nil, but type is enforced in equals checks
+	expectedBody := map[string]any{
+		"account": "",
+	}
+	expectedBody["account"] = ""
 	cmd := &cobra.Command{}
-	previousPipelineId := "012345"
 	expected := &de.StartPipelineResponse{
 		PipelineID: "123456789",
 	}
@@ -213,7 +207,7 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineIdUsesExpectedOptions()
 		return expected, &http.Response{Status: "200"}, nil
 	})
 	pipelineResp, rawResp, err := WithPipelineId(cmd, &deployStartOptions{
-		pipelineId:        previousPipelineId,
+		deploymentFile:    "armory::http://localhost:9099/pipelines/012345/config",
 		waitForCompletion: false,
 	},
 		deployClient,
@@ -221,10 +215,10 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineIdUsesExpectedOptions()
 	suite.NoError(err)
 	suite.Equal("200", rawResp.Status, "rawResp should be returned by WithPipelineId")
 	suite.Equal(expected.PipelineID, pipelineResp.PipelineID, "response PipelineId should match expected")
-	suite.Equal(deployClient.RecordedStartPipelineOptions.UnstructuredDeployment, expectedBody, "there should not be body/deployment specification for the request WithPipelineId")
-	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers["Content-Type"], mediaTypePipelineRedeploy, "content-type hedaer should be set to redeploy json")
-	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers["Accept"], mediaTypePipelineV2, "accept header should be set to pipeline V2 json")
-	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers[armoryConfigLocationHeader], previousPipelineId, "header should contain specified pipelineId for redeploy")
+	suite.Equal(expectedBody, deployClient.RecordedStartPipelineOptions.UnstructuredDeployment, "there should not be body/deployment specification for the request WithPipelineId")
+	suite.Equal(mediaTypePipelineV2Link, deployClient.RecordedStartPipelineOptions.Headers["Content-Type"], "content-type hedaer should be set to redeploy json")
+	suite.Equal(mediaTypePipelineV2, deployClient.RecordedStartPipelineOptions.Headers["Accept"], "accept header should be set to pipeline V2 json")
+	suite.Equal("armory::http://localhost:9099/pipelines/012345/config", deployClient.RecordedStartPipelineOptions.Headers[armoryConfigLocationHeader], "header should contain specified pipelineID for redeploy")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
@@ -255,6 +249,7 @@ func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
 func (suite *DeployStartTestSuite) TestDeployStartFlagFileRequired() {
 	token := "some-token"
 	configuration := config.New(&config.Input{
+		IsTest:      lo.ToPtr(true),
 		AccessToken: &token,
 	})
 	deployCmd := NewDeployCmd(configuration)
@@ -264,7 +259,7 @@ func (suite *DeployStartTestSuite) TestDeployStartFlagFileRequired() {
 	if err == nil {
 		suite.T().Fatal("TestDeployStartFlagRequired failed with: error should not be null")
 	}
-	suite.EqualError(err, "required flag(s) \"file\" not set")
+	suite.ErrorIs(err, ErrConfigurationRequired)
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartBadPath() {

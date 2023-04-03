@@ -5,6 +5,7 @@ import (
 )
 
 var (
+	ErrConfigurationRequired                = errors.New("a configuration file must be provided if not specifying a previously run pipelineId to redeploy")
 	ErrTwoDeploymentConfigurationsSpecified = errors.New("when providing a pipelineId, do not provide a configuration file. The same configuration will be used to redeploy that pipeline")
 	ErrYAMLFileRead                         = errors.New("error trying to read the YAML file")
 	ErrInvalidDeploymentObject              = errors.New("error invalid deployment object")
