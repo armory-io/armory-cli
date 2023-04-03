@@ -173,10 +173,9 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineValidation() {
 			},
 		},
 		{
-			name:        "account override not allowed",
-			expectedErr: ErrAccountNameOverrideNotSupported,
+			name: "account override is allowed",
 			options: &deployStartOptions{
-				account:           "this will cause a failure",
+				account:           "this will not cause a failure",
 				pipelineID:        "12345",
 				waitForCompletion: false,
 			},
@@ -185,7 +184,7 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineValidation() {
 
 	for _, c := range cases {
 		suite.T().Run(c.name, func(t *testing.T) {
-			_, _, err := WithPipelineId(cmd, c.options, deployClient)
+			_, _, err := WithURL(cmd, c.options, deployClient)
 			assert.ErrorIs(t, err, c.expectedErr)
 		})
 	}
@@ -206,7 +205,7 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineIdUsesExpectedOptions()
 	deployClient.MockStartPipelineResponse(func() (*de.StartPipelineResponse, *http.Response, error) {
 		return expected, &http.Response{Status: "200"}, nil
 	})
-	pipelineResp, rawResp, err := WithPipelineId(cmd, &deployStartOptions{
+	pipelineResp, rawResp, err := WithURL(cmd, &deployStartOptions{
 		deploymentFile:    "armory::http://localhost:9099/pipelines/012345/config",
 		waitForCompletion: false,
 	},
