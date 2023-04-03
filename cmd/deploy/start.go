@@ -30,15 +30,19 @@ const (
 	armoryConfigLocationHeader = "X-Armory-Config-Location"
 	mediaTypePipelineV2        = "application/vnd.start.kubernetes.pipeline.v2+json"
 	mediaTypePipelineV2Link    = "application/vnd.start.kubernetes.pipeline.v2.link+json"
+	mediaTypePipelineRedeploy  = "application/vnd.armory.pipeline-redeploy+json"
 )
 
 type deployStartOptions struct {
 	account           string
 	deploymentFile    string
+	pipelineID        string
 	application       string
 	context           map[string]string
 	waitForCompletion bool
 }
+
+type WithDeployConfiguration func(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error)
 
 type FormattableDeployStartResponse struct {
 	// The deployment's ID.
@@ -110,14 +114,19 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&options.account, "account", "", "", "override the deployment YAML account field for each target when --file is a URL")
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
+	cmd.Flags().StringVarP(&options.pipelineID, "pipelineId", "i", "", "the ID of a previously deployed pipeline. Request will automatically use the original deployment configuration for that pipeline including its manifests")
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
 	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{}, "add context values to be used in strategy steps")
 	cmd.Flags().BoolVarP(&options.waitForCompletion, "watch", "w", false, "wait for deployment to complete")
-	cmd.MarkFlagRequired("file")
+
 	return cmd
 }
 
 func start(cmd *cobra.Command, configuration *config.Configuration, options *deployStartOptions) error {
+	if options.deploymentFile == "" && options.pipelineID == "" {
+		return ErrConfigurationRequired
+	}
+	
 	if *configuration.GetIsTest() {
 		utils.ConfigureLoggingForTesting(cmd)
 	}
@@ -125,11 +134,23 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	var startResp *de.StartPipelineResponse
 	var rawResp *nethttp.Response
 	var err error
-	if deployment.IsURL(options.deploymentFile) {
-		startResp, rawResp, err = WithURL(options, deployClient)
-	} else {
-		startResp, rawResp, err = FromLocalFile(cmd, options, deployClient)
+
+	//TODO - Can we use cue to easily validate that deploymentFile and pipelineID are not both provided?
+	if options.deploymentFile != "" && options.pipelineID != "" {
+		return ErrTwoDeploymentConfigurationsSpecified
 	}
+
+	var withConfiguration WithDeployConfiguration
+	if options.pipelineID != "" {
+		options.deploymentFile =
+			fmt.Sprintf("armory::%s/pipelines/%s/config", configuration.GetArmoryCloudAddr().String(), options.pipelineID)
+		withConfiguration = WithPipelineId
+	} else if deployment.IsURL(options.deploymentFile) {
+		withConfiguration = WithURL
+	} else {
+		withConfiguration = WithLocalFile
+	}
+	startResp, rawResp, err = withConfiguration(cmd, options, deployClient)
 
 	if err != nil && errors.Is(err, ErrYAMLFileRead) {
 		return err
@@ -145,10 +166,11 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	return outputCommandResult(deploy, configuration)
 }
 
-func WithURL(options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
+func WithURL(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
 	if options.application != "" {
 		return nil, nil, ErrApplicationNameOverrideNotSupported
 	}
+	cmd.SilenceUsage = true
 	ctx, cancel := context.WithTimeout(deployClient.GetArmoryCloudClient().Context, time.Minute)
 	defer cancel()
 	// execute request
@@ -162,13 +184,25 @@ func WithURL(options *deployStartOptions, deployClient ArmoryDeployClient) (*de.
 		},
 		UnstructuredDeployment: map[string]any{
 			"account": options.account,
+			//TODO - CDAAS-2230 add ability to specify specific targets by including
+			//	"targets": [...], // options.targets
 		},
 		IsURL: true,
 	})
 	return raw, response, err
 }
 
-func FromLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
+func WithPipelineId(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
+	//TODO cue validation instead?
+	if options.account != "" {
+		return nil, nil, ErrAccountNameOverrideNotSupported
+	}
+	cmd.SilenceUsage = true
+	// execute request
+	return WithURL(cmd, options, deployClient)
+}
+
+func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
