@@ -8,6 +8,7 @@ import (
 	"github.com/armory/armory-cli/pkg/output"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+	"strconv"
 	"time"
 )
 
@@ -29,7 +30,7 @@ func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
-		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
 
 			deploymentID := fetchCommandResult(cmd, DeployResultDeploymentID)
 			url := buildMonitoringUrl(configuration, deploymentID)
@@ -47,6 +48,15 @@ func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 
 			utils.TryWriteGitHubStepSummary(url)
 			utils.TryWriteGitHubContext(reportableStatus...)
+
+			statusCode := fetchCommandResult(cmd, DeployResultStatusCode)
+			statusCode = lo.Ternary(len(statusCode) == 0, "0", statusCode)
+			if code, err := strconv.ParseInt(statusCode, 10, 32); err != nil {
+				return err
+			} else if code != 0 {
+				return fmt.Errorf("non-success status code returned by deploy command: %d", code)
+			}
+			return nil
 		},
 	}
 
