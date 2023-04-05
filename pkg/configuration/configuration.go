@@ -63,7 +63,7 @@ func (c *ConfigClient) CreateRole(ctx context.Context, request *configClient.Cre
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		return nil, resp, &configError{response: resp}
+		return nil, resp, &ConfigError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
@@ -91,7 +91,7 @@ func (c *ConfigClient) UpdateRole(ctx context.Context, request *configClient.Upd
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, resp, &configError{response: resp}
+		return nil, resp, &ConfigError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
@@ -118,7 +118,7 @@ func (c *ConfigClient) GetRoles(ctx context.Context) ([]model.RoleConfig, *http.
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, resp, &configError{response: resp}
+		return nil, resp, &ConfigError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
@@ -133,16 +133,20 @@ func (c *ConfigClient) GetRoles(ctx context.Context) ([]model.RoleConfig, *http.
 	return roles, resp, nil
 }
 
-type configError struct {
+type ConfigError struct {
 	response *http.Response
 }
 
-func (d *configError) Error() string {
+func (d *ConfigError) Error() string {
 	responseBytes, err := io.ReadAll(d.response.Body)
 	if err != nil {
 		return fmt.Sprintf("could not read HTTP response body: %s", err)
 	}
 	return string(responseBytes)
+}
+
+func (d *ConfigError) StatusCode() int {
+	return d.response.StatusCode
 }
 
 func (c *ConfigClient) DeleteRole(ctx context.Context, request *configClient.DeleteRoleRequest) (*http.Response, error) {
@@ -158,7 +162,7 @@ func (c *ConfigClient) DeleteRole(ctx context.Context, request *configClient.Del
 	}
 
 	if resp.StatusCode != http.StatusNoContent {
-		return resp, &configError{response: resp}
+		return resp, &ConfigError{response: resp}
 	}
 
 	return resp, nil
@@ -176,7 +180,7 @@ func (c *ConfigClient) GetEnvironments(ctx context.Context) ([]configClient.Envi
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	var environments []configClient.Environment
@@ -200,7 +204,7 @@ func (c *ConfigClient) CreateEnvironment(ctx context.Context, request configClie
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		return nil, resp, &configError{response: resp}
+		return nil, resp, &ConfigError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)

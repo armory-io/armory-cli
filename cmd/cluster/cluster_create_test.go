@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/armory/armory-cli/cmd/agent"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/model"
@@ -59,6 +60,46 @@ func (suite *ClusterCreateTestSuite) TestCreateAndRunCommand() {
 
 	err := cmd.Execute()
 	assert.NoError(suite.T(), err)
+}
+
+func (suite *ClusterCreateTestSuite) TestGETClusterTolerates404s() {
+	credential := model.Credential{
+		ID:           "my-agent-identifier",
+		ClientSecret: "my-secret",
+		ClientId:     "my-id",
+	}
+
+	assert.NoError(suite.T(), registerResponder(credential, http.StatusCreated, "/credentials", http.MethodPost))
+	assert.NoError(suite.T(), registerResponder(rolesFromGrantStrings("my-role-id", []string{"api:agentHub:full"}, true), http.StatusOK, "/roles", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder([]model.RoleConfig{}, http.StatusOK, "/credentials/my-agent-identifier/roles", http.MethodPut))
+	assert.NoError(suite.T(), registerResponder(model.CreateSandboxResponse{ClusterId: "cluster-id"}, 200, "/sandbox/clusters", http.MethodPost))
+	httpmock.RegisterResponder(http.MethodGet, "/sandbox/clusters/cluster-id",
+		httpmock.NewStringResponder(404, "{ \"error\": \"not found\"}").Times(4),
+	)
+
+	cmd := NewClusterCmd(getDefaultAppConfiguration(), getSandboxFileStore())
+	cmd.SetOut(io.Discard)
+	cmd.SetArgs([]string{
+		"create",
+	})
+
+	err := cmd.Execute()
+	suite.Equal("{ \"error\": \"not found\"}", err.Error())
+
+	info := httpmock.GetCallCountInfo()
+	fmt.Print(info)
+	suite.Equal(4, info["GET /sandbox/clusters/cluster-id"], "GET should return on its fourth 404")
+
+	httpmock.ZeroCallCounters()
+	// should fail immediately on a 500
+	httpmock.RegisterResponder(http.MethodGet, "/sandbox/clusters/cluster-id",
+		httpmock.NewStringResponder(500, "{ \"error\": \"unexpected err\"}").Times(1),
+	)
+	err = cmd.Execute()
+	suite.Equal("{ \"error\": \"unexpected err\"}", err.Error())
+	info = httpmock.GetCallCountInfo()
+	suite.Equal(1, info["GET /sandbox/clusters/cluster-id"], "GET should fail immediately on 500")
+
 }
 
 func (suite *ClusterCreateTestSuite) TestUpdateProgressBar() {

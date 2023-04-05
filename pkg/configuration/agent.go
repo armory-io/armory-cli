@@ -37,7 +37,7 @@ func (a *agents) Get(ctx context.Context, agentIdentifier string) (*model.Agent,
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	var agents []*model.Agent
@@ -68,7 +68,7 @@ func (a *agents) List(ctx context.Context) ([]model.Agent, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	var agents []model.Agent

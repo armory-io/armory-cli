@@ -96,8 +96,17 @@ func (o *CreateOptions) Run(cmd *cobra.Command) error {
 	o.InitializeProgressBar(cmd.OutOrStdout())
 	o.saveData.setAgentIdentifier(createSandboxRequest.AgentIdentifier)
 	o.saveData.setCreateSandboxResponse(*sandboxResponse)
+	var configErr *configuration.ConfigError
+	attempts := 0
 	for {
 		cluster, err := o.ArmoryClient.Sandbox().Get(ctx, o.saveData.getClusterId())
+		if errors.As(err, &configErr) && attempts < 3 {
+			attempts = attempts + 1
+			if configErr.StatusCode() == 404 {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+		}
 		if err != nil {
 			return err
 		}

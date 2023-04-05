@@ -35,7 +35,7 @@ func (s *sandbox) Create(ctx context.Context, request *model.CreateSandboxReques
 	}
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
@@ -62,7 +62,7 @@ func (s *sandbox) Get(ctx context.Context, clusterId string) (*model.SandboxClus
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)

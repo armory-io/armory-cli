@@ -37,7 +37,7 @@ func (r *roles) ListForMachinePrincipals(ctx context.Context, environmentId stri
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
