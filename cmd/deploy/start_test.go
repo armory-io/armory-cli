@@ -396,9 +396,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLAndWaitForCompletionSucces
 	outWriter := bytes.NewBufferString("")
 	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml", "-w")
 	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
-	}
+	suite.Error(err, "expected deployment failure due to cancelled status")
 	output, err := ioutil.ReadAll(outWriter)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
