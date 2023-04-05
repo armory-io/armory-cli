@@ -12,6 +12,7 @@ import (
 	deployment "github.com/armory/armory-cli/pkg/deploy"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/output"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	log "go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -63,6 +64,7 @@ const (
 	DeployResultDeploymentID = "DEPLOYMENT_ID"
 	DeployResultLink         = "LINK"
 	DeployResultSyncStatus   = "RUN_RESULT"
+	DeployResultStatusCode   = "STATUS_CODE"
 )
 
 var statusCheckTick = time.Second * 10
@@ -248,6 +250,7 @@ func beginTrackingDeployment(cmd *cobra.Command, configuration *config.Configura
 
 	deploy.ExecutionStatus = reportedStatus
 	storeCommandResult(cmd, DeployResultSyncStatus, reportedStatus)
+	storeCommandResult(cmd, DeployResultStatusCode, lo.Ternary(status == de.WorkflowStatusSucceeded, "0", "1"))
 }
 
 func waitForCompletion(deployClient *deployment.DeployClient, pipelineID string, canWriteProgress bool, out io.Writer) (de.WorkflowStatus, error) {
