@@ -12,6 +12,7 @@ import (
 	deployment "github.com/armory/armory-cli/pkg/deploy"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/output"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	log "go.uber.org/zap"
 	"gopkg.in/yaml.v3"
@@ -63,6 +64,7 @@ const (
 	DeployResultDeploymentID = "DEPLOYMENT_ID"
 	DeployResultLink         = "LINK"
 	DeployResultSyncStatus   = "RUN_RESULT"
+	DeployResultStatusCode   = "STATUS_CODE"
 )
 
 var statusCheckTick = time.Second * 10
@@ -126,7 +128,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	if options.deploymentFile == "" && options.pipelineID == "" {
 		return ErrConfigurationRequired
 	}
-	
+
 	if *configuration.GetIsTest() {
 		utils.ConfigureLoggingForTesting(cmd)
 	}
@@ -144,7 +146,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	if options.pipelineID != "" {
 		options.deploymentFile =
 			fmt.Sprintf("armory::%s/pipelines/%s/config", configuration.GetArmoryCloudAddr().String(), options.pipelineID)
-		withConfiguration = WithPipelineId
+		withConfiguration = WithURL
 	} else if deployment.IsURL(options.deploymentFile) {
 		withConfiguration = WithURL
 	} else {
@@ -190,16 +192,6 @@ func WithURL(cmd *cobra.Command, options *deployStartOptions, deployClient Armor
 		IsURL: true,
 	})
 	return raw, response, err
-}
-
-func WithPipelineId(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
-	//TODO cue validation instead?
-	if options.account != "" {
-		return nil, nil, ErrAccountNameOverrideNotSupported
-	}
-	cmd.SilenceUsage = true
-	// execute request
-	return WithURL(cmd, options, deployClient)
 }
 
 func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
@@ -258,6 +250,7 @@ func beginTrackingDeployment(cmd *cobra.Command, configuration *config.Configura
 
 	deploy.ExecutionStatus = reportedStatus
 	storeCommandResult(cmd, DeployResultSyncStatus, reportedStatus)
+	storeCommandResult(cmd, DeployResultStatusCode, lo.Ternary(status == de.WorkflowStatusSucceeded, "0", "1"))
 }
 
 func waitForCompletion(deployClient *deployment.DeployClient, pipelineID string, canWriteProgress bool, out io.Writer) (de.WorkflowStatus, error) {
