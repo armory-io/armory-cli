@@ -28,6 +28,7 @@ const (
 var (
 	ErrOutputTypeNotSupported = errors.New("output type is not supported. Choose type 'text' to use this feature")
 	ErrWritingSandboxSaveData = errors.New("unable to save sandbox data to file system")
+	ErrFailedToGetClusterInfo = errors.New("failed to get cluster information. Please try creating another cluster")
 )
 
 type CreateOptions struct {
@@ -96,19 +97,11 @@ func (o *CreateOptions) Run(cmd *cobra.Command) error {
 	o.InitializeProgressBar(cmd.OutOrStdout())
 	o.saveData.setAgentIdentifier(createSandboxRequest.AgentIdentifier)
 	o.saveData.setCreateSandboxResponse(*sandboxResponse)
-	var configErr *configuration.ConfigError
-	attempts := 0
+	
 	for {
 		cluster, err := o.ArmoryClient.Sandbox().Get(ctx, o.saveData.getClusterId())
-		if errors.As(err, &configErr) && attempts < 3 {
-			attempts = attempts + 1
-			if configErr.StatusCode() == 404 {
-				time.Sleep(1 * time.Second)
-				continue
-			}
-		}
 		if err != nil {
-			return err
+			return ErrFailedToGetClusterInfo
 		}
 
 		done, err := o.UpdateProgressBar(cluster)
