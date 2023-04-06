@@ -61,6 +61,42 @@ func (suite *ClusterCreateTestSuite) TestCreateAndRunCommand() {
 	assert.NoError(suite.T(), err)
 }
 
+func (suite *ClusterCreateTestSuite) TestGETClusterTolerates404s() {
+	credential := model.Credential{
+		ID:           "my-agent-identifier",
+		ClientSecret: "my-secret",
+		ClientId:     "my-id",
+	}
+
+	assert.NoError(suite.T(), registerResponder(credential, http.StatusCreated, "/credentials", http.MethodPost))
+	assert.NoError(suite.T(), registerResponder(rolesFromGrantStrings("my-role-id", []string{"api:agentHub:full"}, true), http.StatusOK, "/roles", http.MethodGet))
+	assert.NoError(suite.T(), registerResponder([]model.RoleConfig{}, http.StatusOK, "/credentials/my-agent-identifier/roles", http.MethodPut))
+	assert.NoError(suite.T(), registerResponder(model.CreateSandboxResponse{ClusterId: "cluster-id"}, 200, "/sandbox/clusters", http.MethodPost))
+	httpmock.RegisterResponder(http.MethodGet, "/sandbox/clusters/cluster-id",
+		httpmock.NewStringResponder(404, "{ \"error\": \"not found\"}"),
+	)
+
+	cmd := NewClusterCmd(getDefaultAppConfiguration(), getSandboxFileStore())
+	cmd.SetOut(io.Discard)
+	cmd.SetArgs([]string{
+		"create",
+	})
+
+	err := cmd.Execute()
+	suite.ErrorIs(err, ErrFailedToGetClusterInfo)
+	suite.Equal(6, httpmock.GetCallCountInfo()["GET /sandbox/clusters/cluster-id"], "GET should throw error after 5 tries on 404")
+
+	httpmock.ZeroCallCounters()
+	// should fail fast when mock responds only once, because http client receives transport error
+	httpmock.RegisterResponder(http.MethodGet, "/sandbox/clusters/cluster-id",
+		httpmock.NewStringResponder(500, "{ \"error\": \"unexpected err\"}").Times(1),
+	)
+	err = cmd.Execute()
+	suite.ErrorIs(err, ErrFailedToGetClusterInfo)
+	suite.Equal(2, httpmock.GetCallCountInfo()["GET /sandbox/clusters/cluster-id"], "GET should throw error on second try if HTTP resp has error")
+
+}
+
 func (suite *ClusterCreateTestSuite) TestUpdateProgressBar() {
 	assert.NoError(suite.T(), registerResponder(model.SandboxCluster{PercentComplete: 20}, 200, "/sandbox/clusters/abcd", "GET"))
 	o := getDefaultCreateOptions()

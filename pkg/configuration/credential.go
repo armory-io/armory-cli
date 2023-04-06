@@ -36,7 +36,7 @@ func (c *credentials) AddRoles(ctx context.Context, request *model.Credential, r
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
@@ -64,7 +64,7 @@ func (c *credentials) Create(ctx context.Context, credential *model.Credential) 
 	}
 
 	if resp.StatusCode != http.StatusCreated {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
@@ -90,7 +90,7 @@ func (c *credentials) Delete(ctx context.Context, credential *model.Credential) 
 	}
 
 	if resp.StatusCode != http.StatusNoContent {
-		return &configError{response: resp}
+		return &ConfigError{response: resp}
 	}
 
 	return nil
@@ -108,7 +108,7 @@ func (c *credentials) GetRoles(ctx context.Context, credential *model.Credential
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	var roles *[]model.RoleConfig
@@ -131,7 +131,7 @@ func (c *credentials) List(ctx context.Context) ([]*model.Credential, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	var credentials []*model.Credential

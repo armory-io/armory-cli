@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/model"
+	"github.com/hashicorp/go-retryablehttp"
 	"io"
 	"net/http"
+	"time"
 )
 
 type sandbox struct {
@@ -17,9 +19,35 @@ type sandbox struct {
 
 // newSandbox returns the API for Sandbox operations
 func newSandbox(c *ConfigClient) *sandbox {
+	client := &retryablehttp.Client{
+		HTTPClient:   c.ArmoryCloudClient.Http,
+		RetryWaitMin: 200 * time.Millisecond,
+		RetryWaitMax: 2 * time.Second,
+		RetryMax:     5,
+		CheckRetry:   SandboxRetryPolicy,
+		Backoff:      retryablehttp.DefaultBackoff,
+	}
+	c.ArmoryCloudClient.Http = client.StandardClient()
 	return &sandbox{
 		ArmoryCloudClient: c.ArmoryCloudClient,
 	}
+}
+
+func SandboxRetryPolicy(ctx context.Context, resp *http.Response, err error) (bool, error) {
+	// do not retry on context.Canceled or context.DeadlineExceeded
+	if ctx.Err() != nil {
+		return false, ctx.Err()
+	}
+	//retryablehttp throws error after max retries, so we may find an empty resp
+	if err != nil && resp == nil {
+		return false, err
+	}
+	// don't propagate other errors
+	if resp.StatusCode >= 404 {
+		return true, err
+	}
+
+	return false, err
 }
 
 func (s *sandbox) Create(ctx context.Context, request *model.CreateSandboxRequest) (*model.CreateSandboxResponse, error) {
@@ -35,7 +63,7 @@ func (s *sandbox) Create(ctx context.Context, request *model.CreateSandboxReques
 	}
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
@@ -62,7 +90,7 @@ func (s *sandbox) Get(ctx context.Context, clusterId string) (*model.SandboxClus
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, &configError{response: resp}
+		return nil, &ConfigError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
