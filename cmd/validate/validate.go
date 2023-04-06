@@ -53,7 +53,7 @@ func validate(cmd *cobra.Command, configuration *config.Configuration, options *
 	if *configuration.GetIsTest() {
 		utils.ConfigureLoggingForTesting(cmd)
 	}
-	file, err := getFile(options)
+	file, err := os.ReadFile(options.deploymentFile)
 	if err != nil {
 		return err
 	}
@@ -70,14 +70,4 @@ func validate(cmd *cobra.Command, configuration *config.Configuration, options *
 		_, err = cmd.OutOrStdout().Write([]byte("YAML is valid.\n"))
 	}
 	return err
-}
-
-func getFile(options *validateOptions) ([]byte, error) {
-	//in case this is running on a GitHub instance
-	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
-	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
-	if present && !isATest {
-		options.deploymentFile = gitWorkspace + options.deploymentFile
-	}
-	return os.ReadFile(options.deploymentFile)
 }
