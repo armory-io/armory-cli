@@ -39,6 +39,7 @@ type deployStartOptions struct {
 	deploymentFile    string
 	pipelineID        string
 	application       string
+	targetFilters     []string
 	context           map[string]string
 	waitForCompletion bool
 }
@@ -58,6 +59,10 @@ type ArmoryDeployClient interface {
 	DeploymentStatus(ctx context.Context, deploymentID string) (*de.DeploymentStatusResponse, *nethttp.Response, error)
 	StartPipeline(ctx context.Context, options deployment.StartPipelineOptions) (*de.StartPipelineResponse, *nethttp.Response, error)
 	GetArmoryCloudClient() *armoryCloud.Client
+}
+
+type IncludeTargetByNameFilter struct {
+	TargetName string `json:"includeTarget" validate:"required"`
 }
 
 const (
@@ -118,6 +123,7 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
 	cmd.Flags().StringVarP(&options.pipelineID, "pipelineId", "i", "", "the ID of a previously deployed pipeline. Request will automatically use the original deployment configuration for that pipeline including its manifests")
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
+	cmd.Flags().StringArrayVarP(&options.targetFilters, "targetFilters", "t", []string{}, "targets specified in the config file to include. Those not specified will be skipped. All specified in the config will be overridden")
 	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{}, "add context values to be used in strategy steps")
 	cmd.Flags().BoolVarP(&options.waitForCompletion, "watch", "w", false, "wait for deployment to complete")
 
@@ -185,13 +191,20 @@ func WithURL(cmd *cobra.Command, options *deployStartOptions, deployClient Armor
 			armoryConfigLocationHeader: options.deploymentFile,
 		},
 		UnstructuredDeployment: map[string]any{
-			"account": options.account,
-			//TODO - CDAAS-2230 add ability to specify specific targets by including
-			//	"targets": [...], // options.targets
+			"account":       options.account,
+			"targetFilters": prepareTargetFilters(options),
 		},
 		IsURL: true,
 	})
 	return raw, response, err
+}
+
+func prepareTargetFilters(options *deployStartOptions) []map[string]any {
+	var targetFilters []map[string]any
+	for _, filter := range options.targetFilters {
+		targetFilters = append(targetFilters, map[string]any{"includeTarget": filter})
+	}
+	return targetFilters
 }
 
 func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
@@ -212,7 +225,7 @@ func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 	if err = yaml.Unmarshal(file, &payload); err != nil {
 		return nil, nil, errorUtils.NewWrappedError(ErrInvalidDeploymentObject, err)
 	}
-
+	payload["targetFilters"] = prepareTargetFilters(options)
 	ctx, cancel := context.WithTimeout(deployClient.GetArmoryCloudClient().Context, time.Minute)
 	defer cancel()
 	// execute request

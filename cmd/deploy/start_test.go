@@ -122,7 +122,6 @@ func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
 	}
-	suite.NoError(registerResponder(expected, http.StatusAccepted))
 	configuration := getDefaultConfiguration("json")
 	deployClient := GetMockDeployClient(configuration)
 	deployClient.MockStartPipelineResponse(func() (*de.StartPipelineResponse, *http.Response, error) {
@@ -130,6 +129,7 @@ func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
 	})
 	pipelineResp, rawResp, err := WithURL(cmd, &deployStartOptions{
 		account:           "jimbob-dev",
+		targetFilters:     []string{"dev-a"},
 		deploymentFile:    "http://mytesturl.com/deploy.yml",
 		waitForCompletion: false,
 	},
@@ -139,7 +139,7 @@ func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
 	suite.NoError(err)
 	suite.Equal("200", rawResp.Status, "rawResp should be returned by WithURL")
 	suite.Equal(expected.PipelineID, pipelineResp.PipelineID, "they should be equal")
-	suite.Equal(deployClient.RecordedStartPipelineOptions.UnstructuredDeployment, map[string]any{"account": "jimbob-dev"}, "there should be body/deployment specification for the request WithURL")
+	suite.Equal(deployClient.RecordedStartPipelineOptions.UnstructuredDeployment, map[string]any{"account": "jimbob-dev", "targetFilters": []map[string]any{{"includeTarget": "dev-a"}}}, "there should be body/deployment specification for the request WithURL")
 	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers["Content-Type"], mediaTypePipelineV2Link, "they should be equal")
 	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers["Accept"], mediaTypePipelineV2, "they should be equal")
 	suite.Equal(deployClient.RecordedStartPipelineOptions.Headers[armoryConfigLocationHeader], "http://mytesturl.com/deploy.yml", "they should be equal")
@@ -153,6 +153,39 @@ func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
 	)
 
 	suite.ErrorIs(err, ErrApplicationNameOverrideNotSupported)
+}
+
+func (suite *DeployStartTestSuite) TestDeployWithFileUsesExpectedOptions() {
+	cmd := &cobra.Command{}
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
+	configuration := getDefaultConfiguration("json")
+	deployClient := GetMockDeployClient(configuration)
+	deployClient.MockStartPipelineResponse(func() (*de.StartPipelineResponse, *http.Response, error) {
+		return expected, &http.Response{Status: "200"}, nil
+	})
+	tempFile := util.TempAppFile("", "app", testAppYamlStr)
+	if tempFile == nil {
+		suite.T().Fatal("TestDeployStartYAMLSuccess failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
+
+	pipelineResp, rawResp, err := WithLocalFile(cmd, &deployStartOptions{
+		targetFilters:     []string{"dev-a"},
+		deploymentFile:    tempFile.Name(),
+		waitForCompletion: false,
+	},
+		deployClient,
+	)
+	dr := deployClient.RecordedStartPipelineOptions.UnstructuredDeployment
+	suite.NoError(err)
+	suite.Equal("200", rawResp.Status, "rawResp should be returned by WithURL")
+	suite.Equal(expected.PipelineID, pipelineResp.PipelineID, "they should be equal")
+	suite.Equal(dr["targetFilters"], []map[string]any{{"includeTarget": "dev-a"}}, "there should be body/deployment specification for the request WithURL")
+	suite.Equal(mediaTypePipelineV2, deployClient.RecordedStartPipelineOptions.Headers["Content-Type"], "they should be equal")
+	suite.Equal(mediaTypePipelineV2, deployClient.RecordedStartPipelineOptions.Headers["Accept"], "they should be equal")
+	suite.Equal("", deployClient.RecordedStartPipelineOptions.Headers[armoryConfigLocationHeader], "they should be equal")
 }
 
 func (suite *DeployStartTestSuite) TestDeployWithPipelineValidation() {
@@ -191,8 +224,10 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineValidation() {
 }
 
 func (suite *DeployStartTestSuite) TestDeployWithPipelineIdUsesExpectedOptions() {
+	var filters []map[string]any
 	expectedBody := map[string]any{
-		"account": "",
+		"account":       "",
+		"targetFilters": filters,
 	}
 	expectedBody["account"] = ""
 	cmd := &cobra.Command{}
