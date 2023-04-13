@@ -23,15 +23,13 @@ func GetDeployClient(configuration *config.Configuration) *DeployClient {
 	return &DeployClient{armoryCloudClient}
 }
 
-var source = "armory-cli"
-
 func (c *DeployClient) PipelineStatus(ctx context.Context, pipelineID string) (*api.PipelineStatusResponse, *http.Response, error) {
 	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodGet, fmt.Sprintf("/pipelines/%s", pipelineID), nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	resp, err := c.ArmoryCloudClient.Http.Do(req)
+	resp, err := c.ArmoryCloudClient.DoWithRetry(req)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -58,7 +56,7 @@ func (c *DeployClient) DeploymentStatus(ctx context.Context, deploymentID string
 		return nil, nil, err
 	}
 
-	resp, err := c.ArmoryCloudClient.Http.Do(req)
+	resp, err := c.ArmoryCloudClient.DoWithRetry(req)
 	if err != nil {
 		return nil, resp, err
 	}
@@ -104,7 +102,7 @@ func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineO
 		return nil, nil, err
 	}
 
-	resp, err := c.ArmoryCloudClient.Http.Do(req)
+	resp, err := c.ArmoryCloudClient.DoWithRetry(req)
 	if err != nil {
 		if resp != nil {
 			return nil, resp, &deployError{response: resp}

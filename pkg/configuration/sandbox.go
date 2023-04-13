@@ -27,7 +27,8 @@ func newSandbox(c *ConfigClient) *sandbox {
 		CheckRetry:   SandboxRetryPolicy,
 		Backoff:      retryablehttp.DefaultBackoff,
 	}
-	c.ArmoryCloudClient.Http = client.StandardClient()
+	// replace the cloud client's retryable with the new one specifically tailored to sandbox's needs
+	c.ArmoryCloudClient.RetryableHttp = client.StandardClient()
 	return &sandbox{
 		ArmoryCloudClient: c.ArmoryCloudClient,
 	}
@@ -57,7 +58,7 @@ func (s *sandbox) Create(ctx context.Context, request *model.CreateSandboxReques
 		return nil, err
 	}
 
-	resp, err := s.ArmoryCloudClient.Http.Do(req)
+	resp, err := s.ArmoryCloudClient.DoWithRetry(req)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +85,7 @@ func (s *sandbox) Get(ctx context.Context, clusterId string) (*model.SandboxClus
 		return nil, err
 	}
 
-	resp, err := s.ArmoryCloudClient.Http.Do(req)
+	resp, err := s.ArmoryCloudClient.DoWithRetry(req)
 	if err != nil {
 		return nil, err
 	}

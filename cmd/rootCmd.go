@@ -161,10 +161,10 @@ func configureLogging(verboseFlag, isTest *bool, cmd *cobra.Command) error {
 func CheckForUpdate(cli *config.Configuration) {
 	ctx := context.Background()
 	currentVersion := version.Version
-	http := &http.Client{
+	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
-	ghClient := github.NewClient(http)
+	ghClient := github.NewClient(client)
 	log.S().Debugf("Trying to contact github to find our current release...")
 	currentRelease, _, err := ghClient.Repositories.GetLatestRelease(ctx, "armory-io", "armory-cli")
 	if err != nil {

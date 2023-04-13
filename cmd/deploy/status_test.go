@@ -8,11 +8,37 @@ import (
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestDeployStatusTestSuite(t *testing.T) {
+	statusCheckTick = time.Second
+	suite.Run(t, new(DeployStatusTestSuite))
+}
+
+type DeployStatusTestSuite struct {
+	suite.Suite
+}
+
+func (suite *DeployStatusTestSuite) SetupSuite() {
+	os.Setenv("ARMORY_CLI_TEST", "true")
+	httpmock.Activate()
+}
+
+func (suite *DeployStatusTestSuite) SetupTest() {
+	httpmock.Reset()
+}
+
+func (suite *DeployStatusTestSuite) TearDownSuite() {
+	os.Unsetenv("ARMORY_CLI_TEST")
+	httpmock.DeactivateAndReset()
+}
 
 func getExpectedPipelineDeployment() (*de.PipelineStatusResponse, *de.DeploymentStatusResponse) {
 	expected := &de.PipelineStatusResponse{
@@ -54,10 +80,9 @@ func getStdTestConfig(outFmt string) *config.Configuration {
 	})
 }
 
-func TestDeployStatusJsonSuccess(t *testing.T) {
+func (suite *DeployStatusTestSuite) TestDeployStatusJsonSuccess() {
+	t := suite.T()
 	expected, expectedDeploy := getExpectedPipelineDeployment()
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
 	responder, err := httpmock.NewJsonResponder(200, expected)
 	if err != nil {
 		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
@@ -99,10 +124,9 @@ func TestDeployStatusJsonSuccess(t *testing.T) {
 	assert.Equal(t, receivedDeployment[0].Deployment.ID, expectedDeployment.ID, "they should be equal")
 }
 
-func TestDeployStatusYAMLSuccess(t *testing.T) {
+func (suite *DeployStatusTestSuite) TestDeployStatusYAMLSuccess() {
+	t := suite.T()
 	expected, expectedDeploy := getExpectedPipelineDeployment()
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
 	responder, err := httpmock.NewJsonResponder(200, expected)
 	if err != nil {
 		t.Fatalf("TestDeployStatusYAMLSuccess failed with: %s", err)
@@ -142,9 +166,8 @@ func TestDeployStatusYAMLSuccess(t *testing.T) {
 	assert.Equal(t, receivedDeployment[0].Deployment.ID, expectedDeployment.ID, "they should be equal")
 }
 
-func TestDeployStatusHttpError(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
+func (suite *DeployStatusTestSuite) TestDeployStatusHttpError() {
+	t := suite.T()
 	responder, err := httpmock.NewJsonResponder(500, `{"code":2, "message":"invalid operation", "details":[]}`)
 	if err != nil {
 		t.Fatalf("TestDeployStatusHttpError failed with: %s", err)
@@ -170,7 +193,8 @@ func TestDeployStatusHttpError(t *testing.T) {
 		strings.TrimSpace(string(output)), "they should be equal")
 }
 
-func TestDeployStatusFlagDeploymentIdRequired(t *testing.T) {
+func (suite *DeployStatusTestSuite) TestDeployStatusFlagDeploymentIdRequired() {
+	t := suite.T()
 	cmd := NewDeployCmd(getStdTestConfig("json"))
 	outWriter := bytes.NewBufferString("")
 	cmd.SetOut(outWriter)

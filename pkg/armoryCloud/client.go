@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/armory/armory-cli/cmd/version"
+	"github.com/hashicorp/go-retryablehttp"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 )
 
 type (
@@ -15,6 +17,7 @@ type (
 		Context       context.Context
 		configuration *Configuration
 		Http          *http.Client
+		RetryableHttp *http.Client
 	}
 
 	Configuration struct {
@@ -34,9 +37,22 @@ func NewArmoryCloudClient(armoryCloudAddr *url.URL, token string) (*Client, erro
 
 	productVersion := fmt.Sprintf("%s/%s", source, version.Version)
 
+	client := &retryablehttp.Client{
+		HTTPClient:   http.DefaultClient, // tests fail if I use the cleanhttp.DefaultPooledClient() from retryablehttp
+		RetryWaitMin: 500 * time.Millisecond,
+		RetryWaitMax: 2 * time.Second,
+		RetryMax:     5,
+	}
+	retryClient := client.StandardClient()
+	// if we are in a test don't use the retry client for any network executions; this messes with error handling
+	if _, isATest := os.LookupEnv("ARMORY_CLI_TEST"); isATest {
+		retryClient = client.HTTPClient
+	}
+
 	return &Client{
-		Context: context.Background(),
-		Http:    http.DefaultClient,
+		Context:       context.Background(),
+		RetryableHttp: retryClient,
+		Http:          client.HTTPClient,
 		configuration: &Configuration{
 			Host:   armoryCloudAddr.Host,
 			Scheme: armoryCloudAddr.Scheme,
@@ -122,4 +138,12 @@ func WithBody(body io.Reader) RequestOption {
 	return func(builder *requestBuilder) {
 		builder.body = body
 	}
+}
+
+func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	return c.Http.Do(req)
+}
+
+func (c *Client) DoWithRetry(req *http.Request) (*http.Response, error) {
+	return c.RetryableHttp.Do(req)
 }

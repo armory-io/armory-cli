@@ -12,6 +12,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/google/go-github/v48 v48.0.0
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/iancoleman/strcase v0.2.0
 	github.com/jarcoal/httpmock v1.0.8
 	github.com/lestrrat-go/jwx v1.2.25
@@ -73,7 +74,6 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-getter/v2 v2.2.1 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.2 // indirect
 	github.com/hashicorp/go-safetemp v1.0.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
@@ -107,7 +107,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
-	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect

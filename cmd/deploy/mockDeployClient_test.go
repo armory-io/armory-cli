@@ -20,7 +20,11 @@ type (
 )
 
 func GetMockDeployClient(configuration *config.Configuration) *MockDeployClient {
-	armoryCloudClient := configuration.GetArmoryCloudClient()
+	acClient := configuration.GetArmoryCloudClient()
+	// use standard http client instead of the retryable one
+	acClient.RetryableHttp = acClient.Http
+	armoryCloudClient := acClient
+
 	return &MockDeployClient{ArmoryCloudClient: armoryCloudClient}
 }
 
