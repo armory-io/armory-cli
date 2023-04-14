@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -130,7 +131,8 @@ func TestDeployError_Error(t *testing.T) {
 	go func() {
 		req, _ := http.NewRequestWithContext(ctx, "GET", svr.URL, nil)
 		resp, _ := http.DefaultClient.Do(req)
-		errChan <- &deployError{response: resp}
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		errChan <- &deployError{bodyBytes}
 	}()
 
 	// collect the error from the client
