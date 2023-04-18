@@ -44,7 +44,7 @@ who we voted for in the last election, and we didn't scare so easy. And we were 
 these things and do all these things because we were informed. By great men, men who were
 revered. The first step in solving any problem is recognizing there is one—America is not the
 greatest country in the world anymore.
-
+-------
 Fine. [to the liberal panelist] Sharon, the NEA is a loser. Yeah, it accounts for a penny
 out of our paychecks, but he [gesturing to the conservative panelist] gets to hit you with it
 anytime he wants. It doesn't cost money, it costs votes. It costs airtime and column inches.
@@ -78,7 +78,7 @@ who we voted for in the last election, and we didn't scare so easy. And we were 
 these things and do all these things because we were informed. By great men, men who were
 revered. The first step in solving any problem is recognizing there is one—America is not the
 greatest country in the world anymore.
-
+-------
 Fine. [to the liberal panelist] Sharon, the NEA is a loser. Yeah, it accounts for a penny
 out of our paychecks, but he [gesturing to the conservative panelist] gets to hit you with it
 anytime he wants. It doesn't cost money, it costs votes. It costs airtime and column inches.
@@ -118,9 +118,7 @@ func TestDeployError_Error(t *testing.T) {
 	// mock our http server
 	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, err := fmt.Fprintf(w, expected)
-		if err != nil {
-			return
-		}
+		assert.NoError(t, err)
 	}))
 	defer svr.Close()
 
@@ -129,9 +127,12 @@ func TestDeployError_Error(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		req, _ := http.NewRequestWithContext(ctx, "GET", svr.URL, nil)
-		resp, _ := http.DefaultClient.Do(req)
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		req, err := http.NewRequestWithContext(ctx, "GET", svr.URL, nil)
+		assert.NoError(t, err)
+		resp, err := http.DefaultClient.Do(req)
+		assert.NoError(t, err)
+		bodyBytes, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
 		errChan <- &deployError{bodyBytes}
 	}()
 

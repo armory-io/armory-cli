@@ -133,6 +133,11 @@ func (c *DeployClient) GetArmoryCloudClient() *armoryCloud.Client {
 	return c.ArmoryCloudClient
 }
 
+// deployError keeps a byte slice for the error response. The old implementation stored a pointer to the response itself;
+// this would fail if the request resources were greater than what the http pkg was keeping on-hand per request. This
+// is because io.ReadAll calls Read on the response body, and the body streams content from the connection. If network
+// resources get cleaned up before deployError.Error() was called it would return the "context cancelled" error instead of
+// whatever reason the server had returned in the response body.
 type deployError struct {
 	responseBytes []byte
 }
