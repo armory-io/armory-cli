@@ -59,6 +59,7 @@ func TestDeployValidate(t *testing.T) {
 #PipelineRequest.targets.dev_1.strategy: 1 errors in empty disjunction:
 
 #PipelineRequest.targets.dev_1.strategy: conflicting values "strategy1" and "strategy0"
+
 `,
 		},
 	}
