@@ -6,6 +6,7 @@ import (
 	"fmt"
 	de "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/cmd/utils"
+	"github.com/armory/armory-cli/cmd/validate"
 	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
@@ -219,6 +220,8 @@ func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 	if err != nil {
 		return nil, nil, errorUtils.NewWrappedError(ErrYAMLFileRead, err)
 	}
+	validationFailures := validate.Validate(file)
+	validate.LogValidationErrors(cmd.OutOrStdout(), validationFailures, false)
 	cmd.SilenceUsage = true
 	// unmarshall data into struct
 	var payload map[string]any

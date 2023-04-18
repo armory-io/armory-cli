@@ -100,6 +100,40 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
 }
 
+func (suite *DeployStartTestSuite) TestDeployStartYAMLFailValidation() {
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
+	err := registerResponder(expected, http.StatusAccepted)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+	}
+	tempFile := util.TempAppFile("", "app", testAppYamlStrInvalid)
+	if tempFile == nil {
+		suite.T().Fatal("TestDeployStartYAMLSuccess failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
+	outWriter := bytes.NewBufferString("")
+	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
+	err = cmd.Execute()
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+	}
+	output, err := ioutil.ReadAll(outWriter)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+	}
+	expectedOutput := `YAML is NOT valid. See the following errors:
+
+#PipelineRequest.targets."dev-west".strategy: 1 errors in empty disjunction:
+
+#PipelineRequest.targets."dev-west".strategy: conflicting values "strategy1" and "strategy0"
+deploymentId: "12345"
+
+`
+	suite.Equal(expectedOutput, string(output))
+}
+
 func (suite *DeployStartTestSuite) TestDeployStartWithURLSuccess() {
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
@@ -504,7 +538,28 @@ targets:
         account: dev
         namespace: test
         strategy: strategy1
-manifests: []
+manifests:
+  - inline: ""
+strategies:
+    strategy1:
+        canary:
+            steps:
+                - pause:
+                    duration: 1
+                    unit: SECONDS
+`
+
+const testAppYamlStrInvalid = `
+version: apps/v1
+kind: kubernetes
+application: deployment-test
+targets:
+    dev-west:
+        account: dev
+        namespace: test
+        strategy: strategy0
+manifests:
+  - inline: ""
 strategies:
     strategy1:
         canary:

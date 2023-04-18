@@ -11,6 +11,7 @@ import (
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+	"io"
 	"os"
 	"strings"
 )
@@ -42,14 +43,14 @@ func NewValidateCmd(configuration *config.Configuration) *cobra.Command {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return validate(cmd, configuration, options)
+			return validateCommand(cmd, configuration, options)
 		},
 	}
 	cmd.Flags().StringVarP(&options.deploymentFile, "file", "f", "", "path to the deployment file")
 	return cmd
 }
 
-func validate(cmd *cobra.Command, configuration *config.Configuration, options *validateOptions) error {
+func validateCommand(cmd *cobra.Command, configuration *config.Configuration, options *validateOptions) error {
 	if *configuration.GetIsTest() {
 		utils.ConfigureLoggingForTesting(cmd)
 	}
@@ -57,17 +58,28 @@ func validate(cmd *cobra.Command, configuration *config.Configuration, options *
 	if err != nil {
 		return err
 	}
+	validationFailures := Validate(file)
+	return LogValidationErrors(cmd.OutOrStdout(), validationFailures, true)
+}
+
+func Validate(file []byte) []string {
 	cueContext := cuecontext.New()
 	v := cueContext.CompileBytes(schemaFile)
 	schema := v.LookupPath(cue.ParsePath("#PipelineRequest"))
-	err = cueyaml.Validate(file, schema)
+	err := cueyaml.Validate(file, schema)
 	errList := cueerrors.Errors(err)
-	validationFailures := lo.Map[cueerrors.Error, string](errList, func(e cueerrors.Error, _ int) string { return e.Error() })
+	return lo.Map[cueerrors.Error, string](errList, func(e cueerrors.Error, _ int) string { return e.Error() })
+}
+
+func LogValidationErrors(out io.Writer, validationFailures []string, confirmIsValid bool) error {
+	var err error = nil
 	if len(validationFailures) > 0 {
-		_, err = cmd.OutOrStdout().Write([]byte("YAML is NOT valid. See the following errors:\n\n"))
-		_, err = cmd.OutOrStdout().Write([]byte(strings.Join(validationFailures, "\n\n") + "\n"))
+		_, err = out.Write([]byte("YAML is NOT valid. See the following errors:\n\n"))
+		_, err = out.Write([]byte(strings.Join(validationFailures, "\n\n") + "\n"))
 	} else {
-		_, err = cmd.OutOrStdout().Write([]byte("YAML is valid.\n"))
+		if confirmIsValid {
+			_, err = out.Write([]byte("YAML is valid.\n"))
+		}
 	}
 	return err
 }
