@@ -36,13 +36,13 @@ func (c *DeployClient) PipelineStatus(ctx context.Context, pipelineID string) (*
 		return nil, resp, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, resp, &deployError{response: resp}
-	}
-
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, resp, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, resp, &deployError{bodyBytes}
 	}
 
 	var pipeline api.PipelineStatusResponse
@@ -63,13 +63,13 @@ func (c *DeployClient) DeploymentStatus(ctx context.Context, deploymentID string
 		return nil, resp, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, resp, &deployError{response: resp}
-	}
-
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, resp, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, resp, &deployError{bodyBytes}
 	}
 
 	var deployment api.DeploymentStatusResponse
@@ -107,20 +107,19 @@ func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineO
 	resp, err := c.ArmoryCloudClient.Http.Do(req)
 	if err != nil {
 		if resp != nil {
-			return nil, resp, &deployError{response: resp}
+			return nil, resp, err
 		} else {
 			return nil, nil, &networkError{}
 		}
-
-	}
-
-	if resp.StatusCode != http.StatusAccepted {
-		return nil, resp, &deployError{response: resp}
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, resp, err
+	}
+
+	if resp.StatusCode != http.StatusAccepted {
+		return nil, resp, &deployError{bodyBytes}
 	}
 
 	var startResponse api.StartPipelineResponse
@@ -134,16 +133,17 @@ func (c *DeployClient) GetArmoryCloudClient() *armoryCloud.Client {
 	return c.ArmoryCloudClient
 }
 
+// deployError keeps a byte slice for the error response. The old implementation stored a pointer to the response itself;
+// this would fail if the request resources were greater than what the http pkg was keeping on-hand per request. This
+// is because io.ReadAll calls Read on the response body, and the body streams content from the connection. If network
+// resources get cleaned up before deployError.Error() was called it would return the "context cancelled" error instead of
+// whatever reason the server had returned in the response body.
 type deployError struct {
-	response *http.Response
+	responseBytes []byte
 }
 
 func (d *deployError) Error() string {
-	responseBytes, err := io.ReadAll(d.response.Body)
-	if err != nil {
-		return fmt.Sprintf("could not read HTTP response body: %s", err)
-	}
-	return string(responseBytes)
+	return string(d.responseBytes)
 }
 
 type networkError struct {
