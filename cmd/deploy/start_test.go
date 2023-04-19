@@ -128,6 +128,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLFailValidation() {
 #PipelineRequest.targets."dev-west".strategy: 1 errors in empty disjunction:
 
 #PipelineRequest.targets."dev-west".strategy: conflicting values "strategy1" and "strategy0"
+
 deploymentId: "12345"
 
 `

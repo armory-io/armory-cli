@@ -75,7 +75,7 @@ func LogValidationErrors(out io.Writer, validationFailures []string, confirmIsVa
 	var err error = nil
 	if len(validationFailures) > 0 {
 		_, err = out.Write([]byte("YAML is NOT valid. See the following errors:\n\n"))
-		_, err = out.Write([]byte(strings.Join(validationFailures, "\n\n") + "\n"))
+		_, err = out.Write([]byte(strings.Join(validationFailures, "\n\n") + "\n\n"))
 	} else {
 		if confirmIsValid {
 			_, err = out.Write([]byte("YAML is valid.\n"))
