@@ -5,13 +5,14 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/jarcoal/httpmock"
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/stretchr/testify/suite"
-	"testing"
-	"time"
 )
 
 const aLongLongTimeAgo = 233431200
@@ -56,7 +57,7 @@ func (suite *AuthTestSuite) TestAuthenticationShouldErrorWhenTokenIsProvided() {
 		suite.T().Fatalf("TestTokenAuthSuccess failed with: %s", err)
 	}
 	authy := NewAuth("", "", "", "", "", jwt)
-	_, _, err = authy.authentication(nil)
+	_, _, err = authy.authentication()
 	suite.NotNil(err, "AuthenticationShouldErrorWhenTokenIsProvided expects an error with authenticating remotely %s", err)
 	suite.Equal("do not try to execute remote authentication when a Token has been provided to the command", err.Error(), "AuthenticationShouldErrorWhenTokenIsProvided: expected a specific error but found: %s", err)
 }
@@ -76,7 +77,7 @@ func (suite *AuthTestSuite) TestAuthSuccess() {
 	httpmock.RegisterResponder("POST", "http://localhost/oauth/token",
 		httpmock.NewStringResponder(200, string(resp)))
 	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://localhost", "")
-	token, exp, err := auth.authentication(nil)
+	token, exp, err := auth.authentication()
 	suite.Nilf(err, "TestAuthSuccess failed with: %s", err)
 	suite.NotNil(exp, "TestAuthSuccess failed with: expiration must not be null")
 	suite.Equal(jwt, token, "TestAuthSuccess: Token and Jwt must be equal")
@@ -86,7 +87,7 @@ func (suite *AuthTestSuite) TestAuthFail() {
 	httpmock.RegisterResponder("POST", "http://localhost/oauth/token",
 		httpmock.NewStringResponder(401, ""))
 	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://localhost", "")
-	_, _, err := auth.authentication(nil)
+	_, _, err := auth.authentication()
 	suite.NotNil(err, "TestAuthFail failed with: err is null")
 	suite.Error(err, "unexpected status code while getting token 401")
 }
@@ -102,7 +103,7 @@ func (suite *AuthTestSuite) TestAuthFailWithInvalidJwt() {
 	httpmock.RegisterResponder("POST", "http://localhost/oauth/token",
 		httpmock.NewStringResponder(200, string(resp)))
 	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://differentaudience/", "")
-	_, _, err = auth.authentication(nil)
+	_, _, err = auth.authentication()
 	suite.NotNil(err, "TestAuthFailWithInvalidJwt failed with: err is null")
 }
 

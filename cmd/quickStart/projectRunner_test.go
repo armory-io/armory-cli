@@ -2,16 +2,21 @@ package quickStart
 
 import (
 	"errors"
+	"net/url"
+	"strings"
+	"testing"
+
 	"github.com/armory/armory-cli/pkg/config"
+
+	//lint:ignore SA1019 quickStart needs a refactor to eliminate org; currently not prioritized
 	"github.com/armory/armory-cli/pkg/org"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/chzyer/test"
 	"github.com/hashicorp/go-multierror"
+
+	// TODO: we've moved away from logrus to zap; this needs a refactor
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
-	"net/url"
-	"strings"
-	"testing"
 )
 
 func TestProjectRunnerTestSuite(t *testing.T) {

@@ -5,13 +5,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/fatih/color"
 	"io"
-	"k8s.io/utils/strings/slices"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/fatih/color"
+	"k8s.io/utils/strings/slices"
 )
 
 var red = color.New(color.FgRed)
@@ -83,14 +84,18 @@ func main() {
 	}
 
 	fmt.Println("Test command complete, generating html report...")
+	pathToTestReport := fmt.Sprintf("%s/reports/test_report.html", buildDir)
 	reportCmd := exec.Command(
 		"go-test-report",
 		"--title", appName,
 		"-v",
-		"--output", fmt.Sprintf("%s/reports/test_report.html", buildDir),
+		"--output", pathToTestReport,
 	)
 	reportCmd.Stderr = os.Stderr
-	testResults, err := os.Open(fmt.Sprintf("%s/reports/tests-results.json", buildDir))
+	testResults, err := os.Open(pathToTestReport)
+	if err != nil {
+		fmt.Printf("Error opening %s, err: %s\n", pathToTestReport, err.Error())
+	}
 	reportCmd.Stdin = testResults
 	if err = reportCmd.Run(); err != nil {
 		fmt.Printf("Error generating html report, err: %s\n", err.Error())

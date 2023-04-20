@@ -4,6 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"sort"
+	"time"
+
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configuration"
 	"github.com/armory/armory-cli/pkg/model"
@@ -12,7 +18,6 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
-	"io"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -25,10 +30,6 @@ import (
 	"k8s.io/kubectl/pkg/cmd/apply"
 	"k8s.io/kubectl/pkg/cmd/delete"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"net/http"
-	"os"
-	"sort"
-	"time"
 )
 
 const (
@@ -226,7 +227,7 @@ func (o *AgentOptions) Run() error {
 		}
 
 		if _, err := promptRecreateCredentials.Run(); err != nil {
-			return errors.New(fmt.Sprintf("Exiting %s\n", err))
+			return fmt.Errorf("exiting: %s", err)
 		}
 
 		err = o.ArmoryClient.Credentials().Delete(ctx, existingCredential)
@@ -279,7 +280,7 @@ func (o *AgentOptions) Run() error {
 	// create new secret
 	createSecretOptions := metav1.CreateOptions{}
 	secret := o.createSecret()
-	secret, err = o.KubernetesClient.Secrets(o.Namespace).Create(ctx, secret, createSecretOptions)
+	_, err = o.KubernetesClient.Secrets(o.Namespace).Create(ctx, secret, createSecretOptions)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrFailedToCreateSecret, err)
 	}
@@ -542,7 +543,7 @@ func (o *AgentOptions) generateManifests() (string, error) {
 		return "", errors.New("unable to parse the manifest template")
 	}
 
-	err = os.WriteFile(f.Name(), []byte(renderedTemplate), 777)
+	err = os.WriteFile(f.Name(), []byte(renderedTemplate), 0777)
 	if err != nil {
 		return "", errors.New("unable to parse the render template")
 	}

@@ -5,11 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+
 	"github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/config"
-	"io"
-	"net/http"
 )
 
 type (
@@ -22,8 +23,6 @@ func GetDeployClient(configuration *config.Configuration) *DeployClient {
 	armoryCloudClient := configuration.GetArmoryCloudClient()
 	return &DeployClient{armoryCloudClient}
 }
-
-var source = "armory-cli"
 
 func (c *DeployClient) PipelineStatus(ctx context.Context, pipelineID string) (*api.PipelineStatusResponse, *http.Response, error) {
 	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodGet, fmt.Sprintf("/pipelines/%s", pipelineID), nil)

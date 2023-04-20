@@ -34,7 +34,9 @@ func NewHttpRequest(method string, url string, body map[string]string, bearerTok
 
 func (request *HttpRequest) Execute() (*http.Response, error) {
 	requestBody, err := json.Marshal(&request.Body)
-
+	if err != nil {
+		return nil, errors.New("failed to marshal request to json")
+	}
 	clientRequest, err := http.NewRequest(
 		request.Method,
 		request.Url,

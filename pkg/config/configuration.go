@@ -1,13 +1,14 @@
 package config
 
 import (
+	"net/url"
+	"strings"
+
 	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/auth"
 	"github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/output"
 	log "github.com/sirupsen/logrus"
-	"net/url"
-	"strings"
 )
 
 type CliConfiguration interface {
@@ -55,13 +56,10 @@ func (c *Configuration) GetArmoryCloudEnv() ArmoryCloudEnv {
 	switch addr.Host {
 	case "api.cloud.armory.io":
 		authTenant = prod
-		break
 	case "api.staging.cloud.armory.io":
 		authTenant = staging
-		break
 	default:
 		authTenant = dev
-		break
 	}
 	return authTenant
 }
@@ -151,13 +149,10 @@ func (c *Configuration) GetOutputType() output.Type {
 	switch strings.ToLower(*c.input.OutFormat) {
 	case "plain", "", "text":
 		oType = output.Text
-		break
 	case "yaml":
 		oType = output.Yaml
-		break
 	case "json":
 		oType = output.Json
-		break
 	default:
 		log.Fatalf("the output type is invalid. Do not specify parameter to get plain text output. Available options: [json, yaml, text]")
 	}
@@ -191,7 +186,6 @@ func (c *Configuration) GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnv
 			Audience:               "https://api.cloud.armory.io",
 			ApplicationEnvironment: envProd,
 		}
-		break
 	case staging:
 		armoryCloudEnvironmentConfiguration = &ArmoryCloudEnvironmentConfiguration{
 			CloudConsoleBaseUrl:    "https://console.staging.cloud.armory.io",
@@ -200,7 +194,6 @@ func (c *Configuration) GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnv
 			Audience:               "https://api.staging.cloud.armory.io",
 			ApplicationEnvironment: envStaging,
 		}
-		break
 	case dev:
 		armoryCloudEnvironmentConfiguration = &ArmoryCloudEnvironmentConfiguration{
 			CloudConsoleBaseUrl:    "https://console.dev.cloud.armory.io:3000",
@@ -209,7 +202,6 @@ func (c *Configuration) GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnv
 			Audience:               "https://api.dev.cloud.armory.io",
 			ApplicationEnvironment: envDev,
 		}
-		break
 	default:
 		log.Fatalf("Cannot fetch armory cloud config for unknown armory env")
 	}

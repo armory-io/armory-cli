@@ -3,11 +3,12 @@ package deploy
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const expected = `
@@ -114,10 +115,13 @@ revered. The first step in solving any problem is recognizing there is one—Ame
 greatest country in the world anymore.
 `
 
+// TestDeployError_Error was written and added to prove that our implementation of deployError had
+// a bug. For context, read the godoc for deployError. This test _may_ prevent regressions but it is
+// probably not useful in the longterm.
 func TestDeployError_Error(t *testing.T) {
 	// mock our http server
 	svr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := fmt.Fprintf(w, expected)
+		_, err := fmt.Fprint(w, expected)
 		assert.NoError(t, err)
 	}))
 	defer svr.Close()

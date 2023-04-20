@@ -2,15 +2,20 @@ package quickStart
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
+
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/armory/armory-cli/pkg/config"
+
+	//lint:ignore SA1019 quickStart needs a refactor to eliminate org; currently not prioritized
 	"github.com/armory/armory-cli/pkg/org"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/hashicorp/go-multierror"
 	"github.com/manifoldco/promptui"
+
+	// TODO: we've moved away from logrus to zap; this needs a refactor
 	log "github.com/sirupsen/logrus"
-	"net/url"
-	"strings"
 )
 
 var orgGetAgents = org.GetAgents

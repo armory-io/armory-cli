@@ -2,11 +2,11 @@ package cluster
 
 import (
 	"encoding/json"
+	"os"
+
 	"github.com/armory/armory-cli/cmd/login"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/armory/armory-cli/pkg/model"
-	"io/ioutil"
-	"os"
 )
 
 type (
@@ -50,7 +50,7 @@ func (d *SandboxClusterFileStore) writeToSandboxFile() error {
 	if err != nil {
 		return err
 	}
-	if err = ioutil.WriteFile(fileLocation, data, 0644); err != nil {
+	if err = os.WriteFile(fileLocation, data, 0644); err != nil {
 		return errorUtils.NewWrappedError(ErrWritingSandboxSaveData, err)
 	}
 	return nil
@@ -61,7 +61,7 @@ func (d *SandboxClusterFileStore) readSandboxFromFile() (*model.SandboxSaveData,
 	if err != nil {
 		return nil, err
 	}
-	data, err := ioutil.ReadFile(fileLocation)
+	data, err := os.ReadFile(fileLocation)
 	if err != nil {
 		return nil, err
 	}

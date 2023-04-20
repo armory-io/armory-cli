@@ -1,19 +1,20 @@
 package validate
 
 import (
+	_ "embed"
+	"io"
+	"os"
+	"strings"
+
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	cueerrors "cuelang.org/go/cue/errors"
 	cueyaml "cuelang.org/go/encoding/yaml"
-	_ "embed"
 	"github.com/armory/armory-cli/cmd/utils"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
-	"io"
-	"os"
-	"strings"
 )
 
 const (
@@ -68,14 +69,14 @@ func Validate(file []byte) []string {
 	schema := v.LookupPath(cue.ParsePath("#PipelineRequest"))
 	err := cueyaml.Validate(file, schema)
 	errList := cueerrors.Errors(err)
-	return lo.Map[cueerrors.Error, string](errList, func(e cueerrors.Error, _ int) string { return e.Error() })
+	return lo.Map(errList, func(e cueerrors.Error, _ int) string { return e.Error() })
 }
 
 func LogValidationErrors(out io.Writer, validationFailures []string, confirmIsValid bool) error {
 	var err error = nil
 	if len(validationFailures) > 0 {
 		_, err = out.Write([]byte("YAML is NOT valid. See the following errors:\n\n"))
-		_, err = out.Write([]byte(strings.Join(validationFailures, "\n\n") + "\n\n"))
+		out.Write([]byte(strings.Join(validationFailures, "\n\n") + "\n\n"))
 	} else {
 		if confirmIsValid {
 			_, err = out.Write([]byte("YAML is valid.\n"))

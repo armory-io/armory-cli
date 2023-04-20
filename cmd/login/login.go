@@ -1,25 +1,27 @@
 package login
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/armory/armory-cli/pkg/auth"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
+	"github.com/armory/armory-cli/pkg/configuration"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
-	"github.com/armory/armory-cli/pkg/org"
+	"github.com/armory/armory-cli/pkg/model/configClient"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/browser"
 	"github.com/spf13/cobra"
 	log "go.uber.org/zap"
-	"io"
-	"net/url"
-	"os"
-	"strings"
-	"time"
 )
 
 const (
@@ -50,12 +52,13 @@ func NewLoginCmd(configuration *config.Configuration) *cobra.Command {
 	return command
 }
 
-func login(cmd *cobra.Command, configuration *config.Configuration, envName string) error {
+func login(cmd *cobra.Command, cli *config.Configuration, envName string) error {
 	cmd.SilenceUsage = true
-	armoryCloudEnvironmentConfiguration := configuration.GetArmoryCloudEnvironmentConfiguration()
+	armoryCloudEnvironmentConfiguration := cli.GetArmoryCloudEnvironmentConfiguration()
 	clientId := armoryCloudEnvironmentConfiguration.CliClientId
 	audience := armoryCloudEnvironmentConfiguration.Audience
 	TokenIssuerUrl := armoryCloudEnvironmentConfiguration.TokenIssuerUrl
+	CloudClient := configuration.NewClient(cli)
 
 	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(clientId, scope, audience, TokenIssuerUrl)
 	if err != nil {
@@ -82,26 +85,26 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrPollingServerResponse, err)
 	}
+	_, err = auth.ParseJwtWithoutValidation(response.AccessToken)
+	if err != nil {
+		return errorUtils.NewWrappedError(ErrDecodingJwt, err)
+	}
+
+	selectedEnv, err := selectEnvironment(CloudClient, response.AccessToken, envName)
+	if err != nil {
+		return err
+	}
+
+	response, err = auth.RefreshAuthToken(clientId, TokenIssuerUrl, response.RefreshToken, selectedEnv.ID)
+	if err != nil {
+		return err
+	}
 	parsedJwt, err := auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrDecodingJwt, err)
 	}
 
-	selectedEnv, err := selectEnvironment(configuration.GetArmoryCloudAddr(), response.AccessToken, envName)
-	if err != nil {
-		return err
-	}
-
-	response, err = auth.RefreshAuthToken(clientId, TokenIssuerUrl, response.RefreshToken, selectedEnv.Id)
-	if err != nil {
-		return err
-	}
-	parsedJwt, err = auth.ParseJwtWithoutValidation(response.AccessToken)
-	if err != nil {
-		return errorUtils.NewWrappedError(ErrDecodingJwt, err)
-	}
-
-	err = writeCredentialToFile(err, configuration, parsedJwt, response)
+	err = writeCredentialToFile(cli, parsedJwt, response)
 	if err != nil {
 		return err
 	}
@@ -112,14 +115,14 @@ func login(cmd *cobra.Command, configuration *config.Configuration, envName stri
 }
 
 func createArmoryDirectoryIfNotExists(dir string) {
-	_, error := os.Stat(dir)
-	if error == nil {
+	_, err := os.Stat(dir)
+	if err == nil {
 		return
 	}
 	os.MkdirAll(dir, 0755)
 }
 
-func writeCredentialToFile(err error, configuration *config.Configuration, jwt jwt.Token, response *auth.SuccessfulResponse) error {
+func writeCredentialToFile(configuration *config.Configuration, jwt jwt.Token, response *auth.SuccessfulResponse) error {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrGettingHomeDirectory, err)
@@ -138,14 +141,16 @@ func writeCredentialToFile(err error, configuration *config.Configuration, jwt j
 	return nil
 }
 
-func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnvironment ...string) (*org.Environment, error) {
-	environments, err := org.GetEnvironments(armoryCloudAddr, &accessToken)
+func selectEnvironment(cc *configuration.ConfigClient, namedEnvironment ...string) (*configClient.Environment, error) {
+	ctx, cancel := context.WithTimeout(cc.ArmoryCloudClient.Context, time.Minute)
+	defer cancel()
+	environments, err := cc.GetEnvironments(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var environmentNames []string
 	linq.From(environments).Select(func(c interface{}) interface{} {
-		return c.(org.Environment).Name
+		return c.(configClient.Environment).Name
 	}).ToSlice(&environmentNames)
 
 	// If there is only 1 environment for the org, we will auto-select it
@@ -158,7 +163,8 @@ func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnviro
 		if requestedEnv != nil {
 			return requestedEnv, nil
 		}
-		return nil, errors.New(fmt.Sprintf("Tenant %s not found, please choose a known tenant: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ",")))
+		//lint:ignore ST1005 errors are user facing
+		return nil, fmt.Errorf("Tenant %s not found, please choose a known tenant: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ","))
 	}
 
 	prompt := promptui.Select{
@@ -170,7 +176,8 @@ func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnviro
 	_, requestedEnv, err := prompt.Run()
 
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("failed to select an tenant to login to; %v\n", err))
+		//lint:ignore ST1005 errors are user facing
+		return nil, fmt.Errorf("Failed to select an tenant to login to; %v\n", err)
 	}
 	selectedEnv := getEnvForEnvName(environments, requestedEnv)
 	if selectedEnv == nil {
@@ -180,16 +187,16 @@ func selectEnvironment(armoryCloudAddr *url.URL, accessToken string, namedEnviro
 	return selectedEnv, nil
 }
 
-func getEnvForEnvName(environments []org.Environment, envName string) *org.Environment {
+func getEnvForEnvName(environments []configClient.Environment, envName string) *configClient.Environment {
 	env := linq.
 		From(environments).
 		Where(func(c interface{}) bool {
-			return c.(org.Environment).Name == envName
+			return c.(configClient.Environment).Name == envName
 		}).
 		Select(func(c interface{}) interface{} {
-			return c.(org.Environment)
+			return c.(configClient.Environment)
 		}).
 		First()
-	sel := env.(org.Environment)
+	sel := env.(configClient.Environment)
 	return &sel
 }

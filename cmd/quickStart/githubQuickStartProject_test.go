@@ -1,12 +1,12 @@
 package quickStart
 
 import (
-	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/suite"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/suite"
 )
 
 func TestGithubQuickStartProjectTestSuite(t *testing.T) {
@@ -82,7 +82,7 @@ func (suite *QuickStartSuite) TestGithubQuickStartProject() {
 		suite.Failf("Failed updating agent account", "%s", err.Error())
 	}
 
-	yaml, err := ioutil.ReadFile(deployFilePath)
+	yaml, err := os.ReadFile(deployFilePath)
 	if err != nil {
 		suite.Failf("Failed reading deploy.yml", "%s", err.Error())
 	}

@@ -5,17 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	errorUtils "github.com/armory/armory-cli/pkg/errors"
-	"github.com/armory/armory-cli/pkg/util"
 	"net/url"
 	"time"
-)
 
-type Environment struct {
-	Id    string `json:"id"`
-	Name  string `json:"name"`
-	OrgId string `json:"orgId"`
-}
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
+	"github.com/armory/armory-cli/pkg/util"
+)
 
 type Agent struct {
 	AgentIdentifier       string    `json:"agentIdentifier"`
@@ -47,42 +42,8 @@ func (e *AppError) String() string {
 }
 
 const (
-	ENVIRONMENT_URI      string = "/environments"
 	CONNECTED_AGENTS_URI string = "/identity/connected-agents"
 )
-
-func GetEnvironments(ArmoryCloudAddr *url.URL, accessToken *string) ([]Environment, error) {
-	environmentUrl := &url.URL{
-		Scheme: ArmoryCloudAddr.Scheme,
-		Host:   ArmoryCloudAddr.Host,
-		Path:   ENVIRONMENT_URI,
-	}
-	request := util.NewHttpRequest("GET", environmentUrl.String(), nil, accessToken)
-	request.BearerToken = accessToken
-	resp, err := request.Execute()
-	if err != nil {
-		return nil, errors.New("unable to retrieve environments to login to; please try again")
-	}
-	defer resp.Body.Close()
-	dec := json.NewDecoder(resp.Body)
-	if resp.StatusCode == 200 {
-		var environments []Environment
-		err = dec.Decode(&environments)
-		if err != nil {
-			return nil, err
-		}
-		return environments, nil
-	}
-
-	var errorResponse *ApiError
-	err = dec.Decode(&errorResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	errContext := fmt.Sprintf(". ErrorId: %s, Desc: %v", errorResponse.ErrorId, errorResponse.Errors)
-	return nil, errorUtils.NewErrorWithDynamicContext(ErrEnvironmentRetrieval, errContext)
-}
 
 func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	connectedAgentsUrl := &url.URL{
@@ -93,7 +54,7 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	request := util.NewHttpRequest("GET", connectedAgentsUrl.String(), nil, &accessToken)
 	resp, err := request.Execute()
 	if err != nil {
-		return nil, errors.New("Unable to retrieve Remote Network Agents to connect with. Please ensure a Remote Network Agent is connected and try again")
+		return nil, errors.New("unable to retrieve Remote Network Agents to connect with; please ensure a Remote Network Agent is connected and try again")
 	}
 	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)

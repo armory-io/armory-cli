@@ -5,10 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/armory/armory-cli/pkg/armoryCloud"
-	"github.com/armory/armory-cli/pkg/model"
 	"io"
 	"net/http"
+
+	"github.com/armory/armory-cli/pkg/armoryCloud"
+	"github.com/armory/armory-cli/pkg/model"
 )
 
 // credentials implements CredentialInterface
@@ -25,6 +26,9 @@ func newCredentials(c *ConfigClient) *credentials {
 
 func (c *credentials) AddRoles(ctx context.Context, request *model.Credential, roles []string) (*[]model.RoleConfig, error) {
 	reqBytes, err := json.Marshal(roles)
+	if err != nil {
+		return nil, err
+	}
 	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodPut, fmt.Sprintf("/credentials/%s/roles", request.ID), bytes.NewReader(reqBytes))
 	if err != nil {
 		return nil, err
@@ -53,6 +57,9 @@ func (c *credentials) AddRoles(ctx context.Context, request *model.Credential, r
 
 func (c *credentials) Create(ctx context.Context, credential *model.Credential) (*model.Credential, error) {
 	reqBytes, err := json.Marshal(credential)
+	if err != nil {
+		return nil, err
+	}
 	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodPost, "/credentials", bytes.NewReader(reqBytes))
 	if err != nil {
 		return nil, err
