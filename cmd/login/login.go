@@ -58,7 +58,6 @@ func login(cmd *cobra.Command, cli *config.Configuration, envName string) error 
 	clientId := armoryCloudEnvironmentConfiguration.CliClientId
 	audience := armoryCloudEnvironmentConfiguration.Audience
 	TokenIssuerUrl := armoryCloudEnvironmentConfiguration.TokenIssuerUrl
-	CloudClient := configuration.NewClient(cli)
 
 	deviceTokenResponse, err := auth.GetDeviceCodeFromAuthorizationServer(clientId, scope, audience, TokenIssuerUrl)
 	if err != nil {
@@ -85,12 +84,18 @@ func login(cmd *cobra.Command, cli *config.Configuration, envName string) error 
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrPollingServerResponse, err)
 	}
-	_, err = auth.ParseJwtWithoutValidation(response.AccessToken)
+	parsedJwt, err := auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrDecodingJwt, err)
 	}
 
-	selectedEnv, err := selectEnvironment(CloudClient, response.AccessToken, envName)
+	err = writeCredentialToFile(cli, parsedJwt, response)
+	if err != nil {
+		return err
+	}
+
+	CloudClient := configuration.NewClient(cli)
+	selectedEnv, err := selectEnvironment(CloudClient, envName)
 	if err != nil {
 		return err
 	}
@@ -99,7 +104,7 @@ func login(cmd *cobra.Command, cli *config.Configuration, envName string) error 
 	if err != nil {
 		return err
 	}
-	parsedJwt, err := auth.ParseJwtWithoutValidation(response.AccessToken)
+	parsedJwt, err = auth.ParseJwtWithoutValidation(response.AccessToken)
 	if err != nil {
 		return errorUtils.NewWrappedError(ErrDecodingJwt, err)
 	}
