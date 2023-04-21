@@ -3,7 +3,6 @@ package org
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -54,7 +53,7 @@ func GetAgents(ArmoryCloudAddr *url.URL, accessToken string) ([]Agent, error) {
 	request := util.NewHttpRequest("GET", connectedAgentsUrl.String(), nil, &accessToken)
 	resp, err := request.Execute()
 	if err != nil {
-		return nil, errors.New("unable to retrieve Remote Network Agents to connect with; please ensure a Remote Network Agent is connected and try again")
+		return nil, ErrNoConnectedAgents
 	}
 	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)

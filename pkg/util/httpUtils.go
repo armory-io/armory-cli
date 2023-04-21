@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+var (
+	ErrFailedToMarshalRequest    = errors.New("failed to marshal request to json")
+	ErrFailedToCreateHttpRequest = errors.New("failed to create http request")
+)
+
 type HttpRequest struct {
 	Body        *map[string]string
 	Url         string
@@ -35,7 +40,7 @@ func NewHttpRequest(method string, url string, body map[string]string, bearerTok
 func (request *HttpRequest) Execute() (*http.Response, error) {
 	requestBody, err := json.Marshal(&request.Body)
 	if err != nil {
-		return nil, errors.New("failed to marshal request to json")
+		return nil, ErrFailedToMarshalRequest
 	}
 	clientRequest, err := http.NewRequest(
 		request.Method,
@@ -43,7 +48,7 @@ func (request *HttpRequest) Execute() (*http.Response, error) {
 		bytes.NewBuffer(requestBody),
 	)
 	if err != nil {
-		return nil, errors.New("failed to create http request")
+		return nil, ErrFailedToCreateHttpRequest
 	}
 	if request.BearerToken != nil {
 		clientRequest.Header.Set("Authorization", "Bearer "+*request.BearerToken)

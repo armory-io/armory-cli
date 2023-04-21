@@ -94,8 +94,8 @@ func login(cmd *cobra.Command, cli *config.Configuration, envName string) error 
 		return err
 	}
 
-	CloudClient := configuration.NewClient(cli)
-	selectedEnv, err := selectEnvironment(CloudClient, envName)
+	cloudClient := configuration.NewClient(cli)
+	selectedEnv, err := selectEnvironment(cloudClient, envName)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func selectEnvironment(cc *configuration.ConfigClient, namedEnvironment ...strin
 			return requestedEnv, nil
 		}
 		//lint:ignore ST1005 errors are user facing
-		return nil, fmt.Errorf("Tenant %s not found, please choose a known tenant: [%s]", namedEnvironment[0], strings.Join(environmentNames[:], ","))
+		return nil, fmt.Errorf("Tenant %s not found, please choose a known tenant: [%s]", namedEnvironment[0], strings.Join(environmentNames, ","))
 	}
 
 	prompt := promptui.Select{
@@ -182,7 +182,7 @@ func selectEnvironment(cc *configuration.ConfigClient, namedEnvironment ...strin
 
 	if err != nil {
 		//lint:ignore ST1005 errors are user facing
-		return nil, fmt.Errorf("Failed to select an tenant to login to; %v\n", err)
+		return nil, fmt.Errorf("Failed to select an tenant to login to; %w\n", err)
 	}
 	selectedEnv := getEnvForEnvName(environments, requestedEnv)
 	if selectedEnv == nil {
