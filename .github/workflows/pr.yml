@@ -9,6 +9,7 @@ jobs:
     env:
       BASE_PROJECT: armory-cli
       PR_NUMBER: ${{ github.event.number }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
