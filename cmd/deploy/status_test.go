@@ -3,15 +3,16 @@ package deploy
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"strings"
+	"testing"
+
 	de "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/model"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
-	"strings"
-	"testing"
 )
 
 func getExpectedPipelineDeployment() (*de.PipelineStatusResponse, *de.DeploymentStatusResponse) {
@@ -82,7 +83,7 @@ func TestDeployStatusJsonSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
-	output, err := ioutil.ReadAll(outWriter)
+	output, err := io.ReadAll(outWriter)
 	if err != nil {
 		t.Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
@@ -126,7 +127,7 @@ func TestDeployStatusYAMLSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal("TestDeployStatusYAMLSuccess failed with: error should not be null")
 	}
-	output, err := ioutil.ReadAll(outWriter)
+	output, err := io.ReadAll(outWriter)
 	if err != nil {
 		t.Fatalf("TestDeployStatusYAMLSuccess failed with: %s", err)
 	}
@@ -162,7 +163,7 @@ func TestDeployStatusHttpError(t *testing.T) {
 	if err != nil {
 		t.Fatal("TestDeployStatusHttpError failed with: error should not be null")
 	}
-	output, err := ioutil.ReadAll(outWriter)
+	output, err := io.ReadAll(outWriter)
 	if err != nil {
 		t.Fatalf("TestDeployStatusHttpError failed with: %s", err)
 	}

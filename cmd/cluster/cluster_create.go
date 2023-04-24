@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"math/rand"
+	"time"
+
 	"github.com/armory/armory-cli/cmd/agent"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configuration"
@@ -12,9 +16,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/cobra"
-	"io"
-	"math/rand"
-	"time"
 )
 
 const (
@@ -35,8 +36,6 @@ type CreateOptions struct {
 	Context       context.Context
 	ArmoryClient  *configuration.ConfigClient
 	configuration *config.Configuration
-	contextNames  []string
-	credentials   *model.Credential
 	progressbar   *progressbar.ProgressBar
 	saveData      SandboxStorage
 }
@@ -84,7 +83,7 @@ func (o *CreateOptions) Run(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	environmentId := lo.If(lo.FromPtrOr[bool](isTest, false), "test-env").ElseF(o.configuration.GetCustomerEnvironmentId)
+	environmentId := lo.If(lo.FromPtrOr(isTest, false), "test-env").ElseF(o.configuration.GetCustomerEnvironmentId)
 	err = AssignCredentialRNARole(ctx, credentials, o.ArmoryClient, environmentId)
 	if err != nil {
 		return err
@@ -97,7 +96,7 @@ func (o *CreateOptions) Run(cmd *cobra.Command) error {
 	o.InitializeProgressBar(cmd.OutOrStdout())
 	o.saveData.setAgentIdentifier(createSandboxRequest.AgentIdentifier)
 	o.saveData.setCreateSandboxResponse(*sandboxResponse)
-	
+
 	for {
 		cluster, err := o.ArmoryClient.Sandbox().Get(ctx, o.saveData.getClusterId())
 		if err != nil {

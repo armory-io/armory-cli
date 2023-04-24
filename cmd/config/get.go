@@ -70,6 +70,9 @@ func get(cmd *cobra.Command, options *configApplyOptions, cli *cliconfig.Configu
 		return errorUtils.NewWrappedError(ErrParsingGetConfigResponse, err)
 	}
 	_, err = fmt.Fprintln(cmd.OutOrStdout(), dataFormat)
+	if err != nil {
+		return errorUtils.NewWrappedError(ErrParsingGetConfigResponse, err)
+	}
 	return nil
 }
 

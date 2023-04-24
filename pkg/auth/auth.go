@@ -1,19 +1,19 @@
 package auth
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	errorUtils "github.com/armory/armory-cli/pkg/errors"
-	"github.com/armory/armory-cli/pkg/util"
-	"github.com/lestrrat-go/jwx/jwt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
+	"github.com/armory/armory-cli/pkg/util"
+	"github.com/lestrrat-go/jwx/jwt"
 )
 
 const (
@@ -66,7 +66,7 @@ func (a *Auth) getTokenForCI() (*Credentials, error) {
 		return nil, errors.New("no credentials set or expired. Either run armory login command to interactively login, or add clientId and clientSecret flags to specify service account credentials")
 	}
 
-	token, expires, err := a.authentication(nil)
+	token, expires, err := a.authentication()
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (a *Auth) getTokenForSystemUser() (string, error) {
 		return "", errors.New("no credentials set. Either run armory login to interactively login, or add clientId and clientSecret flags to specify service account credentials")
 	}
 
-	token, expires, err := a.authentication(nil)
+	token, expires, err := a.authentication()
 	if err != nil {
 		return "", err
 	}
@@ -174,7 +174,7 @@ func (a *Auth) GetOrganizationId() (string, error) {
 	return currentCreds.GetOrganizationId()
 }
 
-func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
+func (a *Auth) authentication() (string, *time.Time, error) {
 	if a.token != "" {
 		return "", nil, errors.New("do not try to execute remote authentication when a Token has been provided to the command")
 	}
@@ -201,7 +201,7 @@ func (a *Auth) authentication(ctx context.Context) (string, *time.Time, error) {
 		return "", nil, errorUtils.NewErrorWithDynamicContext(ErrUnexpectedStatusCode, errContext)
 	}
 	defer res.Body.Close()
-	tk, err := ioutil.ReadAll(res.Body)
+	tk, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", nil, err
 	}

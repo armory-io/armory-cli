@@ -1,14 +1,14 @@
 package deploy
 
 import (
-	errorUtils "github.com/armory/armory-cli/pkg/errors"
-	"github.com/mitchellh/mapstructure"
-	"github.com/samber/lo"
 	"io/fs"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
+
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
+	"github.com/mitchellh/mapstructure"
+	"github.com/samber/lo"
 )
 
 type (
@@ -118,7 +118,7 @@ func getFileNamesFromPath(path string) ([]string, error) {
 func getFiles(dirFileNames []string) ([]string, error) {
 	var files []string
 	for _, fileName := range dirFileNames {
-		file, err := ioutil.ReadFile(fileName)
+		file, err := os.ReadFile(fileName)
 		if err != nil {
 			return nil, errorUtils.NewWrappedErrorWithDynamicContext(ErrManifestFileRead, err, fileName)
 		}

@@ -4,6 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	nethttp "net/http"
+	"os"
+	"time"
+
 	de "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/cmd/utils"
 	"github.com/armory/armory-cli/cmd/validate"
@@ -17,11 +22,6 @@ import (
 	"github.com/spf13/cobra"
 	log "go.uber.org/zap"
 	"gopkg.in/yaml.v3"
-	"io"
-	"io/ioutil"
-	nethttp "net/http"
-	"os"
-	"time"
 )
 
 const (
@@ -216,7 +216,7 @@ func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 		options.deploymentFile = gitWorkspace + options.deploymentFile
 	}
 	// read yaml file
-	file, err := ioutil.ReadFile(options.deploymentFile)
+	file, err := os.ReadFile(options.deploymentFile)
 	if err != nil {
 		return nil, nil, errorUtils.NewWrappedError(ErrYAMLFileRead, err)
 	}

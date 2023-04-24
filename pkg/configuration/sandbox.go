@@ -5,12 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/armory/armory-cli/pkg/armoryCloud"
-	"github.com/armory/armory-cli/pkg/model"
-	"github.com/hashicorp/go-retryablehttp"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/armory/armory-cli/pkg/armoryCloud"
+	"github.com/armory/armory-cli/pkg/model"
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 type sandbox struct {
@@ -52,7 +53,10 @@ func SandboxRetryPolicy(ctx context.Context, resp *http.Response, err error) (bo
 
 func (s *sandbox) Create(ctx context.Context, request *model.CreateSandboxRequest) (*model.CreateSandboxResponse, error) {
 	reqBytes, err := json.Marshal(request)
-	req, err := s.ArmoryCloudClient.SimpleRequest(ctx, http.MethodPost, fmt.Sprintf("/sandbox/clusters"), bytes.NewReader(reqBytes))
+	if err != nil {
+		return nil, err
+	}
+	req, err := s.ArmoryCloudClient.SimpleRequest(ctx, http.MethodPost, "/sandbox/clusters", bytes.NewReader(reqBytes))
 	if err != nil {
 		return nil, err
 	}

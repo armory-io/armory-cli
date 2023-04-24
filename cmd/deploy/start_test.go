@@ -3,6 +3,13 @@ package deploy
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"net/http"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
 	de "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/util"
@@ -12,13 +19,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/yaml.v3"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestDeployStartTestSuite(t *testing.T) {
@@ -63,7 +63,7 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
-	output, err := ioutil.ReadAll(outWriter)
+	output, err := io.ReadAll(outWriter)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
@@ -91,7 +91,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
-	output, err := ioutil.ReadAll(outWriter)
+	output, err := io.ReadAll(outWriter)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -119,7 +119,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLFailValidation() {
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
-	output, err := ioutil.ReadAll(outWriter)
+	output, err := io.ReadAll(outWriter)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -145,7 +145,7 @@ func (suite *DeployStartTestSuite) TestDeployStartWithURLSuccess() {
 	cmd := getDeployCmdWithFileName(outWriter, "https://myhostedfile.example.com/deploy.yaml", "yaml")
 	suite.NoError(cmd.Execute())
 
-	output, err := ioutil.ReadAll(outWriter)
+	output, err := io.ReadAll(outWriter)
 	suite.NoError(err)
 	var received FormattableDeployStartResponse
 	yaml.Unmarshal(output, &received)
@@ -187,6 +187,9 @@ func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
 		deployClient,
 	)
 
+	suite.Nil(pipelineResp)
+	suite.Nil(rawResp)
+	suite.Error(err)
 	suite.ErrorIs(err, ErrApplicationNameOverrideNotSupported)
 }
 
@@ -307,7 +310,7 @@ func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartHttpError failed with: %s", err)
 	}
-	output, err := ioutil.ReadAll(outWriter)
+	output, err := io.ReadAll(outWriter)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartHttpError failed with: %s", err)
 	}
@@ -435,7 +438,7 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonAndWaitForCompletionSucces
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
-	output, err := ioutil.ReadAll(outWriter)
+	output, err := io.ReadAll(outWriter)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
@@ -467,7 +470,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLAndWaitForCompletionSucces
 	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml", "-w")
 	err = cmd.Execute()
 	suite.Error(err, "expected deployment failure due to cancelled status")
-	output, err := ioutil.ReadAll(outWriter)
+	output, err := io.ReadAll(outWriter)
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}

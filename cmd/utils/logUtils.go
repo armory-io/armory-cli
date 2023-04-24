@@ -2,6 +2,8 @@ package utils
 
 import (
 	"github.com/spf13/cobra"
+
+	// TODO: we've moved away from logrus to zap; this needs a refactor
 	log "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -19,15 +21,13 @@ func ConfigureLoggingForTesting(cmd *cobra.Command) {
 	loggerConfig.Encoding = "console"
 	loggerConfig.Level = log.NewAtomicLevelAt(lvl)
 	loggerConfig.EncoderConfig = encodingConfig
-	logger, err := loggerConfig.Build()
-	encoder := zapcore.NewConsoleEncoder(encodingConfig)
-
-	logger = log.New(
-		zapcore.NewCore(encoder, zapcore.AddSync(cmd.OutOrStdout()), zapcore.DebugLevel))
-
-	if err != nil {
+	if _, err := loggerConfig.Build(); err != nil {
 		panic(err)
 	}
+	encoder := zapcore.NewConsoleEncoder(encodingConfig)
+
+	logger := log.New(
+		zapcore.NewCore(encoder, zapcore.AddSync(cmd.OutOrStdout()), zapcore.DebugLevel))
 
 	defer logger.Sync()
 	log.ReplaceGlobals(logger)

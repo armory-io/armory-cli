@@ -176,6 +176,9 @@ func processRoles(configClient *configuration.ConfigClient, rolesFromConfig []mo
 			ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 			defer cancel()
 			req, err := configuration.CreateRoleRequest(&roleInConfig)
+			if err != nil {
+				return errorUtils.NewWrappedError(ErrCreatingRole, err)
+			}
 			_, _, err = configClient.CreateRole(ctx, req)
 			if err != nil {
 				return errorUtils.NewWrappedError(ErrCreatingRole, err)
@@ -196,6 +199,9 @@ func processRoles(configClient *configuration.ConfigClient, rolesFromConfig []mo
 			ctx, cancel := context.WithTimeout(configClient.ArmoryCloudClient.Context, time.Minute)
 			defer cancel()
 			req, err := configuration.DeleteRolesRequest(deletedRole.ID)
+			if err != nil {
+				return errorUtils.NewWrappedError(ErrDeletingRole, err)
+			}
 			_, err = configClient.DeleteRole(ctx, req)
 			if err != nil {
 				return errorUtils.NewWrappedError(ErrDeletingRole, err)

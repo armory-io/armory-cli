@@ -4,6 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"sort"
+	"time"
+
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/configuration"
 	"github.com/armory/armory-cli/pkg/model"
@@ -12,7 +18,6 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
-	"io"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -25,10 +30,6 @@ import (
 	"k8s.io/kubectl/pkg/cmd/apply"
 	"k8s.io/kubectl/pkg/cmd/delete"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
-	"net/http"
-	"os"
-	"sort"
-	"time"
 )
 
 const (
@@ -42,18 +43,20 @@ const (
 )
 
 var (
-	agentConnectedPollRate         = time.Minute * 10
-	ErrUnknownContextName          = errors.New("provided kubernetes context name was not found in the kubernetes config")
-	ErrFailedToChooseContext       = errors.New("failed to select a kubernetes context to create the agent in")
-	ErrFailedToSetContext          = errors.New("failed to set the kubernetes context")
-	ErrFailedToSetNamespace        = errors.New("failed to set the namespace for the kubernetes context")
-	ErrAgentNameNotSpecified       = errors.New("please provide a name for the agent")
-	ErrFailedToRecreateCredentials = errors.New("failed to recreate credentials")
-	ErrFailedToCreateNamespace     = errors.New("failed to create namespace")
-	ErrFailedToCreateSecret        = errors.New("failed to create secret")
-	ErrFailedToGenerateManifests   = errors.New("failed to generate manifests")
-	ErrFailedToApplyManifests      = errors.New("failed to apply manifests")
-	ErrAgentConnectionTimeout      = errors.New("timed out waiting for agent to connect")
+	agentConnectedPollRate           = time.Minute * 10
+	ErrUnknownContextName            = errors.New("provided kubernetes context name was not found in the kubernetes config")
+	ErrFailedToChooseContext         = errors.New("failed to select a kubernetes context to create the agent in")
+	ErrFailedToSetContext            = errors.New("failed to set the kubernetes context")
+	ErrFailedToSetNamespace          = errors.New("failed to set the namespace for the kubernetes context")
+	ErrAgentNameNotSpecified         = errors.New("please provide a name for the agent")
+	ErrFailedToRecreateCredentials   = errors.New("failed to recreate credentials")
+	ErrFailedToCreateNamespace       = errors.New("failed to create namespace")
+	ErrFailedToCreateSecret          = errors.New("failed to create secret")
+	ErrFailedToGenerateManifests     = errors.New("failed to generate manifests")
+	ErrFailedToApplyManifests        = errors.New("failed to apply manifests")
+	ErrAgentConnectionTimeout        = errors.New("timed out waiting for agent to connect")
+	ErrUnableToParseManifestTemplate = errors.New("unable to parse the manifest template")
+	ErrUnableToParseRenderedTemplate = errors.New("unable to parse the rendered template")
 )
 
 type AgentOptions struct {
@@ -226,7 +229,7 @@ func (o *AgentOptions) Run() error {
 		}
 
 		if _, err := promptRecreateCredentials.Run(); err != nil {
-			return errors.New(fmt.Sprintf("Exiting %s\n", err))
+			return fmt.Errorf("exiting: %w", err)
 		}
 
 		err = o.ArmoryClient.Credentials().Delete(ctx, existingCredential)
@@ -279,7 +282,7 @@ func (o *AgentOptions) Run() error {
 	// create new secret
 	createSecretOptions := metav1.CreateOptions{}
 	secret := o.createSecret()
-	secret, err = o.KubernetesClient.Secrets(o.Namespace).Create(ctx, secret, createSecretOptions)
+	_, err = o.KubernetesClient.Secrets(o.Namespace).Create(ctx, secret, createSecretOptions)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrFailedToCreateSecret, err)
 	}
@@ -535,16 +538,16 @@ func (o *AgentOptions) generateManifests() (string, error) {
 	}
 	parsedTemplate, err := mustache.ParseString(string(templateContent))
 	if err != nil {
-		return "", errors.New("unable to parse the manifest template")
+		return "", ErrUnableToParseManifestTemplate
 	}
 	renderedTemplate, err := parsedTemplate.Render(cntxt)
 	if err != nil {
-		return "", errors.New("unable to parse the manifest template")
+		return "", ErrUnableToParseManifestTemplate
 	}
 
-	err = os.WriteFile(f.Name(), []byte(renderedTemplate), 777)
+	err = os.WriteFile(f.Name(), []byte(renderedTemplate), 0777)
 	if err != nil {
-		return "", errors.New("unable to parse the render template")
+		return "", ErrUnableToParseRenderedTemplate
 	}
 	return f.Name(), nil
 }

@@ -4,15 +4,15 @@ import (
 	"archive/zip"
 	"errors"
 	"fmt"
-	"github.com/armory/armory-cli/pkg/util"
-	"github.com/manifoldco/promptui"
-	log "github.com/sirupsen/logrus"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/armory/armory-cli/pkg/util"
+	"github.com/manifoldco/promptui"
+	log "github.com/sirupsen/logrus"
 )
 
 type QuickStartProject interface {
@@ -120,6 +120,7 @@ func (p GithubQuickStartProject) OverwritePrompt() error {
 
 		_, err := prompt.Run()
 		if err != nil {
+			//lint:ignore ST1005 errors are user facing
 			return errors.New("Cancelled... ")
 		}
 	}
@@ -129,7 +130,8 @@ func (p GithubQuickStartProject) OverwritePrompt() error {
 
 func (p GithubQuickStartProject) Download() error {
 	log.Info(fmt.Sprintf("Downloading sample application from `%s`...", p.GetUrl()))
-	defaultErr := errors.New(fmt.Sprintf("Unable to download project from Github. Please download and unzip %s, then execute `%s`", p.GetUrl(), p.GetDeployCommand()))
+	//lint:ignore ST1005 errors are user facing
+	defaultErr := fmt.Errorf("Unable to download project from Github. Please download and unzip %s, then execute `%s`", p.GetUrl(), p.GetDeployCommand())
 	resp, err := http.Get(p.GetUrl())
 	if err != nil {
 		log.Debugln(err)
@@ -158,7 +160,7 @@ func (p GithubQuickStartProject) Download() error {
 func (p GithubQuickStartProject) UpdateAgentAccount(selectedAgent string) error {
 	deployFileName := fmt.Sprintf("%s%s%s", p.DirName, string(os.PathSeparator), p.DeployYmlName)
 	log.Info(fmt.Sprintf("Replacing defaults in %s with Remote Network Agent '%s'", deployFileName, selectedAgent))
-	yaml, err := ioutil.ReadFile(deployFileName)
+	yaml, err := os.ReadFile(deployFileName)
 	if err != nil {
 		return err
 	}
@@ -169,7 +171,7 @@ func (p GithubQuickStartProject) UpdateAgentAccount(selectedAgent string) error 
 		lines[i] = strings.ReplaceAll(line, "my-first-cluster", selectedAgent)
 	}
 	output := strings.Join(lines, "\n")
-	err = ioutil.WriteFile(deployFileName, []byte(output), 0644)
+	err = os.WriteFile(deployFileName, []byte(output), 0644)
 	if err != nil {
 		return err
 	}

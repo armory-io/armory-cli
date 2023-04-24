@@ -1,11 +1,11 @@
 package utils
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
-	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 func TestGithubIntegration(t *testing.T) {
@@ -22,8 +22,8 @@ func (suite *GithubIntegrationSuite) SetupSuite() {
 }
 
 func (suite *GithubIntegrationSuite) SetupTest() {
-	suite.outputFile, _ = ioutil.TempFile("", "")
-	suite.summaryFile, _ = ioutil.TempFile("", "")
+	suite.outputFile, _ = os.CreateTemp("", "")
+	suite.summaryFile, _ = os.CreateTemp("", "")
 }
 
 func (suite *GithubIntegrationSuite) TearDownSuite() {
@@ -38,7 +38,7 @@ func (suite *GithubIntegrationSuite) TestCanWriteOutputToFile() {
 
 	TryWriteGitHubContext("key1", "value1", "key2", "value2")
 
-	bytes, err := ioutil.ReadFile(suite.outputFile.Name())
+	bytes, err := os.ReadFile(suite.outputFile.Name())
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), "KEY1=value1\nKEY2=value2\n", string(bytes))
 }
@@ -46,7 +46,7 @@ func (suite *GithubIntegrationSuite) TestCanWriteOutputToFile() {
 func (suite *GithubIntegrationSuite) TestWriteOutputToFileIsSkippedWhenNoEnvVariableIsSet() {
 	TryWriteGitHubContext("key1", "value1", "key2", "value2")
 
-	bytes, err := ioutil.ReadFile(suite.outputFile.Name())
+	bytes, err := os.ReadFile(suite.outputFile.Name())
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), "", string(bytes))
 }
@@ -56,7 +56,7 @@ func (suite *GithubIntegrationSuite) TestCanWriteOutputSummary() {
 
 	TryWriteGitHubStepSummary("this is step summary")
 
-	bytes, err := ioutil.ReadFile(suite.summaryFile.Name())
+	bytes, err := os.ReadFile(suite.summaryFile.Name())
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), "this is step summary\n", string(bytes))
 }
@@ -64,7 +64,7 @@ func (suite *GithubIntegrationSuite) TestCanWriteOutputSummary() {
 func (suite *GithubIntegrationSuite) TestWriteOutputSummaryIsSkippedWhenNoEnvVariableIsSet() {
 	TryWriteGitHubStepSummary("this is step summary")
 
-	bytes, err := ioutil.ReadFile(suite.summaryFile.Name())
+	bytes, err := os.ReadFile(suite.summaryFile.Name())
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), "", string(bytes))
 }

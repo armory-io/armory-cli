@@ -2,8 +2,9 @@ package auth
 
 import (
 	"encoding/json"
+	"os"
+
 	"gopkg.in/square/go-jose.v2/jwt"
-	"io/ioutil"
 )
 
 const (
@@ -35,7 +36,7 @@ func (c *Credentials) WriteCredentials(fileLocation string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(fileLocation, data, 0644)
+	err = os.WriteFile(fileLocation, data, 0644)
 	if err != nil {
 		return err
 	}
@@ -43,7 +44,7 @@ func (c *Credentials) WriteCredentials(fileLocation string) error {
 }
 
 func LoadCredentials(fileLocation string) (Credentials, error) {
-	data, err := ioutil.ReadFile(fileLocation)
+	data, err := os.ReadFile(fileLocation)
 	if err != nil {
 		return Credentials{}, err
 	}
