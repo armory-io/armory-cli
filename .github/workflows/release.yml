@@ -176,7 +176,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-release.outputs.release-url }} # This pulls from the CREATE RELEASE step above, referencing its ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./build/dist/${{ matrix.os }}_${{ matrix.arch }}/armory${{ matrix.ext }}
+          asset_path: ./build/bin/${{ matrix.os }}_${{ matrix.arch }}/armory${{ matrix.ext }}
           asset_name: armory-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
           asset_content_type: binary/octet-stream
 
@@ -257,7 +257,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BUILD_PATH=./build/dist/linux_amd64/armory
+            BUILD_PATH=./build/bin/linux_amd64/armory
 
   scan-image:
     name: CVE Image Scan

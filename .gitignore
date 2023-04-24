@@ -11,3 +11,4 @@ armory-cli
 .scannerwork
 scratch
 avm-darwin-amd64
+/generated

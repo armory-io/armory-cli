@@ -88,4 +88,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BUILD_PATH=./build/dist/linux_amd64/armory
+            BUILD_PATH=./build/bin/linux_amd64/armory
