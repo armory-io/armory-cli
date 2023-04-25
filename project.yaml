@@ -10,9 +10,8 @@ tools:
     enabled: false
   mockGen:
     enabled: false
-  #TODO: enable static check after Jacob commits his fixes to the project
   staticCheck:
-    enabled: false
+    enabled: true
   prefetchDockerImages:
     enabled: false
 customSteps:

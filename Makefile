@@ -5,7 +5,7 @@
 #################
 
 APP_NAME              = armory
-APP_EXT               ?= ${CLI_EXT}
+APP_EXT               ?= "${CLI_EXT}"
 VERSION               ?= $(shell ./scripts/version.sh)
 REGISTRY              ?="armory-docker-local.jfrog.io"
 REGISTRY_ORG          ?="armory"
@@ -37,7 +37,7 @@ build-dirs:
 
 .PHONY: build
 build: build-dirs
-	@echo "Building ${DIST_DIR}/${APP_NAME}${APP_EXT}..."
+	@echo "Building ${DIST_DIR}/${APP_NAME}${APP_EXT} [main.version: ${VERSION}]..."
 	@go build -ldflags "-X main.version=${VERSION}" -o ${DIST_DIR}/${APP_NAME}${APP_EXT} main.go
 
 
@@ -87,7 +87,18 @@ install-tools:
 	echo installing tools.... && \
 	go install github.com/vakenbolt/go-test-report@v0.9.3 && \
 	go install github.com/undoio/delve/cmd/dlv@latest && \
+	echo installing static check... && \
+	go install honnef.co/go/tools/cmd/staticcheck@latest && \
 	mkdir -p $(GEN_DIR) && touch $(GEN_DIR)/.tools || echo tools are installed
+
+
+#####################
+## Local static-check
+#####################
+.PHONY: static-check
+static-check: install-tools
+	@echo "Running static check in ${PWD}..."
+	@staticcheck ./...
 
 
 .PHONY: run-before-tools
@@ -96,7 +107,7 @@ run-before-tools: install-tools
 	@echo run before tools DONE
 
 .PHONY: run-after-tools
-run-after-tools: 
+run-after-tools: static-check
 	@echo run after tools DONE
 
 #####################
