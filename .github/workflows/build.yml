@@ -53,10 +53,6 @@ jobs:
         run: |
           make integration
 
-      - name: Run final build
-        run: |
-          make build          
-
       - name: Upload Tests Reports
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
