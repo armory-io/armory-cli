@@ -12,6 +12,8 @@ jobs:
     env:
       BASE_PROJECT: armory-cli
       PR_NUMBER: ${{ github.event.number }}
+      GOOS: linux
+      GOARCH: amd64
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
