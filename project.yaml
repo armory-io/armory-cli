@@ -1,0 +1,25 @@
+projectName: armory
+build:
+  enabled: true
+  pathToMain: main.go
+  executableExtension: ${CLI_EXT}
+  skipMultiDockerBuild: true
+  skipManifestBaking: true
+tools:
+  sqlBoiler:
+    enabled: false
+  mockGen:
+    enabled: false
+  staticCheck:
+    enabled: true
+  prefetchDockerImages:
+    enabled: false
+customSteps:
+  - stepName: integration
+    dependsOn: build-dirs install-tools
+    definition:
+      - '@go test -v -cover ./integration/... -json > ${BUILD_DIR}/reports/integration-test-report.json'
+      - '@go test -v -coverprofile=${BUILD_DIR}/reports/integration.cov ./integration/...'
+      - '@cat ${BUILD_DIR}/reports/integration-test-report.json | go-test-report --title ${APP_NAME}-integration-test -v --output ${BUILD_DIR}/reports/integration_test_report.html'
+    runBeforeBuild: false
+    runAfterBuild: false

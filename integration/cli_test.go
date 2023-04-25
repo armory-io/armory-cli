@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 	cmd := exec.Command("make", "build")
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "PWD="+dir, "GOARCH="+goarch, "GOOS="+goos, "VERSION="+version)
-	binaryPath = fmt.Sprintf("%s/build/dist/%s_%s/%s", dir, goos, goarch, binaryName)
+	binaryPath = fmt.Sprintf("%s/build/bin/%s_%s/%s", dir, goos, goarch, binaryName)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		fmt.Printf("could not make binary for %s: error=%s, %s", binaryName, err, string(output))
 		os.Exit(1)

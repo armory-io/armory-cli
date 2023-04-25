@@ -3,11 +3,15 @@ package main
 import (
 	"fmt"
 	"github.com/armory/armory-cli/cmd"
+	cmdVersion "github.com/armory/armory-cli/cmd/version"
 	"github.com/spf13/cobra"
 	"os"
 )
 
+var version string = "development"
+
 func main() {
+	cmdVersion.Version = version
 	// Disabling EnableCommandSorting allows us to set our own command sort order.
 	cobra.EnableCommandSorting = false
 
