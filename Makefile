@@ -102,6 +102,7 @@ static-check: install-tools
 
 
 .PHONY: run-before-tools
+run-before-tools: configureGoEnvironment
 run-before-tools: install-tools  
 	@go mod tidy
 	@echo run before tools DONE
@@ -113,6 +114,9 @@ run-after-tools: static-check
 #####################
 ## Custom build steps
 #####################
+.PHONY: configureGoEnvironment
+configureGoEnvironment: 
+	@go env -w CGO_ENABLED=0
 .PHONY: integration
 integration: build-dirs install-tools
 	@go test -v -cover ./integration/... -json > ${BUILD_DIR}/reports/integration-test-report.json

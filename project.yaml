@@ -15,6 +15,11 @@ tools:
   prefetchDockerImages:
     enabled: false
 customSteps:
+  - stepName: configureGoEnvironment
+    definition:
+      - '@go env -w CGO_ENABLED=0'
+    runBeforeBuild: true
+    runAfterBuild: false
   - stepName: integration
     dependsOn: build-dirs install-tools
     definition:
