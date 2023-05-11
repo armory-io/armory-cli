@@ -73,10 +73,12 @@ import "struct"
     untilApproved: bool
     requiresRoles?: [... string]
     requiresRoles?: list.MinItems(1)
+    approvalExpiration?: #Timeout
   } | {
     duration: int
     unit: #TimeUnit
   }
+
 }
 
 #WebhookStep: {
