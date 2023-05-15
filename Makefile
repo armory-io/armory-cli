@@ -126,6 +126,9 @@ integration: build-dirs install-tools
 	@go test -v -cover ./integration/... -json > ${BUILD_DIR}/reports/integration-test-report.json
 	@go test -v -coverprofile=${BUILD_DIR}/reports/integration.cov ./integration/...
 	@cat ${BUILD_DIR}/reports/integration-test-report.json | go-test-report --title ${APP_NAME}-integration-test -v --output ${BUILD_DIR}/reports/integration_test_report.html
+.PHONY: release
+release: configureGoEnvironment build
+	@echo Release version of armory-cli ${VERSION} created in ${DIST_DIR}/${APP_NAME}${APP_EXT}
 
 ###################
 ## Trigger project bootstrap with latest version
