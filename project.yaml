@@ -18,6 +18,7 @@ customSteps:
   - stepName: configureGoEnvironment
     definition:
       - '@go env -w CGO_ENABLED=0'
+      - '@go env'
     runBeforeBuild: true
     runAfterBuild: false
   - stepName: integration
