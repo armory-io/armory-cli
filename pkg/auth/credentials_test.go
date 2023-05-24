@@ -22,7 +22,7 @@ func TestWriteAndLoadCredentialsSuccess(t *testing.T) {
 }
 
 func TestGetEnvironmentSuccess(t *testing.T) {
-	token, err := createFakeJwt()
+	token, err := CreateFakeJwt()
 	if err != nil {
 		t.Fatalf("TestGetEnvironmentSuccess failed with %s", err)
 	}

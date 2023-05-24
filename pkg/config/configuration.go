@@ -64,7 +64,7 @@ func (c *Configuration) GetArmoryCloudEnv() ArmoryCloudEnv {
 	return authTenant
 }
 
-func (c *Configuration) getAuth() *auth.Auth {
+func (c *Configuration) GetAuth() *auth.Auth {
 	conf := c.GetArmoryCloudEnvironmentConfiguration()
 	return auth.NewAuth(
 		*c.input.ClientId,
@@ -77,7 +77,7 @@ func (c *Configuration) getAuth() *auth.Auth {
 }
 
 func (c *Configuration) GetAuthToken() string {
-	token, err := c.getAuth().GetToken()
+	token, err := c.GetAuth().GetToken()
 	if err != nil {
 		log.Fatalf("failed to fetch access token, err: %s", err.Error())
 	}
@@ -85,7 +85,7 @@ func (c *Configuration) GetAuthToken() string {
 }
 
 func (c *Configuration) GetCustomerEnvironmentId() string {
-	environment, err := c.getAuth().GetEnvironmentId()
+	environment, err := c.GetAuth().GetEnvironmentId()
 	if err != nil {
 		log.Fatalf("failed to fetch environment, err: %s", err.Error())
 	}
@@ -93,7 +93,7 @@ func (c *Configuration) GetCustomerEnvironmentId() string {
 }
 
 func (c *Configuration) GetCustomerOrganizationId() string {
-	organization, err := c.getAuth().GetOrganizationId()
+	organization, err := c.GetAuth().GetOrganizationId()
 	if err != nil {
 		log.Fatalf("failed to fetch organization, err: %s", err.Error())
 	}
@@ -172,6 +172,7 @@ type ArmoryCloudEnvironmentConfiguration struct {
 	CliClientId            string
 	TokenIssuerUrl         string
 	Audience               string
+	AWSAccountID           string
 	ApplicationEnvironment ArmoryApplicationEnvironment
 }
 
@@ -185,6 +186,7 @@ func (c *Configuration) GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnv
 			TokenIssuerUrl:         "https://auth.cloud.armory.io/oauth",
 			Audience:               "https://api.cloud.armory.io",
 			ApplicationEnvironment: envProd,
+			AWSAccountID:           "961214755549",
 		}
 	case staging:
 		armoryCloudEnvironmentConfiguration = &ArmoryCloudEnvironmentConfiguration{
@@ -193,6 +195,7 @@ func (c *Configuration) GetArmoryCloudEnvironmentConfiguration() *ArmoryCloudEnv
 			TokenIssuerUrl:         "https://auth.staging.cloud.armory.io/oauth",
 			Audience:               "https://api.staging.cloud.armory.io",
 			ApplicationEnvironment: envStaging,
+			AWSAccountID:           "200597635891",
 		}
 	case dev:
 		armoryCloudEnvironmentConfiguration = &ArmoryCloudEnvironmentConfiguration{

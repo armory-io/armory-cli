@@ -6,6 +6,7 @@ import (
 	"github.com/armory/armory-cli/cmd/agent"
 	"github.com/armory/armory-cli/cmd/cluster"
 	configCmd "github.com/armory/armory-cli/cmd/config"
+	"github.com/armory/armory-cli/cmd/config/aws"
 	"github.com/armory/armory-cli/cmd/deploy"
 	"github.com/armory/armory-cli/cmd/login"
 	"github.com/armory/armory-cli/cmd/logout"
@@ -80,6 +81,7 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, error) {
 	)
 
 	rootCmd.AddCommand(
+		aws.NewAWSCmd(configuration),
 		deploy.NewDeployCmd(configuration),
 		quickStart.NewQuickStartCmd(configuration),
 		template.NewTemplateCmd(),
