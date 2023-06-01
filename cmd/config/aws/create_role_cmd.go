@@ -21,7 +21,7 @@ const (
 	templateUrl             = "https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateURL=https://armory-cdaas-cloudformation.s3.us-west-2.amazonaws.com/iam-role-cfn.template&stackName=Armory-CDAAS-Role-Stack&param_AccountId=%s&param_ExternalId=%s"
 )
 
-func NewCreateRoleCmd(configuration *cliconfig.Configuration) *cobra.Command {
+func NewCreateRoleCmd(configuration *cliconfig.Configuration, reader io.ReadCloser) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "create-role",
 		Aliases: []string{"create-role"},
@@ -32,13 +32,13 @@ func NewCreateRoleCmd(configuration *cliconfig.Configuration) *cobra.Command {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return createRole(cmd, configuration)
+			return createRole(cmd, configuration, reader)
 		},
 	}
 	return cmd
 }
 
-func createRole(cmd *cobra.Command, cli *cliconfig.Configuration) error {
+func createRole(cmd *cobra.Command, cli *cliconfig.Configuration, reader io.ReadCloser) error {
 	orgID, err := cli.GetAuth().GetOrganizationId()
 	if err != nil {
 		return auth.ErrNotLoggedIn
@@ -59,10 +59,14 @@ func createRole(cmd *cobra.Command, cli *cliconfig.Configuration) error {
 		IsConfirm: true,
 		Default:   "Y",
 		Stdout:    &util.BellSkipper{},
+		Stdin:     reader,
 	}
 
-	_, err = prompt.Run()
+	c, err := prompt.Run()
 	if err != nil {
+		if c != "Y" && c != "y" {
+			return nil
+		}
 		return err
 	}
 	url := fmt.Sprintf(templateUrl, externalID, cli.GetArmoryCloudEnvironmentConfiguration().AWSAccountID)

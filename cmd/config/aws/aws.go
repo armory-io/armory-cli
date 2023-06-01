@@ -4,6 +4,7 @@ import (
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	cliconfig "github.com/armory/armory-cli/pkg/config"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 const (
@@ -26,7 +27,7 @@ func NewAWSCmd(configuration *cliconfig.Configuration) *cobra.Command {
 		},
 	}
 	// create subcommands
-	command.AddCommand(NewCreateRoleCmd(configuration))
+	command.AddCommand(NewCreateRoleCmd(configuration, os.Stdin))
 
 	cmdUtils.SetPersistentFlagsFromEnvVariables(command.Commands())
 
