@@ -9,8 +9,8 @@ import (
 
 const (
 	configAWSShort = "Manage CD-as-a-Service AWS Access"
-	configAWSLong  = "Manage CD-as-a-Service AWS Access\n\n" +
-		"For usage documentation, visit TODO"
+	//TODO For usage documentation, visit...
+	configAWSLong    = "Manage CD-as-a-Service AWS Access\n"
 	configAWSExample = "armory aws <subcommand>"
 )
 

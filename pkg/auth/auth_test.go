@@ -8,8 +8,6 @@ import (
 	"testing"
 )
 
-const aLongLongTimeAgo = 233431200
-
 func TestAuthTestSuite(t *testing.T) {
 	suite.Run(t, new(AuthTestSuite))
 }

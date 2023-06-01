@@ -15,8 +15,8 @@ import (
 
 const (
 	configCreateRoleShort = "AWS Create Role via CloudFormation Stack"
-	configCreateRoleLong  = "Use AWS CloudFormation quick create to run a template that allows Armory to assume a role to manage deployments\n\n" +
-		"For usage documentation, visit TODO"
+	//TODO For usage documentation, visit...
+	configCreateRoleLong    = "Use AWS CloudFormation quick create to run a template that allows Armory to assume a role to manage deployments\n"
 	configCreateRoleExample = "armory config aws create-role"
 	templateUrl             = "https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateURL=https://armory-cdaas-cloudformation.s3.us-west-2.amazonaws.com/iam-role-cfn.template&stackName=Armory-CDAAS-Role-Stack&param_AccountId=%s&param_ExternalId=%s"
 )
@@ -45,7 +45,11 @@ func createRole(cmd *cobra.Command, cli *cliconfig.Configuration, reader io.Read
 	}
 
 	envID, err := cli.GetAuth().GetEnvironmentId()
-	externalID := fmt.Sprintf("%s/%s", orgID, envID)
+	if err != nil {
+		return auth.ErrNotLoggedIn
+	}
+
+	externalID := fmt.Sprintf("%s:%s", orgID, envID)
 
 	cmd.SilenceUsage = true
 	browser.Stderr = io.Discard
