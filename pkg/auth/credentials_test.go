@@ -1,6 +1,7 @@
 package auth
 
 import (
+	clitesting "github.com/armory/armory-cli/pkg/testing"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -22,7 +23,7 @@ func TestWriteAndLoadCredentialsSuccess(t *testing.T) {
 }
 
 func TestGetEnvironmentSuccess(t *testing.T) {
-	token, err := createFakeJwt()
+	token, err := clitesting.CreateFakeJwt()
 	if err != nil {
 		t.Fatalf("TestGetEnvironmentSuccess failed with %s", err)
 	}

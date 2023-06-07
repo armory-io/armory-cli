@@ -1,21 +1,12 @@
 package auth
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/json"
-	"fmt"
-	"testing"
-	"time"
-
+	clitesting "github.com/armory/armory-cli/pkg/testing"
 	"github.com/jarcoal/httpmock"
-	"github.com/lestrrat-go/jwx/jwa"
-	"github.com/lestrrat-go/jwx/jwk"
-	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/stretchr/testify/suite"
+	"testing"
 )
-
-const aLongLongTimeAgo = 233431200
 
 func TestAuthTestSuite(t *testing.T) {
 	suite.Run(t, new(AuthTestSuite))
@@ -38,7 +29,7 @@ func (suite *AuthTestSuite) TearDownSuite() {
 }
 
 func (suite *AuthTestSuite) TestTokenAuthSuccess() {
-	jwt, err := createFakeJwt()
+	jwt, err := clitesting.CreateFakeJwt()
 	if err != nil {
 		suite.T().Fatalf("TestTokenAuthSuccess failed with: %s", err)
 	}
@@ -52,7 +43,7 @@ func (suite *AuthTestSuite) TestTokenAuthSuccess() {
 }
 
 func (suite *AuthTestSuite) TestAuthenticationShouldErrorWhenTokenIsProvided() {
-	jwt, err := createFakeJwt()
+	jwt, err := clitesting.CreateFakeJwt()
 	if err != nil {
 		suite.T().Fatalf("TestTokenAuthSuccess failed with: %s", err)
 	}
@@ -63,7 +54,7 @@ func (suite *AuthTestSuite) TestAuthenticationShouldErrorWhenTokenIsProvided() {
 }
 
 func (suite *AuthTestSuite) TestAuthSuccess() {
-	jwt, err := createFakeJwt()
+	jwt, err := clitesting.CreateFakeJwt()
 	if err != nil {
 		suite.T().Fatalf("TestAuthSuccess failed with: %s", err)
 	}
@@ -105,28 +96,4 @@ func (suite *AuthTestSuite) TestAuthFailWithInvalidJwt() {
 	auth := NewAuth("test", "pass", "client_credentials", "http://localhost/oauth", "http://differentaudience/", "")
 	_, _, err = auth.authentication()
 	suite.NotNil(err, "TestAuthFailWithInvalidJwt failed with: err is null")
-}
-
-func createFakeJwt() (string, error) {
-	armoryCustomClaims := map[string]interface{}{
-		"envId": "12345",
-	}
-	t := jwt.New()
-	t.Set(jwt.SubjectKey, `armory-cli`)
-	t.Set(jwt.AudienceKey, `http://localhost`)
-	t.Set(jwt.IssuedAtKey, time.Unix(aLongLongTimeAgo, 0))
-	t.Set(armoryClaims, armoryCustomClaims)
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate private key: %s", err)
-	}
-	jwkKey, err := jwk.New(key)
-	if err != nil {
-		return "", fmt.Errorf("failed to create JWK key: %s", err)
-	}
-	signed, err := jwt.Sign(t, jwa.RS256, jwkKey)
-	if err != nil {
-		return "", fmt.Errorf("failed to sign token: %s", err)
-	}
-	return string(signed), nil
 }

@@ -30,6 +30,10 @@ type Auth struct {
 	memCachedCredentials *Credentials
 }
 
+var (
+	ErrNotLoggedIn = errors.New("no credentials set or credentials expired. Either run armory login to interactively login or add --clientId and --clientSecret flags to specify service account credentials")
+)
+
 func NewAuth(clientId, clientSecret, source, tokenIssuerUrl, audience, token string) *Auth {
 	return &Auth{
 		clientId:       clientId,
@@ -63,7 +67,7 @@ func (a *Auth) getTokenForCI() (*Credentials, error) {
 	}
 
 	if a.clientId == "" || a.secret == "" {
-		return nil, errors.New("no credentials set or expired. Either run armory login command to interactively login, or add clientId and clientSecret flags to specify service account credentials")
+		return nil, ErrNotLoggedIn
 	}
 
 	token, expires, err := a.authentication()
@@ -107,7 +111,7 @@ func (a *Auth) getTokenForSystemUser() (string, error) {
 	}
 
 	if a.clientId == "" || a.secret == "" {
-		return "", errors.New("no credentials set. Either run armory login to interactively login, or add clientId and clientSecret flags to specify service account credentials")
+		return "", ErrNotLoggedIn
 	}
 
 	token, expires, err := a.authentication()
