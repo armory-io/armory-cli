@@ -18,6 +18,7 @@ customSteps:
   - stepName: configureGoEnvironment
     definition:
       - '@go env -w CGO_ENABLED=0'
+      - '@go env'
     runBeforeBuild: true
     runAfterBuild: false
   - stepName: integration
@@ -28,3 +29,7 @@ customSteps:
       - '@cat ${BUILD_DIR}/reports/integration-test-report.json | go-test-report --title ${APP_NAME}-integration-test -v --output ${BUILD_DIR}/reports/integration_test_report.html'
     runBeforeBuild: false
     runAfterBuild: false
+  - stepName: release
+    dependsOn: configureGoEnvironment build
+    definition:
+      - '@echo Release version of armory-cli ${VERSION} created in ${DIST_DIR}/${APP_NAME}${APP_EXT}'
