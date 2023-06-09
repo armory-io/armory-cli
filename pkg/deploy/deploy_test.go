@@ -52,10 +52,9 @@ func TestStartPipeline(t *testing.T) {
 		name         string
 		yaml         string
 		expectedPath string
-		expectErr    error
 	}{
 		{
-			name: "kubernetes: good",
+			name: "kubernetes deployment",
 			yaml: `
 kind: kubernetes
 application: kubernetes-application
@@ -63,19 +62,27 @@ application: kubernetes-application
 			expectedPath: "/pipelines/kubernetes",
 		},
 		{
-			name: "lambda: good",
+			name: "no kind specified -> goes to kubernetes endpoint for now",
+			yaml: `
+application: kubernetes-application
+`,
+			expectedPath: "/pipelines/kubernetes",
+		},
+		{
+			name: "lambda deployment",
 			yaml: `
 kind: lambda
 application: lambda-application
 `,
-			expectedPath: "/pipelines/lambda",
+			expectedPath: "/pipelines",
 		},
 		{
-			name: "no kind: bad",
+			name: "banana cloud deployment",
 			yaml: `
-application: mystery-provider
+kind: banana cloud
+application: lambda-application
 `,
-			expectErr: ErrNoKind,
+			expectedPath: "/pipelines",
 		},
 	}
 
@@ -105,12 +112,8 @@ application: mystery-provider
 				UnstructuredDeployment: unstructured,
 			})
 
-			if c.expectErr == nil {
-				assert.NoError(t, err)
-				assert.Equal(t, "1-800-pipelines", resp.PipelineID)
-			} else {
-				assert.ErrorIs(t, err, c.expectErr)
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, "1-800-pipelines", resp.PipelineID)
 		})
 	}
 
