@@ -73,7 +73,7 @@ func createRole(cmd *cobra.Command, cli *cliconfig.Configuration, reader io.Read
 		}
 		return err
 	}
-	url := fmt.Sprintf(templateUrl, externalID, cli.GetArmoryCloudEnvironmentConfiguration().AWSAccountID)
+	url := fmt.Sprintf(templateUrl, cli.GetArmoryCloudEnvironmentConfiguration().AWSAccountID, externalID)
 	err = browser.OpenURL(url)
 	if err != nil {
 		log.S().Info("Unable to open browser. Please copy and paste the following URL into your browser.")
