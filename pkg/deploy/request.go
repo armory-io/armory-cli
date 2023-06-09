@@ -22,6 +22,7 @@ type (
 	}
 
 	structuredConfig struct {
+		Kind        string     `yaml:"kind"`
 		Application string     `yaml:"application"`
 		Manifests   []manifest `yaml:"manifests"`
 	}
@@ -41,14 +42,19 @@ const (
 	envVarGithubWorkspace = "GITHUB_WORKSPACE"
 )
 
+func (s *StartPipelineOptions) structuredConfig() (*structuredConfig, error) {
+	var structured structuredConfig
+	return &structured, mapstructure.Decode(s.UnstructuredDeployment, &structured)
+}
+
 func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[string]any, error) {
 	if options.IsURL {
 		return options.UnstructuredDeployment, nil
 	}
 	deployment := options.UnstructuredDeployment
 
-	var structured structuredConfig
-	if err := mapstructure.Decode(deployment, &structured); err != nil {
+	structured, err := options.structuredConfig()
+	if err != nil {
 		return nil, err
 	}
 

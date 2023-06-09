@@ -99,7 +99,7 @@ func status(cmd *cobra.Command, configuration *config.Configuration, deploymentI
 
 	storeCommandResult(cmd, DeployResultDeploymentID, deploymentId)
 
-	deployClient := deployment.GetDeployClient(configuration)
+	deployClient := deployment.NewClient(configuration)
 	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Second*5)
 	defer cancel()
 	pipelineResp, response, err := deployClient.PipelineStatus(ctx, deploymentId)

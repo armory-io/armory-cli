@@ -12,5 +12,4 @@ var (
 	ErrDeploymentStatusResponseParse        = errors.New("error trying to parse response")
 	ErrDeploymentStatusRequest              = errors.New("request returned an error")
 	ErrApplicationNameOverrideNotSupported  = errors.New("application name override not supported when using a URL as your deployment configuration file")
-	ErrAccountNameOverrideNotSupported      = errors.New("account name override not supported unless using a URL as your deployment configuration file")
 )
