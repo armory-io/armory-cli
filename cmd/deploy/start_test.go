@@ -148,7 +148,7 @@ func (suite *DeployStartTestSuite) TestDeployStartWithURLSuccess() {
 	output, err := io.ReadAll(outWriter)
 	suite.NoError(err)
 	var received FormattableDeployStartResponse
-	yaml.Unmarshal(output, &received)
+	suite.NoError(yaml.Unmarshal(output, &received))
 	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
 }
 

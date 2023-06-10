@@ -139,7 +139,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	if *configuration.GetIsTest() {
 		utils.ConfigureLoggingForTesting(cmd)
 	}
-	deployClient := deployment.GetDeployClient(configuration)
+	deployClient := deployment.NewClient(configuration)
 	var startResp *de.StartPipelineResponse
 	var rawResp *nethttp.Response
 	var err error
@@ -244,7 +244,7 @@ func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 	return raw, response, err
 }
 
-func beginTrackingDeployment(cmd *cobra.Command, configuration *config.Configuration, deploy *FormattableDeployStartResponse, deployClient *deployment.DeployClient) {
+func beginTrackingDeployment(cmd *cobra.Command, configuration *config.Configuration, deploy *FormattableDeployStartResponse, deployClient *deployment.Client) {
 	canWriteProgress := configuration.GetOutputType() == output.Text
 	if canWriteProgress {
 		_, _ = fmt.Fprintf(cmd.OutOrStdout(), "[%v] Waiting for deployment to complete. Status UI: %s\n", time.Now().Format(time.RFC3339), buildMonitoringUrl(configuration, deploy.DeploymentId))
@@ -269,7 +269,7 @@ func beginTrackingDeployment(cmd *cobra.Command, configuration *config.Configura
 	storeCommandResult(cmd, DeployResultStatusCode, lo.Ternary(status == de.WorkflowStatusSucceeded, "0", "1"))
 }
 
-func waitForCompletion(deployClient *deployment.DeployClient, pipelineID string, canWriteProgress bool, out io.Writer) (de.WorkflowStatus, error) {
+func waitForCompletion(deployClient *deployment.Client, pipelineID string, canWriteProgress bool, out io.Writer) (de.WorkflowStatus, error) {
 	var lastStatus de.WorkflowStatus
 	for range time.Tick(statusCheckTick) {
 		if canWriteProgress {
@@ -293,7 +293,7 @@ func waitForCompletion(deployClient *deployment.DeployClient, pipelineID string,
 	return lastStatus, nil
 }
 
-func queryStatus(deployClient *deployment.DeployClient, pipelineID string) (de.WorkflowStatus, error) {
+func queryStatus(deployClient *deployment.Client, pipelineID string) (de.WorkflowStatus, error) {
 	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Minute)
 	defer cancel()
 	status, _, err := deployClient.PipelineStatus(ctx, pipelineID)

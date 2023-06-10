@@ -14,17 +14,17 @@ import (
 )
 
 type (
-	DeployClient struct {
+	Client struct {
 		ArmoryCloudClient *armoryCloud.Client
 	}
 )
 
-func GetDeployClient(configuration *config.Configuration) *DeployClient {
+func NewClient(configuration *config.Configuration) *Client {
 	armoryCloudClient := configuration.GetArmoryCloudClient()
-	return &DeployClient{armoryCloudClient}
+	return &Client{armoryCloudClient}
 }
 
-func (c *DeployClient) PipelineStatus(ctx context.Context, pipelineID string) (*api.PipelineStatusResponse, *http.Response, error) {
+func (c *Client) PipelineStatus(ctx context.Context, pipelineID string) (*api.PipelineStatusResponse, *http.Response, error) {
 	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodGet, fmt.Sprintf("/pipelines/%s", pipelineID), nil)
 	if err != nil {
 		return nil, nil, err
@@ -51,7 +51,7 @@ func (c *DeployClient) PipelineStatus(ctx context.Context, pipelineID string) (*
 	return &pipeline, resp, nil
 }
 
-func (c *DeployClient) DeploymentStatus(ctx context.Context, deploymentID string) (*api.DeploymentStatusResponse, *http.Response, error) {
+func (c *Client) DeploymentStatus(ctx context.Context, deploymentID string) (*api.DeploymentStatusResponse, *http.Response, error) {
 	req, err := c.ArmoryCloudClient.SimpleRequest(ctx, http.MethodGet, fmt.Sprintf("/deployments/%s", deploymentID), nil)
 	if err != nil {
 		return nil, nil, err
@@ -78,7 +78,12 @@ func (c *DeployClient) DeploymentStatus(ctx context.Context, deploymentID string
 	return &deployment, resp, nil
 }
 
-func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineOptions) (*api.StartPipelineResponse, *http.Response, error) {
+func (c *Client) StartPipeline(ctx context.Context, options StartPipelineOptions) (*api.StartPipelineResponse, *http.Response, error) {
+	pipelinePath, err := getPipelinePath(options)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	request, err := convertPipelineOptionsToAPIRequest(options)
 	if err != nil {
 		return nil, nil, err
@@ -91,7 +96,7 @@ func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineO
 	}
 	requestOptions := []armoryCloud.RequestOption{
 		armoryCloud.WithMethod(http.MethodPost),
-		armoryCloud.WithPath("/pipelines/kubernetes"),
+		armoryCloud.WithPath(pipelinePath),
 	}
 	for key, val := range options.Headers {
 		requestOptions = append(requestOptions, armoryCloud.WithHeader(key, val))
@@ -128,7 +133,7 @@ func (c *DeployClient) StartPipeline(ctx context.Context, options StartPipelineO
 	return &startResponse, resp, nil
 }
 
-func (c *DeployClient) GetArmoryCloudClient() *armoryCloud.Client {
+func (c *Client) GetArmoryCloudClient() *armoryCloud.Client {
 	return c.ArmoryCloudClient
 }
 
@@ -150,4 +155,15 @@ type networkError struct {
 
 func (d *networkError) Error() string {
 	return "Unable to reach Armory Continuous Delivery as A Service. Please check your internet connection and try again. "
+}
+
+func getPipelinePath(options StartPipelineOptions) (string, error) {
+	structured, err := options.structuredConfig()
+	if err != nil {
+		return "", err
+	}
+	if structured.Kind == "kubernetes" || structured.Kind == "" {
+		return "/pipelines/kubernetes", nil
+	}
+	return "/pipelines", nil
 }
