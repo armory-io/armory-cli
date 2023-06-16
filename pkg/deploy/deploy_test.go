@@ -49,9 +49,10 @@ func TestDeployError_Error(t *testing.T) {
 
 func TestStartPipeline(t *testing.T) {
 	cases := []struct {
-		name         string
-		yaml         string
-		expectedPath string
+		name            string
+		yaml            string
+		expectedPath    string
+		expectedHeaders map[string]string
 	}{
 		{
 			name: "kubernetes deployment",
@@ -60,6 +61,10 @@ kind: kubernetes
 application: kubernetes-application
 `,
 			expectedPath: "/pipelines/kubernetes",
+			expectedHeaders: map[string]string{
+				"Content-Type": "application/vnd.start.kubernetes.pipeline.v2+json",
+				"Accept":       "application/vnd.start.kubernetes.pipeline.v2+json",
+			},
 		},
 		{
 			name: "no kind specified -> goes to kubernetes endpoint for now",
@@ -67,6 +72,10 @@ application: kubernetes-application
 application: kubernetes-application
 `,
 			expectedPath: "/pipelines/kubernetes",
+			expectedHeaders: map[string]string{
+				"Content-Type": "application/vnd.start.kubernetes.pipeline.v2+json",
+				"Accept":       "application/vnd.start.kubernetes.pipeline.v2+json",
+			},
 		},
 		{
 			name: "lambda deployment",
@@ -75,6 +84,9 @@ kind: lambda
 application: lambda-application
 `,
 			expectedPath: "/pipelines",
+			expectedHeaders: map[string]string{
+				"Content-Type": "application/json",
+			},
 		},
 		{
 			name: "banana cloud deployment",
@@ -83,6 +95,9 @@ kind: banana cloud
 application: lambda-application
 `,
 			expectedPath: "/pipelines",
+			expectedHeaders: map[string]string{
+				"Content-Type": "application/json",
+			},
 		},
 	}
 
@@ -90,6 +105,10 @@ application: lambda-application
 		t.Run(c.name, func(t *testing.T) {
 			ctx := context.Background()
 			s := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				for key, value := range c.expectedHeaders {
+					assert.Equal(t, value, request.Header.Get(key))
+				}
+
 				assert.Equal(t, c.expectedPath, request.URL.Path)
 				writer.WriteHeader(http.StatusAccepted)
 				assert.NoError(t, json.NewEncoder(writer).Encode(map[string]string{

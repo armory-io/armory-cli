@@ -236,10 +236,6 @@ func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 		UnstructuredDeployment:  payload,
 		ApplicationNameOverride: options.application,
 		Context:                 options.context,
-		Headers: map[string]string{
-			"Content-Type": mediaTypePipelineV2,
-			"Accept":       mediaTypePipelineV2,
-		},
 	})
 	return raw, response, err
 }
