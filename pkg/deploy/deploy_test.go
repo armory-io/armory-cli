@@ -51,6 +51,7 @@ func TestStartPipeline(t *testing.T) {
 	cases := []struct {
 		name            string
 		yaml            string
+		inputHeaders    map[string]string
 		expectedPath    string
 		expectedHeaders map[string]string
 	}{
@@ -74,6 +75,20 @@ application: kubernetes-application
 			expectedPath: "/pipelines/kubernetes",
 			expectedHeaders: map[string]string{
 				"Content-Type": "application/vnd.start.kubernetes.pipeline.v2+json",
+				"Accept":       "application/vnd.start.kubernetes.pipeline.v2+json",
+			},
+		},
+		{
+			name: "provided headers override default headers",
+			yaml: `
+application: kubernetes-application
+`,
+			inputHeaders: map[string]string{
+				"Content-Type": "application/vnd.start.kubernetes.pipeline.v2.link+json",
+			},
+			expectedPath: "/pipelines/kubernetes",
+			expectedHeaders: map[string]string{
+				"Content-Type": "application/vnd.start.kubernetes.pipeline.v2.link+json",
 				"Accept":       "application/vnd.start.kubernetes.pipeline.v2+json",
 			},
 		},
@@ -129,6 +144,7 @@ application: lambda-application
 
 			resp, _, err := client.StartPipeline(ctx, StartPipelineOptions{
 				UnstructuredDeployment: unstructured,
+				Headers:                c.inputHeaders,
 			})
 
 			assert.NoError(t, err)

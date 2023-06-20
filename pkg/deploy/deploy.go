@@ -103,7 +103,7 @@ func (c *Client) StartPipeline(ctx context.Context, options StartPipelineOptions
 		armoryCloud.WithMethod(http.MethodPost),
 		armoryCloud.WithPath(pipelinePath),
 	}
-	for key, val := range lo.Assign(options.Headers, headers) {
+	for key, val := range lo.Assign(headers, options.Headers) {
 		requestOptions = append(requestOptions, armoryCloud.WithHeader(key, val))
 	}
 	requestOptions = append(requestOptions, armoryCloud.WithBody(bytes.NewReader(reqBytes)))
