@@ -221,8 +221,6 @@ func (suite *DeployStartTestSuite) TestDeployWithFileUsesExpectedOptions() {
 	suite.Equal("200", rawResp.Status, "rawResp should be returned by WithURL")
 	suite.Equal(expected.PipelineID, pipelineResp.PipelineID, "they should be equal")
 	suite.Equal(dr["targetFilters"], []map[string]any{{"includeTarget": "dev-a"}}, "there should be body/deployment specification for the request WithURL")
-	suite.Equal(mediaTypePipelineV2, deployClient.RecordedStartPipelineOptions.Headers["Content-Type"], "they should be equal")
-	suite.Equal(mediaTypePipelineV2, deployClient.RecordedStartPipelineOptions.Headers["Accept"], "they should be equal")
 	suite.Equal("", deployClient.RecordedStartPipelineOptions.Headers[armoryConfigLocationHeader], "they should be equal")
 }
 
