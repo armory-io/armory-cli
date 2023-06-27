@@ -31,7 +31,10 @@ type DeployStartTestSuite struct {
 }
 
 func (suite *DeployStartTestSuite) SetupSuite() {
-	os.Setenv("ARMORY_CLI_TEST", "true")
+	err := os.Setenv("ARMORY_CLI_TEST", "true")
+	if err != nil {
+		return
+	}
 	httpmock.Activate()
 }
 
@@ -40,137 +43,128 @@ func (suite *DeployStartTestSuite) SetupTest() {
 }
 
 func (suite *DeployStartTestSuite) TearDownSuite() {
-	os.Unsetenv("ARMORY_CLI_TEST")
+	err := os.Unsetenv("ARMORY_CLI_TEST")
+	if err != nil {
+		return
+	}
 	httpmock.DeactivateAndReset()
 }
 
-func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
-	expected := &de.StartPipelineResponse{
-		PipelineID: "12345",
-	}
-	err := registerResponder(expected, http.StatusAccepted, "kubernetes")
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
-	}
-	tempFile := util.TempAppFile("", "app", testAppYamlStr)
-	if tempFile == nil {
-		suite.T().Fatal("TestDeployStartJsonSuccess failed with: Could not create temp app file.")
-	}
-	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
-	outWriter := bytes.NewBufferString("")
-	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "json")
-	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
-	}
-	output, err := io.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
-	}
-	var received = FormattableDeployStartResponse{}
-	json.Unmarshal(output, &received)
-	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
-}
+func (suite *DeployStartTestSuite) TestDeployStart() {
+	cases := []struct {
+		name        string
+		kind        string
+		file        string
+		contentType string
+		expected    de.StartPipelineResponse
+		assertion   func([]byte, de.StartPipelineResponse) error
+	}{
+		{
+			name:        "start pipeline json success",
+			kind:        "kubernetes",
+			file:        testAppYamlStr,
+			contentType: "json",
+			expected: de.StartPipelineResponse{
+				PipelineID: "12345",
+			},
+			assertion: func(result []byte, expected de.StartPipelineResponse) error {
+				var received = FormattableDeployStartResponse{}
+				err := json.Unmarshal(result, &received)
+				if err != nil {
+					return err
+				}
+				suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
+				return nil
+			},
+		},
+		{
+			name:        "start pipeline yaml success",
+			kind:        "kubernetes",
+			file:        testAppYamlStr,
+			contentType: "yaml",
+			expected: de.StartPipelineResponse{
+				PipelineID: "12345",
+			},
+			assertion: func(result []byte, expected de.StartPipelineResponse) error {
+				var received = FormattableDeployStartResponse{}
+				err := yaml.Unmarshal(result, &received)
+				if err != nil {
+					return err
+				}
+				suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
+				return nil
+			},
+		},
+		{
+			name:        "start pipeline yaml fail validation",
+			kind:        "kubernetes",
+			file:        testAppYamlStrInvalid,
+			contentType: "yaml",
+			expected: de.StartPipelineResponse{
+				PipelineID: "12345",
+			},
+			assertion: func(result []byte, expected de.StartPipelineResponse) error {
+				suite.Equal(expectedValidationError, string(result))
+				return nil
+			},
+		},
+		{
+			name:        "start pipeline yaml success lambda",
+			kind:        "lambda",
+			file:        testLambdaYamlStr,
+			contentType: "yaml",
+			expected: de.StartPipelineResponse{
+				PipelineID: "12345",
+			},
+			assertion: func(result []byte, expected de.StartPipelineResponse) error {
+				// verify there is no validation errors being shown to the user
+				o := string(result)
+				suite.NotContains(o, "YAML is NOT valid. See the following errors:")
 
-func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
-	expected := &de.StartPipelineResponse{
-		PipelineID: "12345",
+				// verify that response formats as expected
+				var received = FormattableDeployStartResponse{}
+				err := yaml.Unmarshal(result, &received)
+				if err != nil {
+					return err
+				}
+				suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
+				return nil
+			},
+		},
 	}
-	err := registerResponder(expected, http.StatusAccepted, "kubernetes")
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
-	}
-	tempFile := util.TempAppFile("", "app", testAppYamlStr)
-	if tempFile == nil {
-		suite.T().Fatal("TestDeployStartYAMLSuccess failed with: Could not create temp app file.")
-	}
-	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
-	outWriter := bytes.NewBufferString("")
-	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
-	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
-	}
-	output, err := io.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
-	}
-	var received = FormattableDeployStartResponse{}
-	yaml.Unmarshal(output, &received)
-	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
-}
 
-func (suite *DeployStartTestSuite) TestDeployStartYAMLFailValidation() {
-	expected := &de.StartPipelineResponse{
-		PipelineID: "12345",
+	for _, c := range cases {
+		suite.T().Run(c.name, func(t *testing.T) {
+			err := registerResponder(c.expected, http.StatusAccepted, c.kind)
+			if err != nil {
+				suite.T().Fatalf("%s failed with: %s", c.name, err)
+			}
+			tempFile := util.TempAppFile("", "app", c.file)
+			if tempFile == nil {
+				suite.T().Fatalf("%s failed with: Could not create temp app file.", c.name)
+			}
+			suite.T().Cleanup(func() {
+				err := os.Remove(tempFile.Name())
+				if err != nil {
+					suite.T().Fatalf("%s failed with: %s", c.name, err)
+				}
+			})
+			outWriter := bytes.NewBufferString("")
+			cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), c.contentType)
+			err = cmd.Execute()
+			if err != nil {
+				suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
+			}
+			output, err := io.ReadAll(outWriter)
+			if err != nil {
+				suite.T().Fatalf("%s failed with: %s", c.name, err)
+			}
+			err = c.assertion(output, c.expected)
+			if err != nil {
+				suite.T().Fatalf("%s failed with: %s", c.name, err)
+			}
+		})
 	}
-	err := registerResponder(expected, http.StatusAccepted, "kubernetes")
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
-	}
-	tempFile := util.TempAppFile("", "app", testAppYamlStrInvalid)
-	if tempFile == nil {
-		suite.T().Fatal("TestDeployStartYAMLSuccess failed with: Could not create temp app file.")
-	}
-	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
-	outWriter := bytes.NewBufferString("")
-	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
-	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
-	}
-	output, err := io.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
-	}
-	expectedOutput := `YAML is NOT valid. See the following errors:
-
-#PipelineRequest.targets."dev-west".strategy: 1 errors in empty disjunction:
-
-#PipelineRequest.targets."dev-west".strategy: conflicting values "strategy1" and "strategy0"
-
-deploymentId: "12345"
-
-`
-	suite.Equal(expectedOutput, string(output))
-}
-
-func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccessLambda() {
-	expected := &de.StartPipelineResponse{
-		PipelineID: "12345",
-	}
-	err := registerResponder(expected, http.StatusAccepted, "lambda")
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccessLambda failed with: %s", err)
-	}
-	tempFile := util.TempAppFile("", "app", testLambdaYamlStr)
-	if tempFile == nil {
-		suite.T().Fatal("TestDeployStartYAMLSuccessLambda failed with: Could not create temp app file.")
-	}
-	suite.T().Cleanup(func() {
-		err := os.Remove(tempFile.Name())
-		if err != nil {
-			suite.T().Fatalf("TestDeployStartYAMLSuccessLambda failed with: %s", err)
-		}
-	})
-	outWriter := bytes.NewBufferString("")
-	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
-	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccessLambda failed with: %s", err)
-	}
-	output, err := io.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccessLambda failed with: %s", err)
-	}
-	o := string(output)
-	suite.NotContains(o, "YAML is NOT valid. See the following errors:")
-	var received = FormattableDeployStartResponse{}
-	err = yaml.Unmarshal(output, &received)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartYAMLSuccessLambda failed with: %s", err)
-	}
-	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartWithURLSuccess() {
@@ -573,6 +567,16 @@ func getDefaultConfiguration(output string) *config.Configuration {
 	})
 	return configuration
 }
+
+const expectedValidationError = `YAML is NOT valid. See the following errors:
+
+#PipelineRequest.targets."dev-west".strategy: 1 errors in empty disjunction:
+
+#PipelineRequest.targets."dev-west".strategy: conflicting values "strategy1" and "strategy0"
+
+deploymentId: "12345"
+
+`
 
 const testAppYamlStr = `
 version: apps/v1
