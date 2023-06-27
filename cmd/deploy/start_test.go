@@ -48,7 +48,7 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonSuccess() {
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
 	}
-	err := registerResponder(expected, http.StatusAccepted)
+	err := registerResponder(expected, http.StatusAccepted, "kubernetes")
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
@@ -76,7 +76,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccess() {
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
 	}
-	err := registerResponder(expected, http.StatusAccepted)
+	err := registerResponder(expected, http.StatusAccepted, "kubernetes")
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -104,7 +104,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLFailValidation() {
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
 	}
-	err := registerResponder(expected, http.StatusAccepted)
+	err := registerResponder(expected, http.StatusAccepted, "kubernetes")
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -135,11 +135,49 @@ deploymentId: "12345"
 	suite.Equal(expectedOutput, string(output))
 }
 
+func (suite *DeployStartTestSuite) TestDeployStartYAMLSuccessLambda() {
+	expected := &de.StartPipelineResponse{
+		PipelineID: "12345",
+	}
+	err := registerResponder(expected, http.StatusAccepted, "lambda")
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccessLambda failed with: %s", err)
+	}
+	tempFile := util.TempAppFile("", "app", testLambdaYamlStr)
+	if tempFile == nil {
+		suite.T().Fatal("TestDeployStartYAMLSuccessLambda failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() {
+		err := os.Remove(tempFile.Name())
+		if err != nil {
+			suite.T().Fatalf("TestDeployStartYAMLSuccessLambda failed with: %s", err)
+		}
+	})
+	outWriter := bytes.NewBufferString("")
+	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
+	err = cmd.Execute()
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccessLambda failed with: %s", err)
+	}
+	output, err := io.ReadAll(outWriter)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccessLambda failed with: %s", err)
+	}
+	o := string(output)
+	suite.NotContains(o, "YAML is NOT valid. See the following errors:")
+	var received = FormattableDeployStartResponse{}
+	err = yaml.Unmarshal(output, &received)
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccessLambda failed with: %s", err)
+	}
+	suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
+}
+
 func (suite *DeployStartTestSuite) TestDeployStartWithURLSuccess() {
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
 	}
-	suite.NoError(registerResponder(expected, http.StatusAccepted))
+	suite.NoError(registerResponder(expected, http.StatusAccepted, "kubernetes"))
 
 	outWriter := bytes.NewBufferString("")
 	cmd := getDeployCmdWithFileName(outWriter, "https://myhostedfile.example.com/deploy.yaml", "yaml")
@@ -270,7 +308,7 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineIdUsesExpectedOptions()
 	expected := &de.StartPipelineResponse{
 		PipelineID: "123456789",
 	}
-	suite.NoError(registerResponder(expected, http.StatusAccepted))
+	suite.NoError(registerResponder(expected, http.StatusAccepted, "kubernetes"))
 	configuration := getDefaultConfiguration("json")
 	deployClient := GetMockDeployClient(configuration)
 	deployClient.MockStartPipelineResponse(func() (*de.StartPipelineResponse, *http.Response, error) {
@@ -292,7 +330,7 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineIdUsesExpectedOptions()
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
-	err := registerResponder(`{"code":2, "message":"invalid operation", "details":[]}`, 500)
+	err := registerResponder(`{"code":2, "message":"invalid operation", "details":[]}`, 500, "kubernetes")
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -367,7 +405,7 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnE
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
 	}
-	err := registerResponder(expected, 200)
+	err := registerResponder(expected, 200, "kubernetes")
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -389,7 +427,7 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameBut
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
 	}
-	err := registerResponder(expected, 200)
+	err := registerResponder(expected, 200, "kubernetes")
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -417,7 +455,7 @@ func (suite *DeployStartTestSuite) TestDeployStartJsonAndWaitForCompletionSucces
 	expected := &de.StartPipelineResponse{
 		PipelineID: "456678",
 	}
-	err := registerResponder(expected, http.StatusAccepted)
+	err := registerResponder(expected, http.StatusAccepted, "kubernetes")
 	if err != nil {
 		suite.T().Fatalf("TestDeployAndWaitForCompletionSuccess failed with: %s", err)
 	}
@@ -450,7 +488,7 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLAndWaitForCompletionSucces
 	expected := &de.StartPipelineResponse{
 		PipelineID: "23456",
 	}
-	err := registerResponder(expected, http.StatusAccepted)
+	err := registerResponder(expected, http.StatusAccepted, "kubernetes")
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -478,12 +516,17 @@ func (suite *DeployStartTestSuite) TestDeployStartYAMLAndWaitForCompletionSucces
 	suite.Equal(string(de.WorkflowStatusCancelled), received.ExecutionStatus, "pipeline status should be cancelled")
 }
 
-func registerResponder(body interface{}, status int) error {
+func registerResponder(body interface{}, status int, kind string) error {
 	responder, err := httpmock.NewJsonResponder(status, body)
 	if err != nil {
 		return err
 	}
-	httpmock.RegisterResponder("POST", "https://localhost/pipelines/kubernetes", responder)
+	if kind == "kubernetes" {
+		httpmock.RegisterResponder("POST", "https://localhost/pipelines/kubernetes", responder)
+	} else {
+		httpmock.RegisterResponder("POST", "https://localhost/pipelines", responder)
+	}
+
 	return nil
 }
 
@@ -549,6 +592,31 @@ strategies:
                 - pause:
                     duration: 1
                     unit: SECONDS
+`
+
+const testLambdaYamlStr = `
+version: v1
+kind: lambda
+application: first-lambda-app
+description: Deploys a simple "hello world" NodeJS function
+context:
+  foo: bar
+targets:
+  firstTarget:
+    account: firstAccount
+    deployAsIamRole: "<some-deployment-role-arn>"
+    region: us-west-2
+artifacts:
+  - path: "s3://<fill-me-in>/node/v0.0.1.zip"
+    functionName: hello-lambda
+    type: zipFile
+providerOptions:
+  lambda:
+    - name: hello-lambda
+      target: firstTarget
+      runAsIamRole: "<some-lambda-role-arn>"
+      handler: index.handler
+      runtime: nodejs18.x
 `
 
 const testAppYamlStrInvalid = `

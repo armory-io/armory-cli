@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/armory/armory-cli/cmd/validate"
 	"io"
 	nethttp "net/http"
 	"os"
@@ -11,7 +12,6 @@ import (
 
 	de "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/cmd/utils"
-	"github.com/armory/armory-cli/cmd/validate"
 	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
@@ -215,19 +215,28 @@ func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 	if present && !isATest {
 		options.deploymentFile = gitWorkspace + options.deploymentFile
 	}
+
 	// read yaml file
 	file, err := os.ReadFile(options.deploymentFile)
 	if err != nil {
 		return nil, nil, errorUtils.NewWrappedError(ErrYAMLFileRead, err)
 	}
-	validationFailures := validate.Validate(file)
-	validate.LogValidationErrors(cmd.OutOrStdout(), validationFailures, false)
-	cmd.SilenceUsage = true
+
 	// unmarshall data into struct
 	var payload map[string]any
 	if err = yaml.Unmarshal(file, &payload); err != nil {
 		return nil, nil, errorUtils.NewWrappedError(ErrInvalidDeploymentObject, err)
 	}
+
+	// TODO: because the cli's cue schema is static it doesn't validate lambda functions. For the moment lets not validate if the kind is lambda.
+	if payload["kind"] != "lambda" {
+		validationFailures := validate.Validate(file)
+		err = validate.LogValidationErrors(cmd.OutOrStdout(), validationFailures, false)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	cmd.SilenceUsage = true
 	payload["targetFilters"] = prepareTargetFilters(options)
 	ctx, cancel := context.WithTimeout(deployClient.GetArmoryCloudClient().Context, time.Minute)
 	defer cancel()
