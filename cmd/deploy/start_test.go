@@ -62,7 +62,7 @@ func (suite *DeployStartTestSuite) TestDeployStart() {
 				PipelineID: "12345",
 			},
 			assertion: func(t *testing.T, result []byte, expected de.StartPipelineResponse) {
-				var received = FormattableDeployStartResponse{}
+				var received FormattableDeployStartResponse
 				assert.NoError(t, json.Unmarshal(result, &received))
 				assert.Equal(t, expected.PipelineID, received.DeploymentId)
 			},
@@ -76,7 +76,7 @@ func (suite *DeployStartTestSuite) TestDeployStart() {
 				PipelineID: "12345",
 			},
 			assertion: func(t *testing.T, result []byte, expected de.StartPipelineResponse) {
-				var received = FormattableDeployStartResponse{}
+				var received FormattableDeployStartResponse
 				assert.NoError(t, yaml.Unmarshal(result, &received))
 				assert.Equal(t, expected.PipelineID, received.DeploymentId)
 			},
@@ -106,7 +106,7 @@ func (suite *DeployStartTestSuite) TestDeployStart() {
 				assert.NotContains(t, string(result), "YAML is NOT valid. See the following errors:")
 
 				// verify that response formats as expected
-				var received = FormattableDeployStartResponse{}
+				var received FormattableDeployStartResponse
 				assert.NoError(t, yaml.Unmarshal(result, &received))
 				assert.Equal(t, expected.PipelineID, received.DeploymentId)
 			},
