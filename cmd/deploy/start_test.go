@@ -31,10 +31,7 @@ type DeployStartTestSuite struct {
 }
 
 func (suite *DeployStartTestSuite) SetupSuite() {
-	err := os.Setenv("ARMORY_CLI_TEST", "true")
-	if err != nil {
-		return
-	}
+	suite.NoError(os.Setenv("ARMORY_CLI_TEST", "true"))
 	httpmock.Activate()
 }
 
@@ -43,10 +40,7 @@ func (suite *DeployStartTestSuite) SetupTest() {
 }
 
 func (suite *DeployStartTestSuite) TearDownSuite() {
-	err := os.Unsetenv("ARMORY_CLI_TEST")
-	if err != nil {
-		return
-	}
+	suite.NoError(os.Unsetenv("ARMORY_CLI_TEST"))
 	httpmock.DeactivateAndReset()
 }
 
@@ -57,7 +51,7 @@ func (suite *DeployStartTestSuite) TestDeployStart() {
 		file        string
 		contentType string
 		expected    de.StartPipelineResponse
-		assertion   func([]byte, de.StartPipelineResponse) error
+		assertion   func(*testing.T, []byte, de.StartPipelineResponse)
 	}{
 		{
 			name:        "start pipeline json success",
@@ -67,14 +61,10 @@ func (suite *DeployStartTestSuite) TestDeployStart() {
 			expected: de.StartPipelineResponse{
 				PipelineID: "12345",
 			},
-			assertion: func(result []byte, expected de.StartPipelineResponse) error {
+			assertion: func(t *testing.T, result []byte, expected de.StartPipelineResponse) {
 				var received = FormattableDeployStartResponse{}
-				err := json.Unmarshal(result, &received)
-				if err != nil {
-					return err
-				}
-				suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
-				return nil
+				assert.NoError(t, json.Unmarshal(result, &received))
+				assert.Equal(t, expected.PipelineID, received.DeploymentId)
 			},
 		},
 		{
@@ -85,14 +75,10 @@ func (suite *DeployStartTestSuite) TestDeployStart() {
 			expected: de.StartPipelineResponse{
 				PipelineID: "12345",
 			},
-			assertion: func(result []byte, expected de.StartPipelineResponse) error {
+			assertion: func(t *testing.T, result []byte, expected de.StartPipelineResponse) {
 				var received = FormattableDeployStartResponse{}
-				err := yaml.Unmarshal(result, &received)
-				if err != nil {
-					return err
-				}
-				suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
-				return nil
+				assert.NoError(t, yaml.Unmarshal(result, &received))
+				assert.Equal(t, expected.PipelineID, received.DeploymentId)
 			},
 		},
 		{
@@ -103,9 +89,8 @@ func (suite *DeployStartTestSuite) TestDeployStart() {
 			expected: de.StartPipelineResponse{
 				PipelineID: "12345",
 			},
-			assertion: func(result []byte, expected de.StartPipelineResponse) error {
-				suite.Equal(expectedValidationError, string(result))
-				return nil
+			assertion: func(t *testing.T, result []byte, expected de.StartPipelineResponse) {
+				assert.Equal(t, expectedValidationError, string(result))
 			},
 		},
 		{
@@ -116,53 +101,34 @@ func (suite *DeployStartTestSuite) TestDeployStart() {
 			expected: de.StartPipelineResponse{
 				PipelineID: "12345",
 			},
-			assertion: func(result []byte, expected de.StartPipelineResponse) error {
+			assertion: func(t *testing.T, result []byte, expected de.StartPipelineResponse) {
 				// verify there is no validation errors being shown to the user
-				o := string(result)
-				suite.NotContains(o, "YAML is NOT valid. See the following errors:")
+				assert.NotContains(t, string(result), "YAML is NOT valid. See the following errors:")
 
 				// verify that response formats as expected
 				var received = FormattableDeployStartResponse{}
-				err := yaml.Unmarshal(result, &received)
-				if err != nil {
-					return err
-				}
-				suite.Equal(expected.PipelineID, received.DeploymentId, "they should be equal")
-				return nil
+				assert.NoError(t, yaml.Unmarshal(result, &received))
+				assert.Equal(t, expected.PipelineID, received.DeploymentId)
 			},
 		},
 	}
 
 	for _, c := range cases {
 		suite.T().Run(c.name, func(t *testing.T) {
-			err := registerResponder(c.expected, http.StatusAccepted, c.kind)
-			if err != nil {
-				suite.T().Fatalf("%s failed with: %s", c.name, err)
-			}
+			assert.NoError(t, registerResponder(c.expected, http.StatusAccepted, c.kind))
 			tempFile := util.TempAppFile("", "app", c.file)
 			if tempFile == nil {
-				suite.T().Fatalf("%s failed with: Could not create temp app file.", c.name)
+				t.Fatal("failed with: Could not create temp app file.")
 			}
-			suite.T().Cleanup(func() {
-				err := os.Remove(tempFile.Name())
-				if err != nil {
-					suite.T().Fatalf("%s failed with: %s", c.name, err)
-				}
+			t.Cleanup(func() {
+				assert.NoError(t, os.Remove(tempFile.Name()))
 			})
 			outWriter := bytes.NewBufferString("")
 			cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), c.contentType)
-			err = cmd.Execute()
-			if err != nil {
-				suite.T().Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
-			}
+			assert.NoError(t, cmd.Execute())
 			output, err := io.ReadAll(outWriter)
-			if err != nil {
-				suite.T().Fatalf("%s failed with: %s", c.name, err)
-			}
-			err = c.assertion(output, c.expected)
-			if err != nil {
-				suite.T().Fatalf("%s failed with: %s", c.name, err)
-			}
+			assert.NoError(t, err)
+			c.assertion(t, output, c.expected)
 		})
 	}
 }
