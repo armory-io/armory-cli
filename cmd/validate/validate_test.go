@@ -62,6 +62,11 @@ func TestDeployValidate(t *testing.T) {
 
 `,
 		},
+		{
+			testName:   "invalid lambda yaml should pass",
+			deployYaml: invalidLambdaDeployYamlStr,
+			output:     "YAML is valid.\n",
+		},
 	}
 
 	for _, c := range cases {
@@ -132,4 +137,29 @@ strategies:
         - pause:
             duration: 1
             unit: SECONDS
+`
+
+const invalidLambdaDeployYamlStr = `
+version: v1
+kind: lambda
+application: first-lambda-app
+context:
+  foo: bar
+targets:
+  firstTarget:
+    account: firstAccount
+    deployAsIamRole: "<some-deployment-role-arn>"
+    region: us-west-2
+    oops: baff
+artifacts:
+  - path: "s3://<fill-me-in>/node/v0.0.1.zip"
+    functionName: hello-lambda
+    type: zipFile
+providerOptions:
+  lambda:
+    - name: hello-lambda
+      target: firstTarget
+      runAsIamRole: "<some-lambda-role-arn>"
+      handler: index.handler
+      runtime: nodejs18.x
 `
