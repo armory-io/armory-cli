@@ -2,6 +2,7 @@ package validate
 
 import (
 	_ "embed"
+	"gopkg.in/yaml.v3"
 	"io"
 	"os"
 	"strings"
@@ -59,17 +60,32 @@ func validateCommand(cmd *cobra.Command, configuration *config.Configuration, op
 	if err != nil {
 		return err
 	}
-	validationFailures := Validate(file)
+	validationFailures, err := Validate(file)
+	if err != nil {
+		return err
+	}
 	return LogValidationErrors(cmd.OutOrStdout(), validationFailures, true)
 }
 
-func Validate(file []byte) []string {
-	cueContext := cuecontext.New()
-	v := cueContext.CompileBytes(schemaFile)
-	schema := v.LookupPath(cue.ParsePath("#PipelineRequest"))
-	err := cueyaml.Validate(file, schema)
-	errList := cueerrors.Errors(err)
-	return lo.Map(errList, func(e cueerrors.Error, _ int) string { return e.Error() })
+func Validate(file []byte) ([]string, error) {
+	var requestKind struct {
+		Kind string `json:"kind"`
+	}
+	if err := yaml.Unmarshal(file, &requestKind); err != nil {
+		return nil, err
+	}
+
+	// TODO: make this work for lambda deployment kinds CDAAS-2509
+	if requestKind.Kind == "kubernetes" {
+		cueContext := cuecontext.New()
+		v := cueContext.CompileBytes(schemaFile)
+		schema := v.LookupPath(cue.ParsePath("#PipelineRequest"))
+		err := cueyaml.Validate(file, schema)
+		errList := cueerrors.Errors(err)
+		return lo.Map(errList, func(e cueerrors.Error, _ int) string { return e.Error() }), nil
+	}
+
+	return []string{}, nil
 }
 
 func LogValidationErrors(out io.Writer, validationFailures []string, confirmIsValid bool) error {
