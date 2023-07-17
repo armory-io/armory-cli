@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/samber/lo"
 	"io"
 	"net/http"
 
@@ -17,6 +18,10 @@ type (
 	Client struct {
 		ArmoryCloudClient *armoryCloud.Client
 	}
+)
+
+const (
+	mediaTypeKubernetesPipelineV2 = "application/vnd.start.kubernetes.pipeline.v2+json"
 )
 
 func NewClient(configuration *config.Configuration) *Client {
@@ -79,7 +84,7 @@ func (c *Client) DeploymentStatus(ctx context.Context, deploymentID string) (*ap
 }
 
 func (c *Client) StartPipeline(ctx context.Context, options StartPipelineOptions) (*api.StartPipelineResponse, *http.Response, error) {
-	pipelinePath, err := getPipelinePath(options)
+	pipelinePath, headers, err := getPipelinePathAndHeaders(options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,7 +103,7 @@ func (c *Client) StartPipeline(ctx context.Context, options StartPipelineOptions
 		armoryCloud.WithMethod(http.MethodPost),
 		armoryCloud.WithPath(pipelinePath),
 	}
-	for key, val := range options.Headers {
+	for key, val := range lo.Assign(headers, options.Headers) {
 		requestOptions = append(requestOptions, armoryCloud.WithHeader(key, val))
 	}
 	requestOptions = append(requestOptions, armoryCloud.WithBody(bytes.NewReader(reqBytes)))
@@ -157,13 +162,16 @@ func (d *networkError) Error() string {
 	return "Unable to reach Armory Continuous Delivery as A Service. Please check your internet connection and try again. "
 }
 
-func getPipelinePath(options StartPipelineOptions) (string, error) {
+func getPipelinePathAndHeaders(options StartPipelineOptions) (string, map[string]string, error) {
 	structured, err := options.structuredConfig()
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	if structured.Kind == "kubernetes" || structured.Kind == "" {
-		return "/pipelines/kubernetes", nil
+		return "/pipelines/kubernetes", map[string]string{
+			"Content-Type": mediaTypeKubernetesPipelineV2,
+			"Accept":       mediaTypeKubernetesPipelineV2,
+		}, nil
 	}
-	return "/pipelines", nil
+	return "/pipelines", nil, nil
 }

@@ -220,7 +220,11 @@ func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 	if err != nil {
 		return nil, nil, errorUtils.NewWrappedError(ErrYAMLFileRead, err)
 	}
-	validationFailures := validate.Validate(file)
+	validationFailures, err := validate.Validate(file)
+	if err != nil {
+		return nil, nil, errorUtils.NewWrappedError(ErrInvalidDeploymentObject, err)
+	}
+
 	validate.LogValidationErrors(cmd.OutOrStdout(), validationFailures, false)
 	cmd.SilenceUsage = true
 	// unmarshall data into struct
@@ -236,10 +240,6 @@ func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 		UnstructuredDeployment:  payload,
 		ApplicationNameOverride: options.application,
 		Context:                 options.context,
-		Headers: map[string]string{
-			"Content-Type": mediaTypePipelineV2,
-			"Accept":       mediaTypePipelineV2,
-		},
 	})
 	return raw, response, err
 }

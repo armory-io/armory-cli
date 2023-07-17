@@ -33,7 +33,8 @@ import "struct"
 #LookbackMethod: =~ "(?i)^growing|sliding$"
 
 #DeploymentConfig: {
-  timeout: #Timeout
+  timeout?: #Timeout
+  keepDeploymentObject?: bool
 }
 
 #Timeout: {
