@@ -2,7 +2,6 @@ package deploy
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	nethttp "net/http"
@@ -160,8 +159,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 		withConfiguration = WithLocalFile
 	}
 	startResp, rawResp, err = withConfiguration(cmd, options, deployClient)
-
-	if err != nil && errors.Is(err, ErrYAMLFileRead) {
+	if err != nil {
 		return err
 	}
 	// create response object

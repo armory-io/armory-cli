@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/armory/armory-cli/internal/clierr"
+	"github.com/armory/armory-cli/internal/clierr/exitcodes"
 	"github.com/samber/lo"
 	"io"
 	"net/http"
@@ -128,7 +130,11 @@ func (c *Client) StartPipeline(ctx context.Context, options StartPipelineOptions
 	}
 
 	if resp.StatusCode != http.StatusAccepted {
-		return nil, resp, &deployError{bodyBytes}
+		exitCode := exitcodes.Error
+		if resp.StatusCode == http.StatusConflict {
+			exitCode = exitcodes.Conflict
+		}
+		return nil, resp, clierr.NewAPIError("Failed to start deployment", resp.StatusCode, bodyBytes, exitCode)
 	}
 
 	var startResponse api.StartPipelineResponse

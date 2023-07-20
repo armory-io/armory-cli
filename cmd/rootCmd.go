@@ -17,6 +17,7 @@ import (
 	"github.com/armory/armory-cli/cmd/version"
 	"github.com/armory/armory-cli/pkg/cmdUtils"
 	"github.com/armory/armory-cli/pkg/config"
+	"github.com/armory/armory-cli/pkg/console"
 	"github.com/armory/armory-cli/pkg/output"
 	"github.com/fatih/color"
 	"github.com/google/go-github/v48/github"
@@ -52,6 +53,13 @@ func NewCmdRoot(outWriter, errWriter io.Writer) (*cobra.Command, error) {
 	clientSecret := rootCmd.PersistentFlags().StringP("clientSecret", "s", "", "Authenticate using an Armory CD-as-a-Service client secret")
 	verbose := rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose logging")
 	outFormat := rootCmd.PersistentFlags().StringP("output", "o", "text", "Set the output type. Available options: [json, yaml, text]")
+
+	// configure stdout and stderr and verbosity levels
+	console.Configure(&console.Options{
+		Verbose: verbose,
+		Stdout:  outWriter,
+		Stderr:  errWriter,
+	})
 	rootCmd.SetOut(outWriter)
 	rootCmd.SetErr(errWriter)
 
@@ -167,14 +175,13 @@ func CheckForUpdate(cli *config.Configuration) {
 		Timeout: 5 * time.Second,
 	}
 	ghClient := github.NewClient(http)
-	log.S().Debugf("Trying to contact github to find our current release...")
 	currentRelease, _, err := ghClient.Repositories.GetLatestRelease(ctx, "armory-io", "armory-cli")
 	if err != nil {
 		return
 	}
 	if ((*currentRelease.TagName != currentVersion) || (currentVersion == "development")) && cli.GetOutputType() == output.Text {
 		color.Set(color.FgGreen)
-		log.S().Warnf("\nA new version of the Armory CLI is available. Please upgrade to %s by running `brew upgrade armory-cli` if installed with Homebrew or by running `avm install` if installed with AVM.\n", *currentRelease.TagName)
+		console.Stderrf("\nNOTICE: A new version of the Armory CLI is available. Please upgrade to %s by running `brew upgrade armory-cli` if installed with Homebrew or by running `avm install` if installed with AVM.\n\n", *currentRelease.TagName)
 		color.Unset()
 	}
 }

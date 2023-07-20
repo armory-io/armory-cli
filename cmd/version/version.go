@@ -2,8 +2,8 @@ package version
 
 import (
 	"github.com/armory/armory-cli/pkg/cmdUtils"
+	"github.com/armory/armory-cli/pkg/console"
 	"github.com/spf13/cobra"
-	log "go.uber.org/zap"
 )
 
 var Version = "development"
@@ -23,14 +23,13 @@ func NewCmdVersion() *cobra.Command {
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return RunVersion(cmd)
+		Run: func(cmd *cobra.Command, args []string) {
+			RunVersion(cmd)
 		},
 	}
 	return cmd
 }
 
-func RunVersion(cmd *cobra.Command) error {
-	log.S().Infof("{\"version\":\"%v\"}", Version)
-	return nil
+func RunVersion(cmd *cobra.Command) {
+	console.Stdoutf("{\"version\":\"%v\"}", Version)
 }

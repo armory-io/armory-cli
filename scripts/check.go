@@ -34,8 +34,8 @@ const (
 	GITHUB_REF = "GITHUB_REF"
 	TOKEN      = "GITHUB_TOKEN"
 	GH_API     = "https://api.github.com/repos/%s/issues/%s/comments"
-	PR_REGEXP = "^.+/pull/(\\d+)/.+$"
-	summary = "(statements) (total:)"
+	PR_REGEXP  = "^.+/pull/(\\d+)/.+$"
+	summary    = "(statements) (total:)"
 )
 
 type TestOutput struct {
@@ -52,7 +52,7 @@ type CoverageReport struct {
 }
 
 type reportEntry struct {
-	entry string
+	entry    string
 	coverage float64
 }
 
