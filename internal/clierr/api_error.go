@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/armory/armory-cli/internal/clierr/exitcodes"
-	"github.com/armory/armory-cli/pkg/console"
 	"github.com/fatih/color"
 )
 
