@@ -105,10 +105,6 @@ func parseApiErrorFromBody(body []byte) (*ApiErrorResponse, bool) {
 	console.Stderrln(string(body))
 	apiError := &ApiErrorResponse{}
 	if e := json.Unmarshal(body, apiError); e != nil {
-		if jsonErr, ok := e.(*json.SyntaxError); ok {
-			problemPart := body[jsonErr.Offset-10 : jsonErr.Offset+10]
-			e = fmt.Errorf("%w ~ error near '%s' (offset %d)", e, problemPart, jsonErr.Offset)
-		}
 		return nil, false
 	}
 
