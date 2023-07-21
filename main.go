@@ -1,9 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"github.com/armory/armory-cli/cmd"
 	cmdVersion "github.com/armory/armory-cli/cmd/version"
+	"github.com/armory/armory-cli/internal/clierr"
+	"github.com/armory/armory-cli/internal/clierr/exitcodes"
+	"github.com/armory/armory-cli/pkg/console"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -17,12 +21,26 @@ func main() {
 
 	rootCmd, err := cmd.NewCmdRoot(os.Stdout, os.Stderr)
 	if err != nil {
-		fmt.Printf("Error: %s\n", err)
-		os.Exit(1)
+		console.Stderrln(err.Error())
+		os.Exit(int(exitcodes.Error))
 	}
 
 	// required so errors aren't double printed
 	rootCmd.SilenceErrors = true
-	// required so errors have an exit code
-	cobra.CheckErr(rootCmd.Execute())
+	// execute the command
+	err = rootCmd.Execute()
+	if err == nil {
+		os.Exit(int(exitcodes.Success))
+	}
+
+	// if the error is an API Error deal with it
+	var apiError *clierr.APIError
+	if errors.As(err, &apiError) {
+		console.Stderrln(apiError.DetailedError())
+		os.Exit(apiError.ExitCode())
+	}
+
+	// else assume it's a plain error
+	color.New(color.FgRed, color.Bold).Sprintln(err.Error())
+	os.Exit(int(exitcodes.Error))
 }

@@ -74,7 +74,7 @@ func (d *SandboxClusterFileStore) getSandboxFileLocation() (string, error) {
 	var dirname string
 	var err error
 	if isATest {
-		return os.TempDir() + "dotarmory_sandbox", nil
+		return os.TempDir() + "/.armory_sandbox", nil
 	}
 
 	dirname, err = os.UserHomeDir()
