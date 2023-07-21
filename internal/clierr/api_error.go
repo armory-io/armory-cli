@@ -102,7 +102,6 @@ func NewAPIError(
 // parseApiErrorFromBody makes an effort to see if the body is a well-formed api error response object.
 // It returns a pointer to the ApiErrorResponse and a boolean indicated whether the body was successfully unmarshalled
 func parseApiErrorFromBody(body []byte) (*ApiErrorResponse, bool) {
-	console.Stderrln(string(body))
 	apiError := &ApiErrorResponse{}
 	if e := json.Unmarshal(body, apiError); e != nil {
 		return nil, false
