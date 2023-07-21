@@ -3,6 +3,9 @@ package deploy
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"github.com/armory/armory-cli/internal/clierr"
+	"github.com/armory/armory-cli/internal/clierr/exitcodes"
 	"io"
 	"net/http"
 	"os"
@@ -289,8 +292,16 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineIdUsesExpectedOptions()
 	suite.Equal("armory::http://localhost:9099/pipelines/012345/config", deployClient.RecordedStartPipelineOptions.Headers[armoryConfigLocationHeader], "header should contain specified pipelineID for redeploy")
 }
 
-func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
-	err := registerResponder(`{"code":2, "message":"invalid operation", "details":[]}`, 500, "kubernetes")
+func (suite *DeployStartTestSuite) TestDeployStartHttpErrorGenericError() {
+	err := registerResponder(&clierr.ApiErrorResponse{
+		ErrorID: "249fdf16-e97b-4507-bf85-df9ec66f2b87",
+		Errors: []clierr.ApiErrorDTO{
+			{
+				Message: "Access Denied",
+				Code:    42,
+			},
+		},
+	}, 401, "kubernetes")
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -303,15 +314,56 @@ func (suite *DeployStartTestSuite) TestDeployStartHttpError() {
 	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
 
 	err = cmd.Execute()
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartHttpError failed with: %s", err)
+	if err == nil {
+		suite.T().Fatalf("expected command to error from API error")
 	}
-	output, err := io.ReadAll(outWriter)
-	if err != nil {
-		suite.T().Fatalf("TestDeployStartHttpError failed with: %s", err)
+
+	var apiError *clierr.APIError
+	if !errors.As(err, &apiError) {
+		suite.T().Fatalf("expected command to error with an API Error")
 	}
-	suite.Equal(`error: "request returned an error: status code(500), thrown error: "{\"code\":2, \"message\":\"invalid operation\", \"details\":[]}"`,
-		strings.TrimSpace(string(output)), "they should be equal")
+
+	suite.Equal("an API error occurred, msg: Failed to start deployment, status code: 401",
+		strings.TrimSpace(apiError.Error()), "they should be equal")
+
+	suite.Equal(int(exitcodes.Error), apiError.ExitCode(), "a generic error should exit 1")
+}
+
+func (suite *DeployStartTestSuite) TestDeployStartHttpErrorDeploymentConflict() {
+	err := registerResponder(&clierr.ApiErrorResponse{
+		ErrorID: "249fdf16-e97b-4507-bf85-df9ec66f2b87",
+		Errors: []clierr.ApiErrorDTO{
+			{
+				Message: "cannot start pipeline for application potato-facts, there is another in-progress pipeline: https://console.cloud.armory.io/deployments/pipeline/26e0905a-4a68-46ab-a091-cfb042cf7910?environmentId=0c09efab-bce2-4e0e-ac80-2b847844012d",
+				Code:    42,
+			},
+		},
+	}, 409, "kubernetes")
+	if err != nil {
+		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
+	}
+	tempFile := util.TempAppFile("", "app", testAppYamlStr)
+	if tempFile == nil {
+		suite.T().Fatal("TestDeployStartHttpError failed with: Could not create temp app file.")
+	}
+	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
+	outWriter := bytes.NewBufferString("")
+	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
+
+	err = cmd.Execute()
+	if err == nil {
+		suite.T().Fatalf("expected command to error from API error")
+	}
+
+	var apiError *clierr.APIError
+	if !errors.As(err, &apiError) {
+		suite.T().Fatalf("expected command to error with an API Error")
+	}
+
+	suite.Equal("an API error occurred, msg: Failed to start deployment, status code: 409",
+		strings.TrimSpace(apiError.Error()), "they should be equal")
+
+	suite.Equal(int(exitcodes.Conflict), apiError.ExitCode(), "a deployment conflict should exit 3")
 }
 
 func (suite *DeployStartTestSuite) TestDeployStartFlagFileRequired() {
@@ -365,7 +417,7 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnE
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
 	}
-	err := registerResponder(expected, 200, "kubernetes")
+	err := registerResponder(expected, http.StatusAccepted, "kubernetes")
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
@@ -376,18 +428,18 @@ func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameAnE
 	suite.T().Cleanup(func() { os.Remove(tempFile.Name()) })
 	outWriter := bytes.NewBufferString("")
 	cmd := getDeployCmdWithFileName(outWriter, tempFile.Name(), "yaml")
-	cmd.Execute()
 
-	msg, err := io.ReadAll(outWriter)
-	suite.NoError(err)
-	suite.Contains(string(msg), "application name must be defined in deployment file or by application opt")
+	err = cmd.Execute()
+
+	suite.Error(err)
+	suite.Contains(err.Error(), "application name must be defined in deployment file or by application opt")
 }
 
 func (suite *DeployStartTestSuite) TestWhenTheManifestAndFlagDoNotHaveAppNameButFlagIsSuppliedAnErrorIsNotRaised() {
 	expected := &de.StartPipelineResponse{
 		PipelineID: "12345",
 	}
-	err := registerResponder(expected, 200, "kubernetes")
+	err := registerResponder(expected, http.StatusAccepted, "kubernetes")
 	if err != nil {
 		suite.T().Fatalf("TestDeployStartYAMLSuccess failed with: %s", err)
 	}
