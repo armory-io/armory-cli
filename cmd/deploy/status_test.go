@@ -9,13 +9,12 @@ import (
 
 	de "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/pkg/config"
-	"github.com/armory/armory-cli/pkg/model"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
 
-func getExpectedPipelineDeployment() (*de.PipelineStatusResponse, *de.DeploymentStatusResponse) {
+func getExpectedPipelineDeployment() *de.PipelineStatusResponse {
 	expected := &de.PipelineStatusResponse{
 		ID:          "12345",
 		Application: "app",
@@ -31,12 +30,7 @@ func getExpectedPipelineDeployment() (*de.PipelineStatusResponse, *de.Deployment
 		},
 	}
 
-	expectedDeploy := &de.DeploymentStatusResponse{
-		ID:     "5678",
-		Status: de.WorkflowStatusRunning,
-	}
-
-	return expected, expectedDeploy
+	return expected
 }
 
 func getStdTestConfig(outFmt string) *config.Configuration {
@@ -56,7 +50,7 @@ func getStdTestConfig(outFmt string) *config.Configuration {
 }
 
 func TestDeployStatusJsonSuccess(t *testing.T) {
-	expected, expectedDeploy := getExpectedPipelineDeployment()
+	expected := getExpectedPipelineDeployment()
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 	responder, err := httpmock.NewJsonResponder(200, expected)
@@ -64,11 +58,6 @@ func TestDeployStatusJsonSuccess(t *testing.T) {
 		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
 	}
 	httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
-	responderDeploy, err := httpmock.NewJsonResponder(200, expectedDeploy)
-	if err != nil {
-		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
-	}
-	httpmock.RegisterResponder("GET", "https://localhost/deployments/5678", responderDeploy)
 
 	cmd := NewDeployCmd(getStdTestConfig("json"))
 	outWriter := bytes.NewBufferString("")
@@ -88,20 +77,20 @@ func TestDeployStatusJsonSuccess(t *testing.T) {
 		t.Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
 	}
 	var received = FormattableDeployStatus{
-		DeployResp: model.Pipeline{},
+		Pipeline: &de.PipelineStatusResponse{},
 	}
-	json.Unmarshal(output, &received.DeployResp)
-	assert.Equal(t, *received.DeployResp.Id, expected.ID, "they should be equal")
-	assert.Equal(t, *received.DeployResp.Application, expected.Application, "they should be equal")
-	assert.Equal(t, *received.DeployResp.Status, expected.Status, "they should be equal")
-	assert.Equal(t, len(*received.DeployResp.Steps), len(expected.Steps), "they should be equal")
-	receivedDeployment := *received.DeployResp.Steps
+	json.Unmarshal(output, &received.Pipeline)
+	assert.Equal(t, received.Pipeline.ID, expected.ID, "they should be equal")
+	assert.Equal(t, received.Pipeline.Application, expected.Application, "they should be equal")
+	assert.Equal(t, received.Pipeline.Status, expected.Status, "they should be equal")
+	assert.Equal(t, len(received.Pipeline.Steps), len(expected.Steps), "they should be equal")
+	receivedDeployment := received.Pipeline.Steps
 	expectedDeployment := expected.Steps[0].Deployment
 	assert.Equal(t, receivedDeployment[0].Deployment.ID, expectedDeployment.ID, "they should be equal")
 }
 
 func TestDeployStatusYAMLSuccess(t *testing.T) {
-	expected, expectedDeploy := getExpectedPipelineDeployment()
+	expected := getExpectedPipelineDeployment()
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 	responder, err := httpmock.NewJsonResponder(200, expected)
@@ -109,11 +98,6 @@ func TestDeployStatusYAMLSuccess(t *testing.T) {
 		t.Fatalf("TestDeployStatusYAMLSuccess failed with: %s", err)
 	}
 	httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
-	responderDeploy, err := httpmock.NewJsonResponder(200, expectedDeploy)
-	if err != nil {
-		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
-	}
-	httpmock.RegisterResponder("GET", "https://localhost/deployments/5678", responderDeploy)
 
 	cmd := NewDeployCmd(getStdTestConfig("yaml"))
 	outWriter := bytes.NewBufferString("")
@@ -132,13 +116,13 @@ func TestDeployStatusYAMLSuccess(t *testing.T) {
 		t.Fatalf("TestDeployStatusYAMLSuccess failed with: %s", err)
 	}
 	var received = FormattableDeployStatus{
-		DeployResp: model.Pipeline{},
+		Pipeline: &de.PipelineStatusResponse{},
 	}
-	yaml.Unmarshal(output, &received.DeployResp)
-	assert.Equal(t, *received.DeployResp.Id, expected.ID, "they should be equal")
-	assert.Equal(t, *received.DeployResp.Application, expected.Application, "they should be equal")
-	assert.Equal(t, *received.DeployResp.Status, expected.Status, "they should be equal")
-	receivedDeployment := *received.DeployResp.Steps
+	yaml.Unmarshal(output, &received.Pipeline)
+	assert.Equal(t, received.Pipeline.ID, expected.ID, "they should be equal")
+	assert.Equal(t, received.Pipeline.Application, expected.Application, "they should be equal")
+	assert.Equal(t, received.Pipeline.Status, expected.Status, "they should be equal")
+	receivedDeployment := received.Pipeline.Steps
 	expectedDeployment := expected.Steps[0].Deployment
 	assert.Equal(t, receivedDeployment[0].Deployment.ID, expectedDeployment.ID, "they should be equal")
 }
