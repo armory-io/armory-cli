@@ -43,7 +43,7 @@ func NewDeployCmd(configuration *config.Configuration) *cobra.Command {
 			}
 
 			if configuration.GetOutputType() == output.Text {
-				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "[%v] See the deployment status UI: %s\n", time.Now().Format(time.RFC3339), url)
+				_, _ = fmt.Fprintf(cmd.OutOrStdout(), "[%v] See the deployment status UI: %s\n", configuration.Now().Format(time.RFC3339), url)
 			}
 
 			utils.TryWriteGitHubStepSummary(url)

@@ -2,170 +2,214 @@ package deploy
 
 import (
 	"bytes"
-	"encoding/json"
-	"io"
-	"strings"
-	"testing"
-
-	de "github.com/armory-io/deploy-engine/pkg/api"
+	api "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/jarcoal/httpmock"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
+	"io"
+	"net/http"
+	"os"
+	"testing"
+	"time"
 )
 
-func getExpectedPipelineDeployment() *de.PipelineStatusResponse {
-	expected := &de.PipelineStatusResponse{
-		ID:          "12345",
-		Application: "app",
-		Status:      de.WorkflowStatusRunning,
-		Steps: []*de.PipelineStep{
+var (
+	testPipeline = api.PipelineStatusResponse{
+		ID:               "12345",
+		Application:      "app",
+		StartedAtIso8601: time.Time{}.Format(time.RFC3339),
+		Status:           api.WorkflowStatusRunning,
+		Steps: []*api.PipelineStep{
 			{
 				Type:   "deployment",
-				Status: de.WorkflowStatusRunning,
-				Deployment: &de.PipelineDeploymentStepResponse{
+				Status: api.WorkflowStatusRunning,
+				Deployment: &api.PipelineDeploymentStepResponse{
 					ID: "5678",
 				},
 			},
 		},
 	}
+)
 
-	return expected
-}
+func TestDeployStatus(t *testing.T) {
+	cases := []struct {
+		name              string
+		responder         func() (httpmock.Responder, error)
+		format            string
+		args              []string
+		assertion         func(t *testing.T, reader io.Reader)
+		expectErrContains string
+	}{
+		{
+			name: "json format success",
+			responder: func() (httpmock.Responder, error) {
+				return httpmock.NewJsonResponder(http.StatusOK, testPipeline)
+			},
+			format: "json",
+			args: []string{
+				"status",
+				"--test=true",
+				"--deploymentId=12345",
+			},
+			assertion: func(t *testing.T, reader io.Reader) {
+				output, err := io.ReadAll(reader)
+				assert.NoError(t, err)
 
-func getStdTestConfig(outFmt string) *config.Configuration {
-	token := "some-token"
-	addr := "https://localhost"
-	clientId := ""
-	clientSecret := ""
-	isTest := true
-	return config.New(&config.Input{
-		AccessToken:  &token,
-		ApiAddr:      &addr,
-		ClientId:     &clientId,
-		ClientSecret: &clientSecret,
-		OutFormat:    &outFmt,
-		IsTest:       &isTest,
-	})
-}
+				expected, err := os.ReadFile("./resources/status/status.json")
+				assert.NoError(t, err)
 
-func TestDeployStatusJsonSuccess(t *testing.T) {
-	expected := getExpectedPipelineDeployment()
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-	responder, err := httpmock.NewJsonResponder(200, expected)
-	if err != nil {
-		t.Fatalf("TestDeployStatusJsonSuccess failed with: %s", err)
-	}
-	httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
+				assert.Equal(t, string(expected), string(output))
+			},
+		},
+		{
+			name: "yaml format success",
+			responder: func() (httpmock.Responder, error) {
+				return httpmock.NewJsonResponder(http.StatusOK, testPipeline)
+			},
+			format: "yaml",
+			args: []string{
+				"status",
+				"--test=true",
+				"--deploymentId=12345",
+			},
+			assertion: func(t *testing.T, reader io.Reader) {
+				output, err := io.ReadAll(reader)
+				assert.NoError(t, err)
 
-	cmd := NewDeployCmd(getStdTestConfig("json"))
-	outWriter := bytes.NewBufferString("")
-	cmd.SetOut(outWriter)
-	args := []string{
-		"status",
-		"--test=true",
-		"--deploymentId=12345",
-	}
-	cmd.SetArgs(args)
-	err = cmd.Execute()
-	if err != nil {
-		t.Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
-	}
-	output, err := io.ReadAll(outWriter)
-	if err != nil {
-		t.Fatalf("TestDeployStartJsonSuccess failed with: %s", err)
-	}
-	var received = FormattableDeployStatus{
-		Pipeline: &de.PipelineStatusResponse{},
-	}
-	json.Unmarshal(output, &received.Pipeline)
-	assert.Equal(t, received.Pipeline.ID, expected.ID, "they should be equal")
-	assert.Equal(t, received.Pipeline.Application, expected.Application, "they should be equal")
-	assert.Equal(t, received.Pipeline.Status, expected.Status, "they should be equal")
-	assert.Equal(t, len(received.Pipeline.Steps), len(expected.Steps), "they should be equal")
-	receivedDeployment := received.Pipeline.Steps
-	expectedDeployment := expected.Steps[0].Deployment
-	assert.Equal(t, receivedDeployment[0].Deployment.ID, expectedDeployment.ID, "they should be equal")
-}
+				expected, err := os.ReadFile("./resources/status/status.yaml")
+				assert.NoError(t, err)
 
-func TestDeployStatusYAMLSuccess(t *testing.T) {
-	expected := getExpectedPipelineDeployment()
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-	responder, err := httpmock.NewJsonResponder(200, expected)
-	if err != nil {
-		t.Fatalf("TestDeployStatusYAMLSuccess failed with: %s", err)
-	}
-	httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
+				assert.Equal(t, string(expected), string(output))
+			},
+		},
+		{
+			name: "default format success",
+			responder: func() (httpmock.Responder, error) {
+				return httpmock.NewJsonResponder(http.StatusOK, testPipeline)
+			},
+			args: []string{
+				"status",
+				"--test=true",
+				"--deploymentId=12345",
+			},
+			assertion: func(t *testing.T, reader io.Reader) {
+				output, err := io.ReadAll(reader)
+				assert.NoError(t, err)
 
-	cmd := NewDeployCmd(getStdTestConfig("yaml"))
-	outWriter := bytes.NewBufferString("")
-	cmd.SetOut(outWriter)
-	args := []string{
-		"status",
-		"--deploymentId=12345",
-	}
-	cmd.SetArgs(args)
-	err = cmd.Execute()
-	if err != nil {
-		t.Fatal("TestDeployStatusYAMLSuccess failed with: error should not be null")
-	}
-	output, err := io.ReadAll(outWriter)
-	if err != nil {
-		t.Fatalf("TestDeployStatusYAMLSuccess failed with: %s", err)
-	}
-	var received = FormattableDeployStatus{
-		Pipeline: &de.PipelineStatusResponse{},
-	}
-	yaml.Unmarshal(output, &received.Pipeline)
-	assert.Equal(t, received.Pipeline.ID, expected.ID, "they should be equal")
-	assert.Equal(t, received.Pipeline.Application, expected.Application, "they should be equal")
-	assert.Equal(t, received.Pipeline.Status, expected.Status, "they should be equal")
-	receivedDeployment := received.Pipeline.Steps
-	expectedDeployment := expected.Steps[0].Deployment
-	assert.Equal(t, receivedDeployment[0].Deployment.ID, expectedDeployment.ID, "they should be equal")
-}
+				expected, err := os.ReadFile("./resources/status/status.txt")
+				assert.NoError(t, err)
 
-func TestDeployStatusHttpError(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-	responder, err := httpmock.NewJsonResponder(500, `{"code":2, "message":"invalid operation", "details":[]}`)
-	if err != nil {
-		t.Fatalf("TestDeployStatusHttpError failed with: %s", err)
-	}
-	httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
-	cmd := NewDeployCmd(getStdTestConfig("json"))
-	outWriter := bytes.NewBufferString("")
-	cmd.SetOut(outWriter)
-	args := []string{
-		"status",
-		"--deploymentId=12345",
-	}
-	cmd.SetArgs(args)
-	err = cmd.Execute()
-	if err != nil {
-		t.Fatal("TestDeployStatusHttpError failed with: error should not be null")
-	}
-	output, err := io.ReadAll(outWriter)
-	if err != nil {
-		t.Fatalf("TestDeployStatusHttpError failed with: %s", err)
-	}
-	assert.Equal(t, `{ "error": "request returned an error: status code(500), thrown error: "{\"code\":2, \"message\":\"invalid operation\", \"details\":[]}"" }`,
-		strings.TrimSpace(string(output)), "they should be equal")
-}
+				assert.Equal(t, string(expected), string(output))
+			},
+		},
+		{
+			name: "default format, pipeline awaiting approval",
+			responder: func() (httpmock.Responder, error) {
+				return httpmock.NewJsonResponder(http.StatusOK, api.PipelineStatusResponse{
+					Application:      "app",
+					Status:           api.WorkflowStatusAwaitingApproval,
+					StartedAtIso8601: time.Time{}.Format(time.RFC3339),
+				})
+			},
+			args: []string{
+				"status",
+				"--test=true",
+				"--deploymentId=12345",
+			},
+			assertion: func(t *testing.T, reader io.Reader) {
+				output, err := io.ReadAll(reader)
+				assert.NoError(t, err)
 
-func TestDeployStatusFlagDeploymentIdRequired(t *testing.T) {
-	cmd := NewDeployCmd(getStdTestConfig("json"))
-	outWriter := bytes.NewBufferString("")
-	cmd.SetOut(outWriter)
-	args := []string{
-		"status",
+				expected, err := os.ReadFile("./resources/status/status_awaiting_approval.txt")
+				assert.NoError(t, err)
+
+				assert.Equal(t, string(expected), string(output))
+			},
+		},
+		{
+			name: "default format, pipeline paused",
+			responder: func() (httpmock.Responder, error) {
+				return httpmock.NewJsonResponder(http.StatusOK, api.PipelineStatusResponse{
+					Application:      "app",
+					Status:           api.WorkflowStatusPaused,
+					StartedAtIso8601: time.Time{}.Format(time.RFC3339),
+					Steps: []*api.PipelineStep{{
+						Type:   "pause",
+						Status: api.WorkflowStatusPaused,
+						Pause: &api.PauseStepResponse{
+							Duration: 5,
+							Unit:     api.TimeUnitMinutes,
+						},
+					}},
+				})
+			},
+			args: []string{
+				"status",
+				"--test=true",
+				"--deploymentId=12345",
+			},
+			assertion: func(t *testing.T, reader io.Reader) {
+				output, err := io.ReadAll(reader)
+				assert.NoError(t, err)
+
+				expected, err := os.ReadFile("./resources/status/status_paused.txt")
+				assert.NoError(t, err)
+
+				assert.Equal(t, string(expected), string(output))
+			},
+		},
+		{
+			name: "failed to fetch",
+			responder: func() (httpmock.Responder, error) {
+				return httpmock.NewJsonResponder(http.StatusInternalServerError, `{"code":2, "message":"invalid operation", "details":[]}`)
+			},
+			args: []string{
+				"status",
+				"--test=true",
+				"--deploymentId=12345",
+			},
+			expectErrContains: "invalid operation",
+		},
+		{
+			name: "invalid arguments",
+			args: []string{
+				"status",
+			},
+			expectErrContains: "required flag(s) \"deploymentId\" not set",
+		},
 	}
-	cmd.SetArgs(args)
-	err := cmd.Execute()
-	if err == nil {
-		t.Fatal("TestDeployStatusFlagDeploymentIdRequired failed with: error should not be null")
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			httpmock.Activate()
+			defer httpmock.DeactivateAndReset()
+
+			if c.responder != nil {
+				responder, err := c.responder()
+				assert.NoError(t, err)
+				httpmock.RegisterResponder("GET", "https://localhost/pipelines/12345", responder)
+			}
+
+			cmd := NewDeployCmd(config.New(&config.Input{
+				AccessToken:  lo.ToPtr("some-token"),
+				ApiAddr:      lo.ToPtr("https://localhost"),
+				ClientId:     lo.ToPtr(""),
+				ClientSecret: lo.ToPtr(""),
+				OutFormat:    lo.ToPtr(c.format),
+				IsTest:       lo.ToPtr(true),
+			}))
+
+			writer := bytes.NewBufferString("")
+			cmd.SetOut(writer)
+			cmd.SetArgs(c.args)
+
+			if c.expectErrContains != "" {
+				assert.ErrorContains(t, cmd.Execute(), c.expectErrContains)
+			} else {
+				assert.NoError(t, cmd.Execute())
+				c.assertion(t, writer)
+			}
+		})
 	}
-	assert.EqualError(t, err, "required flag(s) \"deploymentId\" not set")
 }

@@ -46,7 +46,7 @@ func MarshalToJson(input Formattable) (string, error) {
 		return getErrorAsJson(err), nil
 	}
 
-	pretty, err := json.MarshalIndent(input.Get(), "", " ")
+	pretty, err := json.MarshalIndent(input.Get(), "", "  ")
 	if err != nil {
 		return getErrorAsJson(err), errorUtils.NewWrappedError(ErrJsonMarshal, err)
 	}

@@ -1,0 +1,30 @@
+{
+  "id": "12345",
+  "startedAtIso8601": "0001-01-01T00:00:00Z",
+  "completedAtIso8601": "",
+  "application": "app",
+  "description": "",
+  "context": null,
+  "source": {
+    "product": "",
+    "version": ""
+  },
+  "environments": null,
+  "status": "RUNNING",
+  "initiatedBy": "",
+  "steps": [
+    {
+      "status": "RUNNING",
+      "ref": "",
+      "dependsOn": null,
+      "type": "deployment",
+      "constraintFor": "",
+      "deployment": {
+        "id": "5678",
+        "environment": "",
+        "step": 0,
+        "totalSteps": 0
+      }
+    }
+  ]
+}

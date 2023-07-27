@@ -11,7 +11,7 @@ import (
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/spf13/cobra"
 	log "go.uber.org/zap"
-	_nethttp "net/http"
+	"net/http"
 	"time"
 )
 
@@ -21,41 +21,34 @@ const (
 	deployStatusExample = "armory deploy status [options]"
 )
 
-type FormattableDeployStatus struct {
-	Pipeline     *deploy.PipelineStatusResponse `json:"deployment"`
-	httpResponse *_nethttp.Response
-	err          error
+type formattableDeployStatus struct {
+	currentTimestamp time.Time
+	pipeline         *deploy.PipelineStatusResponse
+	httpResponse     *http.Response
+	err              error
 }
 
-func (u FormattableDeployStatus) Get() interface{} {
-	return u.Pipeline
+func (ds formattableDeployStatus) Get() interface{} {
+	return ds.pipeline
 }
 
-func (u FormattableDeployStatus) GetHttpResponse() *_nethttp.Response {
-	return u.httpResponse
+func (ds formattableDeployStatus) GetHttpResponse() *http.Response {
+	return ds.httpResponse
 }
 
-func (u FormattableDeployStatus) GetFetchError() error {
-	return u.err
+func (ds formattableDeployStatus) GetFetchError() error {
+	return ds.err
 }
 
-func newDeployStatusResponseWrapper(pipeline *deploy.PipelineStatusResponse, response *_nethttp.Response, err error) FormattableDeployStatus {
-	wrapper := FormattableDeployStatus{
-		Pipeline:     pipeline,
-		httpResponse: response,
-		err:          err,
-	}
-	return wrapper
-}
-
-func (u FormattableDeployStatus) String() string {
+func (ds formattableDeployStatus) String() string {
 	ret := ""
-	now := time.Now().Format(time.RFC3339)
-	ret += fmt.Sprintf("[%v] application: %s, started: %s\n", now, u.Pipeline.Application, u.Pipeline.StartedAtIso8601)
-	ret += fmt.Sprintf("[%v] status: ", now)
-	switch status := u.Pipeline.Status; status {
+	currentTimestampIso8601 := ds.currentTimestamp.Format(time.RFC3339)
+
+	ret += fmt.Sprintf("[%v] application: %s, started: %s\n", currentTimestampIso8601, ds.pipeline.Application, ds.pipeline.StartedAtIso8601)
+	ret += fmt.Sprintf("[%v] status: ", currentTimestampIso8601)
+	switch status := ds.pipeline.Status; status {
 	case deploy.WorkflowStatusPaused:
-		for _, stages := range u.Pipeline.Steps {
+		for _, stages := range ds.pipeline.Steps {
 			if stages.Type == "pause" && stages.Status == deploy.WorkflowStatusPaused {
 				ret += fmt.Sprintf("[%s] msg: Paused for %d %s. You can skip the pause in the CD-as-a-Service Console or CLI\n", status, stages.Pause.Duration, stages.Pause.Unit)
 			}
@@ -100,8 +93,15 @@ func status(cmd *cobra.Command, configuration *config.Configuration, deploymentI
 	deployClient := deployment.NewClient(configuration)
 	ctx, cancel := context.WithTimeout(deployClient.ArmoryCloudClient.Context, time.Second*5)
 	defer cancel()
+
 	pipelineResp, response, err := deployClient.PipelineStatus(ctx, deploymentId)
-	dataFormat, err := configuration.GetOutputFormatter()(newDeployStatusResponseWrapper(pipelineResp, response, err))
+	dataFormat, err := configuration.GetOutputFormatter()(formattableDeployStatus{
+		currentTimestamp: configuration.Now(),
+		pipeline:         pipelineResp,
+		httpResponse:     response,
+		err:              err,
+	})
+
 	// if we've made it this far, the command is valid. if an error occurs it isn't a usage error
 	cmd.SilenceUsage = true
 	if err != nil {

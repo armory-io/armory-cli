@@ -1,0 +1,4 @@
+[0001-01-01T00:00:00Z] application: app, started: 0001-01-01T00:00:00Z
+[0001-01-01T00:00:00Z] status: [PAUSED] msg: Paused for 5 MINUTES. You can skip the pause in the CD-as-a-Service Console or CLI
+
+[0001-01-01T00:00:00Z] See the deployment status UI: https://console.dev.cloud.armory.io:3000/deployments/pipeline/12345?environmentId=

@@ -3,6 +3,7 @@ package config
 import (
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/armory/armory-cli/pkg/armoryCloud"
 	"github.com/armory/armory-cli/pkg/auth"
@@ -21,10 +22,20 @@ type CliConfiguration interface {
 
 type Configuration struct {
 	input *Input
+
+	// clock is a function that returns the current timestamp. It should only be used in tests to make
+	// log timestamps deterministic.
+	clock func() time.Time
 }
 
 func New(input *Input) *Configuration {
-	return &Configuration{input: input}
+	c := &Configuration{
+		input: input,
+	}
+	if input.IsTest != nil && *input.IsTest {
+		c.clock = func() time.Time { return time.Time{} }
+	}
+	return c
 }
 
 // Input
@@ -106,6 +117,13 @@ func (c *Configuration) GetArmoryCloudAddr() *url.URL {
 		log.Fatalf(err.Error())
 	}
 	return parsedAddr
+}
+
+func (c *Configuration) Now() time.Time {
+	if c.clock == nil {
+		return time.Now()
+	}
+	return c.clock()
 }
 
 func (c *Configuration) getArmoryCloudAdder() (*url.URL, error) {

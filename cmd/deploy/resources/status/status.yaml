@@ -1,0 +1,27 @@
+id: "12345"
+startedatiso8601: "0001-01-01T00:00:00Z"
+completedatiso8601: ""
+application: app
+description: ""
+context: {}
+source:
+    product: ""
+    version: ""
+environments: []
+status: RUNNING
+initiatedby: ""
+steps:
+    - status: RUNNING
+      ref: ""
+      dependson: []
+      type: deployment
+      constraintfor: ""
+      deployment:
+        id: "5678"
+        environment: ""
+        step: 0
+        totalsteps: 0
+      pause: null
+      webhook: null
+      analysis: null
+
