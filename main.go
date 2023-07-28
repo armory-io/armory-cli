@@ -41,6 +41,6 @@ func main() {
 	}
 
 	// else assume it's a plain error
-	color.New(color.FgRed, color.Bold).Sprintln(err.Error())
+	console.Stderrln(color.New(color.FgRed, color.Bold).Sprintln(err.Error()))
 	os.Exit(int(exitcodes.Error))
 }
