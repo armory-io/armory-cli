@@ -48,11 +48,11 @@ func (a *APIError) DetailedError() string {
 	msg += fmt.Sprintf("%v\n", a.httpStatusCode)
 	e := a.apiErrorResponse.Errors[0]
 	msg += color.New(color.FgRed, color.Bold).Sprintf("Error Message: ")
-	msg += fmt.Sprintf("%v\n", e.Message)
+	msg += fmt.Sprintf("%v", e.Message)
 	if len(e.Metadata) > 0 {
-		msg += color.New(color.FgRed, color.Bold).Sprintf("Error Metadata: ")
+		msg += color.New(color.FgRed, color.Bold).Sprintf("\nError Metadata: ")
 		for key := range e.Metadata {
-			msg += fmt.Sprintf("\t%v=%v\n", key, e.Metadata[key])
+			msg += fmt.Sprintf("\n  %v=%v", key, e.Metadata[key])
 		}
 	}
 	return msg

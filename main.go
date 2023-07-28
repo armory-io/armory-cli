@@ -29,18 +29,23 @@ func main() {
 	rootCmd.SilenceErrors = true
 	// execute the command
 	err = rootCmd.Execute()
+	os.Exit(processCmdResults(err))
+}
+
+// processCmdResults process the results of a commands execution formatting and printing errors to stderr and determining the exit code to use
+func processCmdResults(err error) int {
 	if err == nil {
-		os.Exit(int(exitcodes.Success))
+		return int(exitcodes.Success)
 	}
 
 	// if the error is an API Error deal with it
 	var apiError *clierr.APIError
 	if errors.As(err, &apiError) {
 		console.Stderrln(apiError.DetailedError())
-		os.Exit(apiError.ExitCode())
+		return apiError.ExitCode()
 	}
 
 	// else assume it's a plain error
-	console.Stderrln(color.New(color.FgRed, color.Bold).Sprintln(err.Error()))
-	os.Exit(int(exitcodes.Error))
+	console.Stderrln(color.New(color.FgRed, color.Bold).Sprintf(err.Error()))
+	return int(exitcodes.Error)
 }
