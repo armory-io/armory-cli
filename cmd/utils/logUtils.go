@@ -2,8 +2,6 @@ package utils
 
 import (
 	"github.com/spf13/cobra"
-
-	// TODO: we've moved away from logrus to zap; this needs a refactor
 	log "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -31,5 +29,4 @@ func ConfigureLoggingForTesting(cmd *cobra.Command) {
 
 	defer logger.Sync()
 	log.ReplaceGlobals(logger)
-
 }

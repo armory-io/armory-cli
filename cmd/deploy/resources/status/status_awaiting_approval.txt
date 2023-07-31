@@ -1,0 +1,4 @@
+[0001-01-01T00:00:00Z] application: app, started: 0001-01-01T00:00:00Z
+[0001-01-01T00:00:00Z] status: [AWAITING_APPROVAL] msg: Paused for Manual Judgment. You can approve the rollout and continue the deployment in the CD-as-a-Service Console or CLI.
+
+[0001-01-01T00:00:00Z] See the deployment status UI: https://console.dev.cloud.armory.io:3000/deployments/pipeline/12345?environmentId=
