@@ -9,7 +9,7 @@ const (
 	Success ExitCode = 0
 	// Error exit code for general errors that do not need to be differentiable by the user.
 	Error ExitCode = 1
-	// Conflict exit code for when a command fails do to a conflict, ex: a deployment is already in progress
+	// Conflict exit code for when a command fails due to a conflict, ex: a deployment is already in progress
 	Conflict ExitCode = 3
 
 	// The following exit codes are reserved and not to be used by the CLI
