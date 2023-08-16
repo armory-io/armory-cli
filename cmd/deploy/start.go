@@ -3,6 +3,8 @@ package deploy
 import (
 	"context"
 	"fmt"
+	scm "github.com/armory/armory-cli/cmd/sourceControl"
+	"gopkg.in/yaml.v3"
 	"io"
 	nethttp "net/http"
 	"os"
@@ -20,7 +22,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	log "go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -32,6 +33,7 @@ const (
 	mediaTypePipelineV2        = "application/vnd.start.kubernetes.pipeline.v2+json"
 	mediaTypePipelineV2Link    = "application/vnd.start.kubernetes.pipeline.v2.link+json"
 	mediaTypePipelineRedeploy  = "application/vnd.armory.pipeline-redeploy+json"
+	//TODO maybe move this and the rest of the github scm data related actions and info to a different file?
 )
 
 type deployStartOptions struct {
@@ -41,6 +43,7 @@ type deployStartOptions struct {
 	application       string
 	targetFilters     []string
 	context           map[string]string
+	withScm           bool
 	waitForCompletion bool
 }
 
@@ -125,6 +128,7 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
 	cmd.Flags().StringArrayVarP(&options.targetFilters, "targetFilters", "t", []string{}, "targets specified in the config file to include. Those not specified will be skipped. All specified in the config will be overridden")
 	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{}, "add context values to be used in strategy steps")
+	cmd.Flags().BoolVarP(&options.withScm, "with-scm", "j", false, "add source lineage to be shown in the source card")
 	cmd.Flags().BoolVarP(&options.waitForCompletion, "watch", "w", false, "wait for deployment to complete")
 
 	return cmd
@@ -158,7 +162,15 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	} else {
 		withConfiguration = WithLocalFile
 	}
+
+	fmt.Fprintf(cmd.OutOrStdout(), "with-Scm set to: %t\n", options.withScm)
+	//TODO: scm retrival and parsing
+	if options.withScm {
+		retrieveScmData(cmd)
+	}
+
 	startResp, rawResp, err = withConfiguration(cmd, options, deployClient)
+
 	if err != nil {
 		return err
 	}
@@ -240,6 +252,20 @@ func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 		Context:                 options.context,
 	})
 	return raw, response, err
+}
+func retrieveScmData(cmd *cobra.Command) scm.ScmContext {
+	ghToken := os.Getenv(scm.GhToken)
+
+	var scmc scm.ScmContext
+
+	if ghToken == "" {
+		return scmc
+	}
+
+	scmc = scm.GetGhContext(ghToken)
+
+	fmt.Fprintf(cmd.OutOrStdout(), "current smcc: %s ", scmc)
+	return scmc
 }
 
 func beginTrackingDeployment(cmd *cobra.Command, configuration *config.Configuration, deploy *FormattableDeployStartResponse, deployClient *deployment.Client) {
