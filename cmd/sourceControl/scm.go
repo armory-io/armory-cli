@@ -1,21 +1,24 @@
 package sourceControl
 
-type SourceControlManager string
+type Manager string
 type Reference string
 type Event string
 
 const (
-	gitHub      SourceControlManager = "gitHub"
-	bitbucket   SourceControlManager = "bitbucket"
-	branch      Reference            = "branch"
-	tagRef      Reference            = "tag"
-	pullRequest Event                = "pull_request"
+	gitHub          Manager   = "gitHub"
+	bitbucket       Manager   = "bitbucket"
+	branch          Reference = "branch"
+	tagRef          Reference = "tag"
+	pullRequest     Event     = "pull_request"
+	push            Event     = "push"
+	workfloDispatch Event     = "workflow_dispatch"
 )
 
 type ScmContext struct {
-	scm             SourceControlManager
+	scm             Manager
 	event           Event
 	reference       Reference
+	referenceName   string
 	source          string
 	target          string
 	actor           string

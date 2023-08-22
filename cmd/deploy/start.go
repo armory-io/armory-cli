@@ -47,7 +47,7 @@ type deployStartOptions struct {
 	waitForCompletion bool
 }
 
-type WithDeployConfiguration func(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error)
+type WithDeployConfiguration func(cmd *cobra.Command, options *deployStartOptions, scmc scm.ScmContext, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error)
 
 type FormattableDeployStartResponse struct {
 	// The deployment's ID.
@@ -162,14 +162,12 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	} else {
 		withConfiguration = WithLocalFile
 	}
-
-	fmt.Fprintf(cmd.OutOrStdout(), "with-Scm set to: %t\n", options.withScm)
-	//TODO: scm retrival and parsing
+	var scmc scm.ScmContext
 	if options.withScm {
-		retrieveScmData(cmd)
+		scmc, err = retrieveScmData(cmd)
 	}
 
-	startResp, rawResp, err = withConfiguration(cmd, options, deployClient)
+	startResp, rawResp, err = withConfiguration(cmd, options, scmc, deployClient)
 
 	if err != nil {
 		return err
@@ -185,7 +183,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	return outputCommandResult(deploy, configuration)
 }
 
-func WithURL(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
+func WithURL(cmd *cobra.Command, options *deployStartOptions, scmc scm.ScmContext, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
 	if options.application != "" {
 		return nil, nil, ErrApplicationNameOverrideNotSupported
 	}
@@ -196,6 +194,7 @@ func WithURL(cmd *cobra.Command, options *deployStartOptions, deployClient Armor
 	raw, response, err := deployClient.StartPipeline(ctx, deployment.StartPipelineOptions{
 		ApplicationNameOverride: options.application,
 		Context:                 options.context,
+		Scmc:                    scmc,
 		Headers: map[string]string{
 			"Content-Type":             mediaTypePipelineV2Link,
 			"Accept":                   mediaTypePipelineV2,
@@ -218,7 +217,7 @@ func prepareTargetFilters(options *deployStartOptions) []map[string]any {
 	return targetFilters
 }
 
-func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
+func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, scmc scm.ScmContext, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")
@@ -250,22 +249,24 @@ func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, deployClient
 		UnstructuredDeployment:  payload,
 		ApplicationNameOverride: options.application,
 		Context:                 options.context,
+		Scmc:                    scmc,
 	})
 	return raw, response, err
 }
-func retrieveScmData(cmd *cobra.Command) scm.ScmContext {
+func retrieveScmData(cmd *cobra.Command) (scm.ScmContext, error) {
 	ghToken := os.Getenv(scm.GhToken)
 
 	var scmc scm.ScmContext
+	var err error
 
 	if ghToken == "" {
-		return scmc
+		return scmc, nil
 	}
 
-	scmc = scm.GetGhContext(ghToken)
+	scmc, err = scm.GetGhContext(ghToken)
 
 	fmt.Fprintf(cmd.OutOrStdout(), "current smcc: %s ", scmc)
-	return scmc
+	return scmc, err
 }
 
 func beginTrackingDeployment(cmd *cobra.Command, configuration *config.Configuration, deploy *FormattableDeployStartResponse, deployClient *deployment.Client) {
