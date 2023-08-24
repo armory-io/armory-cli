@@ -164,7 +164,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	}
 	var scmc scm.ScmContext
 	if options.withScm {
-		scmc, err = retrieveScmData(cmd)
+		scmc = scm.RetrieveScmData(cmd)
 	}
 
 	startResp, rawResp, err = withConfiguration(cmd, options, scmc, deployClient)
@@ -252,21 +252,6 @@ func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, scmc scm.Scm
 		Scmc:                    scmc,
 	})
 	return raw, response, err
-}
-func retrieveScmData(cmd *cobra.Command) (scm.ScmContext, error) {
-	ghToken := os.Getenv(scm.GhToken)
-
-	var scmc scm.ScmContext
-	var err error
-
-	if ghToken == "" {
-		return scmc, nil
-	}
-
-	scmc, err = scm.GetGhContext(ghToken)
-
-	fmt.Fprintf(cmd.OutOrStdout(), "current smcc: %s ", scmc)
-	return scmc, err
 }
 
 func beginTrackingDeployment(cmd *cobra.Command, configuration *config.Configuration, deploy *FormattableDeployStartResponse, deployClient *deployment.Client) {
