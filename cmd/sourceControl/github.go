@@ -26,20 +26,39 @@ const (
 	ghWorkflow        = "GITHUB_WORKFLOW"
 )
 
-type GithubScmc struct {
-	BaseScmc
-	Github GithubData `json:"github,omitempty"`
-}
+type (
+	GithubContext struct {
+		BaseContext
+		Github  GithubData `json:"github,omitempty"`
+		service GithubService
+	}
 
-type GithubData struct {
-	RunId    string `json:"runId,omitempty"`
-	Workflow string `json:"workflow,omitempty"`
-}
+	GithubData struct {
+		RunId    string `json:"runId,omitempty"`
+		Workflow string `json:"workflow,omitempty"`
+	}
 
-func (scm GithubScmc) GetContext() (ScmContext, error) {
-	var err error
-	githubScmc := GithubScmc{
-		BaseScmc: BaseScmc{
+	GithubService interface {
+		GetPR() (gh.PullRequest, error)
+	}
+	GithubClient interface {
+		getPR(owner string, repo string, number int) (*gh.PullRequest, error)
+		searchForPr(options *gh.PullRequestListOptions) (*gh.PullRequest, error)
+		init(token string)
+	}
+	DefaultGithubService struct {
+		client GithubClient
+	}
+
+	DefaultGithubClient struct {
+		client gh.Client
+		ctx    context.Context
+	}
+)
+
+func (gc GithubContext) GetContext() (Context, error) {
+	githubContext := GithubContext{
+		BaseContext: BaseContext{
 			Type:                github,
 			Event:               Event(os.Getenv(ghEvent)),
 			Reference:           Reference(os.Getenv(ghRefType)),
@@ -54,25 +73,18 @@ func (scm GithubScmc) GetContext() (ScmContext, error) {
 			Workflow: os.Getenv(ghWorkflow),
 		}}
 
-	token, enabled := os.LookupEnv(ghToken)
-	if !enabled || token == "" {
-		return githubScmc, errors.New("scm is enabled and the GH_TOKEN is missing or empty")
-	}
-
-	client := getGithubClient(token)
-	var pr gh.PullRequest
-	pr, err = getPrInfo(client)
+	pr, err := gc.service.GetPR()
 
 	if err != nil {
-		return githubScmc, err
+		return githubContext, err
 	}
 
-	githubScmc.Source = pr.GetHead().GetRef()
-	githubScmc.Target = pr.GetBase().GetRef()
-	githubScmc.PrTitle = pr.GetTitle()
-	githubScmc.PrUrl = getURL(pr.GetNumber())
+	githubContext.Source = pr.GetHead().GetRef()
+	githubContext.Target = pr.GetBase().GetRef()
+	githubContext.PrTitle = pr.GetTitle()
+	githubContext.PrUrl = getURL(pr.GetNumber())
 
-	return githubScmc, err
+	return githubContext, err
 }
 
 func getURL(number int) string {
@@ -80,14 +92,18 @@ func getURL(number int) string {
 	return url
 }
 
-func getPrInfo(client *gh.Client) (gh.PullRequest, error) {
+func (gp DefaultGithubService) GetPR() (gh.PullRequest, error) {
 
 	var pull *gh.PullRequest
-
 	var prNumber int
 	var err error
 
-	ctx := context.Background()
+	token, enabled := os.LookupEnv(ghToken)
+	if !enabled || token == "" {
+		return gh.PullRequest{}, errors.New("scm is enabled and the GH_TOKEN is missing or empty")
+	}
+
+	gp.client.init(token)
 
 	reference := os.Getenv(ghRef)
 	event := Event(os.Getenv(ghEvent))
@@ -98,20 +114,32 @@ func getPrInfo(client *gh.Client) (gh.PullRequest, error) {
 
 	if event == pullRequest {
 		prNumber, _ = strconv.Atoi(strings.Split(reference, "/")[2])
-		pull, _, err = client.PullRequests.Get(ctx, owner, repoName, prNumber)
+		pull, err = gp.client.getPR(owner, repoName, prNumber)
 	} else {
 		options := &gh.PullRequestListOptions{State: "closed"}
-		pull, err = searchForPr(ctx, client, options)
+		pull, err = gp.client.searchForPr(options)
 		if pull == nil {
 			options.State = "open"
-			pull, err = searchForPr(ctx, client, options)
+			pull, err = gp.client.searchForPr(options)
 		}
 	}
 
 	return *pull, err
 }
 
-func searchForPr(ctx context.Context, client *gh.Client, options *gh.PullRequestListOptions) (*gh.PullRequest, error) {
+func (d *DefaultGithubClient) init(token string) {
+	ctx := d.ctx
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	tc := oauth2.NewClient(ctx, ts)
+	d.client = *gh.NewClient(tc)
+}
+
+func (d *DefaultGithubClient) getPR(owner string, repo string, number int) (*gh.PullRequest, error) {
+	pr, _, err := d.client.PullRequests.Get(d.ctx, owner, repo, number)
+	return pr, err
+}
+
+func (d *DefaultGithubClient) searchForPr(options *gh.PullRequestListOptions) (*gh.PullRequest, error) {
 	sha := os.Getenv(ghSha)
 	repo := os.Getenv(ghRepo)
 	splitRepo := strings.Split(repo, "/")
@@ -120,18 +148,11 @@ func searchForPr(ctx context.Context, client *gh.Client, options *gh.PullRequest
 	var pullRequests []*gh.PullRequest
 	var err error
 
-	pullRequests, _, err = client.PullRequests.List(ctx, owner, repoName, options)
+	pullRequests, _, err = d.client.PullRequests.List(d.ctx, owner, repoName, options)
 	for _, pr := range pullRequests {
 		if pr.GetMergeCommitSHA() == sha {
 			return pr, nil
 		}
 	}
 	return nil, err
-}
-
-func getGithubClient(token string) *gh.Client {
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-	tc := oauth2.NewClient(ctx, ts)
-	return gh.NewClient(tc)
 }

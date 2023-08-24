@@ -1,14 +1,45 @@
 package sourceControl
 
 import (
+	"context"
 	"fmt"
 	"github.com/fatih/color"
-	"github.com/spf13/cobra"
+	"io"
 )
 
-type Manager string
-type Reference string
-type Event string
+type (
+	Manager   string
+	Reference string
+	Event     string
+
+	Context interface {
+		GetContext() (Context, error)
+	}
+
+	ServiceProvider interface {
+		GetGithubService() GithubService
+	}
+
+	DefaultServiceProvider struct {
+		Ctx context.Context
+	}
+
+	BaseContext struct {
+		Type                Manager   `json:"type,omitempty"`
+		Event               Event     `json:"event,omitempty"`
+		Reference           Reference `json:"reference,omitempty"`
+		ReferenceName       string    `json:"referenceName,omitempty"`
+		Source              string    `json:"source,omitempty"`
+		Target              string    `json:"target,omitempty"`
+		Principal           string    `json:"principal,omitempty"`
+		TriggeringPrincipal string    `json:"triggeringPrincipal,omitempty"`
+		PrTitle             string    `json:"prTitle,omitempty"`
+		PrUrl               string    `json:"prUrl,omitempty"`
+		Sha                 string    `json:"sha,omitempty"`
+		Repository          string    `json:"repository,omitempty"`
+		Server              string    `json:"server,omitempty"`
+	}
+)
 
 const (
 	github           Manager   = "github"
@@ -20,36 +51,20 @@ const (
 	workflowDispatch Event     = "workflow_dispatch"
 )
 
-type ScmContext interface {
-	GetContext() (ScmContext, error)
-}
-
-type BaseScmc struct {
-	Type                Manager   `json:"type,omitempty"`
-	Event               Event     `json:"event,omitempty"`
-	Reference           Reference `json:"reference,omitempty"`
-	ReferenceName       string    `json:"referenceName,omitempty"`
-	Source              string    `json:"source,omitempty"`
-	Target              string    `json:"target,omitempty"`
-	Principal           string    `json:"principal,omitempty"`
-	TriggeringPrincipal string    `json:"triggeringPrincipal,omitempty"`
-	PrTitle             string    `json:"prTitle,omitempty"`
-	PrUrl               string    `json:"prUrl,omitempty"`
-	Sha                 string    `json:"sha,omitempty"`
-	Repository          string    `json:"repository,omitempty"`
-	Server              string    `json:"server,omitempty"`
-}
-
-func RetrieveScmData(cmd *cobra.Command) ScmContext {
-	var scmc ScmContext
+func RetrieveContext(out io.Writer, provider ServiceProvider) (Context, error) {
+	var scmc Context
 	var err error
 
-	scmc, err = GithubScmc{}.GetContext()
+	scmc, err = GithubContext{service: provider.GetGithubService()}.GetContext()
 
 	if err != nil {
 		msg := color.New(color.FgYellow, color.Bold).Sprint("scm error: ")
-		fmt.Fprintf(cmd.OutOrStdout(), "%s %s\n\n", msg, err)
+		fmt.Fprintf(out, "%s %s\n\n", msg, err)
 	}
 
-	return scmc
+	return scmc, err
+}
+
+func (d DefaultServiceProvider) GetGithubService() GithubService {
+	return DefaultGithubService{client: &DefaultGithubClient{ctx: context.Background()}}
 }

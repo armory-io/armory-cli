@@ -46,7 +46,7 @@ type deployStartOptions struct {
 	waitForCompletion bool
 }
 
-type WithDeployConfiguration func(cmd *cobra.Command, options *deployStartOptions, scmc scm.ScmContext, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error)
+type WithDeployConfiguration func(cmd *cobra.Command, options *deployStartOptions, scmc scm.Context, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error)
 
 type FormattableDeployStartResponse struct {
 	// The deployment's ID.
@@ -161,9 +161,9 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	} else {
 		withConfiguration = WithLocalFile
 	}
-	var scmc scm.ScmContext
+	var scmc scm.Context
 	if options.withScm {
-		scmc = scm.RetrieveScmData(cmd)
+		scmc, _ = scm.RetrieveContext(cmd.OutOrStdout(), scm.DefaultServiceProvider{Ctx: context.Background()})
 	}
 
 	startResp, rawResp, err = withConfiguration(cmd, options, scmc, deployClient)
@@ -182,7 +182,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	return outputCommandResult(deploy, configuration)
 }
 
-func WithURL(cmd *cobra.Command, options *deployStartOptions, scmc scm.ScmContext, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
+func WithURL(cmd *cobra.Command, options *deployStartOptions, scmc scm.Context, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
 	if options.application != "" {
 		return nil, nil, ErrApplicationNameOverrideNotSupported
 	}
@@ -216,7 +216,7 @@ func prepareTargetFilters(options *deployStartOptions) []map[string]any {
 	return targetFilters
 }
 
-func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, scmc scm.ScmContext, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
+func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, scmc scm.Context, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")

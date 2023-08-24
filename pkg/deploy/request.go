@@ -18,7 +18,7 @@ type (
 		UnstructuredDeployment  map[string]any
 		ApplicationNameOverride string
 		Context                 map[string]string
-		Scmc                    scm.ScmContext
+		Scmc                    scm.Context
 		Headers                 map[string]string
 		IsURL                   bool
 	}
