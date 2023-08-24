@@ -33,7 +33,6 @@ const (
 	mediaTypePipelineV2        = "application/vnd.start.kubernetes.pipeline.v2+json"
 	mediaTypePipelineV2Link    = "application/vnd.start.kubernetes.pipeline.v2.link+json"
 	mediaTypePipelineRedeploy  = "application/vnd.armory.pipeline-redeploy+json"
-	//TODO maybe move this and the rest of the github scm data related actions and info to a different file?
 )
 
 type deployStartOptions struct {
@@ -128,7 +127,7 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
 	cmd.Flags().StringArrayVarP(&options.targetFilters, "targetFilters", "t", []string{}, "targets specified in the config file to include. Those not specified will be skipped. All specified in the config will be overridden")
 	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{}, "add context values to be used in strategy steps")
-	cmd.Flags().BoolVarP(&options.withScm, "with-scm", "j", false, "add source lineage to be shown in the source card")
+	cmd.Flags().BoolVarP(&options.withScm, "with-scm", "", false, "add source lineage to be shown in the source card")
 	cmd.Flags().BoolVarP(&options.waitForCompletion, "watch", "w", false, "wait for deployment to complete")
 
 	return cmd
