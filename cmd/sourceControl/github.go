@@ -97,7 +97,7 @@ func getPrInfo(client *gh.Client) (gh.PullRequest, error) {
 	owner, repoName := splitRepo[0], splitRepo[1]
 
 	if event == pullRequest {
-		prNumber, err = strconv.Atoi(strings.Split(reference, "/")[2])
+		prNumber, _ = strconv.Atoi(strings.Split(reference, "/")[2])
 		pull, _, err = client.PullRequests.Get(ctx, owner, repoName, prNumber)
 	} else {
 		options := &gh.PullRequestListOptions{State: "closed"}
