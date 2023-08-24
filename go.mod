@@ -10,6 +10,8 @@ require (
 	github.com/cbroglie/mustache v1.4.0
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1
 	github.com/fatih/color v1.13.0
+	github.com/fatih/structs v1.1.0
+	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-github/v48 v48.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.7.2
@@ -27,6 +29,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.24.0
+	golang.org/x/oauth2 v0.4.0
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.25.0
@@ -160,7 +163,6 @@ require (
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/oauth2 v0.4.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/term v0.8.0 // indirect
