@@ -8,7 +8,7 @@ type (
 	}
 
 	MockServiceProvider struct {
-		pullRequest gh.PullRequest
+		service GithubService
 	}
 
 	MockGithubClient struct {
@@ -28,8 +28,8 @@ func GetEmptyMockSCMC() Context {
 	return scmc
 }
 
-func (mock MockServiceProvider) GetGithubService() GithubService {
-	return DefaultGithubService{client: MockGithubClient{pullRequest: mock.pullRequest}}
+func (m MockServiceProvider) GetGithubService() GithubService {
+	return m.service
 }
 
 func (m MockGithubClient) init(token string) {

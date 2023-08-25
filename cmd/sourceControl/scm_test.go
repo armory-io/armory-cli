@@ -50,10 +50,9 @@ func TestScm(t *testing.T) {
 		expectErrContains: "GH_TOKEN",
 		expectedSCMC:      getGithubMockContext},
 		{
-			name:  "Happy path",
-			setup: setGithubEnv,
-			provider: MockServiceProvider{
-				pullRequest: testPullRequest},
+			name:         "Happy path",
+			setup:        setGithubEnv,
+			provider:     MockServiceProvider{service: DefaultGithubService{client: MockGithubClient{pullRequest: testPullRequest}}},
 			expectedSCMC: getGithubMockContextWithPR},
 	}
 
