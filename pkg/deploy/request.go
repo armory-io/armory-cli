@@ -18,7 +18,7 @@ type (
 		UnstructuredDeployment  map[string]any
 		ApplicationNameOverride string
 		Context                 map[string]string
-		Scmc                    scm.Context
+		SCMC                    scm.Context
 		Headers                 map[string]string
 		IsURL                   bool
 	}
@@ -86,7 +86,7 @@ func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[strin
 	}
 	deployment[contextKey] = context
 
-	deployment[scmcKey] = options.Scmc
+	deployment[scmcKey] = options.SCMC
 
 	return deployment, nil
 }

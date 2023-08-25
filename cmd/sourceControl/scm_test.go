@@ -30,7 +30,7 @@ func TestScm(t *testing.T) {
 		setup             func()
 		provider          ServiceProvider
 		expectErrContains string
-		expectedScmc      Context
+		expectedSCMC      Context
 	}{{
 		name: "Missing GH_TOKEN",
 		setup: func() {
@@ -38,7 +38,7 @@ func TestScm(t *testing.T) {
 		},
 		provider:          DefaultServiceProvider{},
 		expectErrContains: "GH_TOKEN",
-		expectedScmc: GithubContext{
+		expectedSCMC: GithubContext{
 			BaseContext: BaseContext{
 				Type:      github,
 				Principal: principal}}},
@@ -52,7 +52,7 @@ func TestScm(t *testing.T) {
 			},
 			provider: MockServiceProvider{
 				pullRequest: testPullRequest},
-			expectedScmc: GithubContext{
+			expectedSCMC: GithubContext{
 				BaseContext: BaseContext{
 					Type:       github,
 					Principal:  principal,
@@ -75,7 +75,7 @@ func TestScm(t *testing.T) {
 			} else {
 				assert.NoError(t, actualError)
 			}
-			assert.Equal(t, c.expectedScmc, scmc)
+			assert.Equal(t, c.expectedSCMC, scmc)
 		})
 	}
 

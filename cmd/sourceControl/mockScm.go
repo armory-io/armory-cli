@@ -23,7 +23,7 @@ func (mock MockSmc) GetContext() (Context, error) {
 	return scmc, nil
 }
 
-func GetEmptyMockScmc() Context {
+func GetEmptyMockSCMC() Context {
 	scmc, _ := MockSmc{}.GetContext()
 	return scmc
 }
