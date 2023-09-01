@@ -21,10 +21,9 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Go environment
-        uses: actions/setup-go@v2.1.4
+        uses: actions/setup-go@v3.5.0
         with:
-          go-version: '1.19.7'
-          stable: false
+          go-version-file: 'go.mod'
 
       - name: Cache Dependencies
         uses: actions/cache@v2
