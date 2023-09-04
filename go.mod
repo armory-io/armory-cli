@@ -5,8 +5,8 @@ go 1.20
 require (
 	cuelang.org/go v0.4.3
 	github.com/ahmetb/go-linq/v3 v3.2.0
-	github.com/armory-io/deploy-engine v0.137.4-0.20230901091304-4ff4f2344d74 // TODO change to release version
-	github.com/armory-io/preview-service v0.8.9-0.20230901103352-14868079d4e9 // TODO change to release version
+	github.com/armory-io/deploy-engine v0.137.4
+	github.com/armory-io/preview-service v0.8.9
 	github.com/cbroglie/mustache v1.4.0
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1
 	github.com/fatih/color v1.15.0
