@@ -15,6 +15,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+          token: ${{ secrets.ARMORY_PLATFORM_GITHUB_PAT_TOKEN }}
           submodules: recursive
 
       - name: Setup Go environment
