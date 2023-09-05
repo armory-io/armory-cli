@@ -111,3 +111,12 @@ specificSubdomain.WHATEVER.anythingYouWant {
 While in that directory, execute `caddy run` and it will automatically pick up your configuration, otherwise if you're not in
 the directory use the `--config <locationOfYourConfig>`. You should not see any errors. Make sure your spring potato app
 is running at `localhost:8080`  
+
+
+## First repository clone
+
+After cloning repository, make sure scripts module is initialized:
+
+```shell
+ git submodule update --init --recursive
+```
