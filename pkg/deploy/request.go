@@ -39,7 +39,7 @@ const (
 	applicationKey        = "application"
 	filesKey              = "files"
 	contextKey            = "context"
-	scmcKey               = "scm"
+	scmcKey               = "sourceControl"
 	envVarGithubWorkspace = "GITHUB_WORKSPACE"
 )
 
