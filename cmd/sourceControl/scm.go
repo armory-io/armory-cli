@@ -3,7 +3,6 @@ package sourceControl
 import (
 	"context"
 	"fmt"
-	de "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/fatih/color"
 	"io"
 )
@@ -20,16 +19,6 @@ type (
 	DefaultServiceProvider struct {
 		Ctx context.Context
 	}
-)
-
-const (
-	github           de.Manager   = "github"
-	bitbucket        de.Manager   = "bitbucket"
-	branch           de.Reference = "branch"
-	tagRef           de.Reference = "tag"
-	pullRequest      de.Event     = "pull_request"
-	push             de.Event     = "push"
-	workflowDispatch de.Event     = "workflow_dispatch"
 )
 
 func RetrieveContext(out io.Writer, provider ServiceProvider) (Context, error) {

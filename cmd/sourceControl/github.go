@@ -12,21 +12,6 @@ import (
 	"strings"
 )
 
-const (
-	ghToken           = "GH_TOKEN"
-	ghRepo            = "GITHUB_REPOSITORY"
-	ghRefName         = "GITHUB_REF_NAME"
-	ghActor           = "GITHUB_ACTOR"
-	ghSha             = "GITHUB_SHA"
-	ghEvent           = "GITHUB_EVENT_NAME"
-	ghRef             = "GITHUB_REF"
-	ghTriggeringActor = "GITHUB_TRIGGERING_ACTOR"
-	ghRefType         = "GITHUB_REF_TYPE"
-	ghServer          = "GITHUB_SERVER_URL"
-	ghRunId           = "GITHUB_RUN_ID"
-	ghWorkflow        = "GITHUB_WORKFLOW"
-)
-
 type (
 	GithubContext struct {
 		de.GithubSCM
@@ -55,18 +40,18 @@ func (gc GithubContext) GetContext() (Context, error) {
 	githubContext := GithubContext{
 		GithubSCM: de.GithubSCM{
 			SCM: de.SCM{
-				Type:                github,
-				Event:               de.Event(os.Getenv(ghEvent)),
-				Reference:           de.Reference(os.Getenv(ghRefType)),
-				ReferenceName:       os.Getenv(ghRefName),
-				Principal:           os.Getenv(ghActor),
-				TriggeringPrincipal: os.Getenv(ghTriggeringActor),
-				SHA:                 os.Getenv(ghSha),
-				Repository:          os.Getenv(ghRepo),
-				Server:              os.Getenv(ghServer)},
+				Type:                de.Github,
+				Event:               de.Event(os.Getenv(de.GithubEvent)),
+				Reference:           de.Reference(os.Getenv(de.GithubRefType)),
+				ReferenceName:       os.Getenv(de.GithubRefName),
+				Principal:           os.Getenv(de.GithubActor),
+				TriggeringPrincipal: os.Getenv(de.GithubTriggeringActor),
+				SHA:                 os.Getenv(de.GithubSHA),
+				Repository:          os.Getenv(de.GithubRepo),
+				Server:              os.Getenv(de.GithubServer)},
 			GithubData: de.GithubData{
-				RunId:    os.Getenv(ghRunId),
-				Workflow: os.Getenv(ghWorkflow),
+				RunId:    os.Getenv(de.GithubRunID),
+				Workflow: os.Getenv(de.GithubWorkflow),
 			}}}
 
 	pr, err := gc.service.GetPR()
@@ -84,7 +69,7 @@ func (gc GithubContext) GetContext() (Context, error) {
 }
 
 func getURL(number int) string {
-	url := fmt.Sprintf("%s/%s/pull/%d", os.Getenv(ghServer), os.Getenv(ghRepo), number)
+	url := fmt.Sprintf("%s/%s/pull/%d", os.Getenv(de.GithubServer), os.Getenv(de.GithubRepo), number)
 	return url
 }
 
@@ -94,17 +79,17 @@ func (gp DefaultGithubService) GetPR() (gh.PullRequest, error) {
 	var prNumber int
 	var err error
 
-	token, enabled := os.LookupEnv(ghToken)
+	token, enabled := os.LookupEnv(de.GithubToken)
 	if !enabled || token == "" {
 		return gh.PullRequest{}, errors.New("scm is enabled and the GH_TOKEN is missing or empty")
 	}
 
 	gp.client.init(token)
 
-	reference := os.Getenv(ghRef)
-	event := de.Event(os.Getenv(ghEvent))
+	reference := os.Getenv(de.GithubRef)
+	event := de.Event(os.Getenv(de.GithubEvent))
 
-	repo := os.Getenv(ghRepo)
+	repo := os.Getenv(de.GithubRepo)
 	err = checkNotEmpty(reference, repo)
 	if err != nil {
 		return gh.PullRequest{}, err
@@ -113,7 +98,7 @@ func (gp DefaultGithubService) GetPR() (gh.PullRequest, error) {
 	splitRepo := strings.Split(repo, "/")
 	owner, repoName := splitRepo[0], splitRepo[1]
 
-	if event == pullRequest {
+	if event == de.PullRequest {
 		prNumber, _ = strconv.Atoi(strings.Split(reference, "/")[2])
 		pull, err = gp.client.getPR(owner, repoName, prNumber)
 	} else {
@@ -146,8 +131,8 @@ func (d *DefaultGithubClient) searchForPr(options *gh.PullRequestListOptions) (*
 	var pullRequests []*gh.PullRequest
 	var err error
 
-	sha := os.Getenv(ghSha)
-	repo := os.Getenv(ghRepo)
+	sha := os.Getenv(de.GithubSHA)
+	repo := os.Getenv(de.GithubRepo)
 
 	err = checkNotEmpty(sha, repo)
 	if err != nil {

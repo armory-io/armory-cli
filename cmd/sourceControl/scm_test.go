@@ -45,7 +45,7 @@ func TestScm(t *testing.T) {
 		name: "Missing GH_TOKEN",
 		setup: func() {
 			setGithubEnv()
-			os.Setenv(ghToken, "")
+			os.Setenv(de.GithubToken, "")
 		},
 		provider:          DefaultServiceProvider{},
 		expectErrContains: "GH_TOKEN",
@@ -59,7 +59,7 @@ func TestScm(t *testing.T) {
 			name: "Missing repo",
 			setup: func() {
 				setGithubEnv()
-				os.Setenv(ghRepo, "")
+				os.Setenv(de.GithubRepo, "")
 			},
 			provider:          MockServiceProvider{service: DefaultGithubService{client: MockGithubClient{pullRequest: testPullRequest}}},
 			expectErrContains: "missing",
@@ -82,23 +82,23 @@ func TestScm(t *testing.T) {
 
 }
 func setGithubEnv() {
-	token = setOrRetrieveEnv(ghToken, token)
-	repo = setOrRetrieveEnv(ghRepo, repo)
-	refName = setOrRetrieveEnv(ghRefName, refName)
-	actor = setOrRetrieveEnv(ghActor, actor)
-	sha = setOrRetrieveEnv(ghSha, sha)
-	event = setOrRetrieveEnv(ghEvent, event)
-	ref = setOrRetrieveEnv(ghRef, ref)
-	triggeringActor = setOrRetrieveEnv(ghTriggeringActor, triggeringActor)
-	refType = setOrRetrieveEnv(ghRefType, refType)
-	server = setOrRetrieveEnv(ghServer, server)
-	runId = setOrRetrieveEnv(ghRunId, runId)
-	workflow = setOrRetrieveEnv(ghWorkflow, workflow)
+	token = setOrRetrieveEnv(de.GithubToken, token)
+	repo = setOrRetrieveEnv(de.GithubRepo, repo)
+	refName = setOrRetrieveEnv(de.GithubRefName, refName)
+	actor = setOrRetrieveEnv(de.GithubActor, actor)
+	sha = setOrRetrieveEnv(de.GithubSHA, sha)
+	event = setOrRetrieveEnv(de.GithubEvent, event)
+	ref = setOrRetrieveEnv(de.GithubRef, ref)
+	triggeringActor = setOrRetrieveEnv(de.GithubTriggeringActor, triggeringActor)
+	refType = setOrRetrieveEnv(de.GithubRefType, refType)
+	server = setOrRetrieveEnv(de.GithubServer, server)
+	runId = setOrRetrieveEnv(de.GithubRunID, runId)
+	workflow = setOrRetrieveEnv(de.GithubWorkflow, workflow)
 }
 
 func getBaseContext() de.SCM {
 	return de.SCM{
-		Type:                github,
+		Type:                de.Github,
 		Event:               de.Event(event),
 		Reference:           de.Reference(refType),
 		ReferenceName:       refName,
