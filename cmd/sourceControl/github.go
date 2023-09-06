@@ -105,6 +105,11 @@ func (gp DefaultGithubService) GetPR() (gh.PullRequest, error) {
 	event := de.Event(os.Getenv(ghEvent))
 
 	repo := os.Getenv(ghRepo)
+	err = checkNotEmpty(reference, repo)
+	if err != nil {
+		return gh.PullRequest{}, err
+	}
+
 	splitRepo := strings.Split(repo, "/")
 	owner, repoName := splitRepo[0], splitRepo[1]
 
@@ -119,7 +124,9 @@ func (gp DefaultGithubService) GetPR() (gh.PullRequest, error) {
 			pull, err = gp.client.searchForPr(options)
 		}
 	}
-
+	if pull == nil {
+		pull = &gh.PullRequest{}
+	}
 	return *pull, err
 }
 
@@ -136,13 +143,18 @@ func (d *DefaultGithubClient) getPR(owner string, repo string, number int) (*gh.
 }
 
 func (d *DefaultGithubClient) searchForPr(options *gh.PullRequestListOptions) (*gh.PullRequest, error) {
-	sha := os.Getenv(ghSha)
-	repo := os.Getenv(ghRepo)
-	splitRepo := strings.Split(repo, "/")
-	owner, repoName := splitRepo[0], splitRepo[1]
-
 	var pullRequests []*gh.PullRequest
 	var err error
+
+	sha := os.Getenv(ghSha)
+	repo := os.Getenv(ghRepo)
+
+	err = checkNotEmpty(sha, repo)
+	if err != nil {
+		return &gh.PullRequest{}, err
+	}
+	splitRepo := strings.Split(repo, "/")
+	owner, repoName := splitRepo[0], splitRepo[1]
 
 	pullRequests, _, err = d.client.PullRequests.List(d.ctx, owner, repoName, options)
 	for _, pr := range pullRequests {
@@ -151,4 +163,13 @@ func (d *DefaultGithubClient) searchForPr(options *gh.PullRequestListOptions) (*
 		}
 	}
 	return nil, err
+}
+
+func checkNotEmpty(values ...string) error {
+	for _, value := range values {
+		if value == "" {
+			return errors.New("missing environment properties")
+		}
+	}
+	return nil
 }
