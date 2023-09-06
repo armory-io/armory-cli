@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	de "github.com/armory-io/deploy-engine/pkg/api"
 	gh "github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 	"os"
@@ -28,14 +29,8 @@ const (
 
 type (
 	GithubContext struct {
-		BaseContext
-		Github  GithubData `json:"github,omitempty"`
+		de.GithubSCM
 		service GithubService
-	}
-
-	GithubData struct {
-		RunId    string `json:"runId,omitempty"`
-		Workflow string `json:"workflow,omitempty"`
 	}
 
 	GithubService interface {
@@ -58,20 +53,21 @@ type (
 
 func (gc GithubContext) GetContext() (Context, error) {
 	githubContext := GithubContext{
-		BaseContext: BaseContext{
-			Type:                github,
-			Event:               Event(os.Getenv(ghEvent)),
-			Reference:           Reference(os.Getenv(ghRefType)),
-			ReferenceName:       os.Getenv(ghRefName),
-			Principal:           os.Getenv(ghActor),
-			TriggeringPrincipal: os.Getenv(ghTriggeringActor),
-			Sha:                 os.Getenv(ghSha),
-			Repository:          os.Getenv(ghRepo),
-			Server:              os.Getenv(ghServer)},
-		Github: GithubData{
-			RunId:    os.Getenv(ghRunId),
-			Workflow: os.Getenv(ghWorkflow),
-		}}
+		GithubSCM: de.GithubSCM{
+			SCM: de.SCM{
+				Type:                github,
+				Event:               de.Event(os.Getenv(ghEvent)),
+				Reference:           de.Reference(os.Getenv(ghRefType)),
+				ReferenceName:       os.Getenv(ghRefName),
+				Principal:           os.Getenv(ghActor),
+				TriggeringPrincipal: os.Getenv(ghTriggeringActor),
+				SHA:                 os.Getenv(ghSha),
+				Repository:          os.Getenv(ghRepo),
+				Server:              os.Getenv(ghServer)},
+			GithubData: de.GithubData{
+				RunId:    os.Getenv(ghRunId),
+				Workflow: os.Getenv(ghWorkflow),
+			}}}
 
 	pr, err := gc.service.GetPR()
 
@@ -81,8 +77,8 @@ func (gc GithubContext) GetContext() (Context, error) {
 
 	githubContext.Source = pr.GetHead().GetRef()
 	githubContext.Target = pr.GetBase().GetRef()
-	githubContext.PrTitle = pr.GetTitle()
-	githubContext.PrUrl = getURL(pr.GetNumber())
+	githubContext.PRTitle = pr.GetTitle()
+	githubContext.PRUrl = getURL(pr.GetNumber())
 
 	return githubContext, err
 }
@@ -106,7 +102,7 @@ func (gp DefaultGithubService) GetPR() (gh.PullRequest, error) {
 	gp.client.init(token)
 
 	reference := os.Getenv(ghRef)
-	event := Event(os.Getenv(ghEvent))
+	event := de.Event(os.Getenv(ghEvent))
 
 	repo := os.Getenv(ghRepo)
 	splitRepo := strings.Split(repo, "/")

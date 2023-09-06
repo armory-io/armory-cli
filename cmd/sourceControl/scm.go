@@ -3,15 +3,12 @@ package sourceControl
 import (
 	"context"
 	"fmt"
+	de "github.com/armory-io/deploy-engine/pkg/api"
 	"github.com/fatih/color"
 	"io"
 )
 
 type (
-	Manager   string
-	Reference string
-	Event     string
-
 	Context interface {
 		GetContext() (Context, error)
 	}
@@ -23,32 +20,16 @@ type (
 	DefaultServiceProvider struct {
 		Ctx context.Context
 	}
-
-	BaseContext struct {
-		Type                Manager   `json:"type,omitempty"`
-		Event               Event     `json:"event,omitempty"`
-		Reference           Reference `json:"reference,omitempty"`
-		ReferenceName       string    `json:"referenceName,omitempty"`
-		Source              string    `json:"source,omitempty"`
-		Target              string    `json:"target,omitempty"`
-		Principal           string    `json:"principal,omitempty"`
-		TriggeringPrincipal string    `json:"triggeringPrincipal,omitempty"`
-		PrTitle             string    `json:"prTitle,omitempty"`
-		PrUrl               string    `json:"prUrl,omitempty"`
-		Sha                 string    `json:"sha,omitempty"`
-		Repository          string    `json:"repository,omitempty"`
-		Server              string    `json:"server,omitempty"`
-	}
 )
 
 const (
-	github           Manager   = "github"
-	bitbucket        Manager   = "bitbucket"
-	branch           Reference = "branch"
-	tagRef           Reference = "tag"
-	pullRequest      Event     = "pull_request"
-	push             Event     = "push"
-	workflowDispatch Event     = "workflow_dispatch"
+	github           de.Manager   = "github"
+	bitbucket        de.Manager   = "bitbucket"
+	branch           de.Reference = "branch"
+	tagRef           de.Reference = "tag"
+	pullRequest      de.Event     = "pull_request"
+	push             de.Event     = "push"
+	workflowDispatch de.Event     = "workflow_dispatch"
 )
 
 func RetrieveContext(out io.Writer, provider ServiceProvider) (Context, error) {

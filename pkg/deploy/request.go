@@ -2,14 +2,13 @@ package deploy
 
 import (
 	scm "github.com/armory/armory-cli/cmd/sourceControl"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
+	"github.com/mitchellh/mapstructure"
+	"github.com/samber/lo"
 	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
-
-	errorUtils "github.com/armory/armory-cli/pkg/errors"
-	"github.com/mitchellh/mapstructure"
-	"github.com/samber/lo"
 )
 
 type (

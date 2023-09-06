@@ -3,6 +3,7 @@ package sourceControl
 import (
 	"bytes"
 	"fmt"
+	de "github.com/armory-io/deploy-engine/pkg/api"
 	gh "github.com/google/go-github/github"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -87,15 +88,15 @@ func setGithubEnv() {
 	workflow = setOrRetrieveEnv(ghWorkflow, workflow)
 }
 
-func getBaseContext() BaseContext {
-	return BaseContext{
+func getBaseContext() de.SCM {
+	return de.SCM{
 		Type:                github,
-		Event:               Event(event),
-		Reference:           Reference(refType),
+		Event:               de.Event(event),
+		Reference:           de.Reference(refType),
 		ReferenceName:       refName,
 		Principal:           actor,
 		TriggeringPrincipal: triggeringActor,
-		Sha:                 sha,
+		SHA:                 sha,
 		Repository:          repo,
 		Server:              server,
 	}
@@ -103,24 +104,26 @@ func getBaseContext() BaseContext {
 
 func getGithubMockContext() Context {
 	return GithubContext{
-		BaseContext: getBaseContext(),
-		Github: GithubData{
-			RunId:    runId,
-			Workflow: workflow,
-		}}
+		GithubSCM: de.GithubSCM{
+			SCM: getBaseContext(),
+			GithubData: de.GithubData{
+				RunId:    runId,
+				Workflow: workflow,
+			}}}
 }
 
 func getGithubMockContextWithPR() Context {
 	context := GithubContext{
-		BaseContext: getBaseContext(),
-		Github: GithubData{
-			RunId:    runId,
-			Workflow: workflow,
-		}}
+		GithubSCM: de.GithubSCM{
+			SCM: getBaseContext(),
+			GithubData: de.GithubData{
+				RunId:    runId,
+				Workflow: workflow,
+			}}}
 	context.Source = sourceBranch
 	context.Target = targetBranch
-	context.PrTitle = title
-	context.PrUrl = fmt.Sprintf("%s/%s/pull/%d", server, repo, number)
+	context.PRTitle = title
+	context.PRUrl = fmt.Sprintf("%s/%s/pull/%d", server, repo, number)
 	return context
 }
 

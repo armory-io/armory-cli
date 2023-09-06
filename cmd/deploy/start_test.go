@@ -7,6 +7,7 @@ import (
 	scm "github.com/armory/armory-cli/cmd/sourceControl"
 	"github.com/armory/armory-cli/internal/clierr"
 	"github.com/armory/armory-cli/internal/clierr/exitcodes"
+	"gopkg.in/yaml.v3"
 	"io"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	de "github.com/armory-io/deploy-engine/pkg/api"
+
 	"github.com/armory/armory-cli/pkg/config"
 	"github.com/armory/armory-cli/pkg/util"
 	"github.com/jarcoal/httpmock"
@@ -22,7 +24,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"gopkg.in/yaml.v3"
 )
 
 func TestDeployStartTestSuite(t *testing.T) {

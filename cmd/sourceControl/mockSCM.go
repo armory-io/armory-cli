@@ -1,10 +1,13 @@
 package sourceControl
 
-import gh "github.com/google/go-github/github"
+import (
+	de "github.com/armory-io/deploy-engine/pkg/api"
+	gh "github.com/google/go-github/github"
+)
 
 type (
 	MockSmc struct {
-		BaseContext
+		de.SCM
 	}
 
 	MockServiceProvider struct {
@@ -18,7 +21,7 @@ type (
 
 func (mock MockSmc) GetContext() (Context, error) {
 	scmc := MockSmc{
-		BaseContext: BaseContext{
+		SCM: de.SCM{
 			Type: "mock"}}
 	return scmc, nil
 }
