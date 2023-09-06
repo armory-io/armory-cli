@@ -55,7 +55,15 @@ func TestScm(t *testing.T) {
 			setup:        setGithubEnv,
 			provider:     MockServiceProvider{service: DefaultGithubService{client: MockGithubClient{pullRequest: testPullRequest}}},
 			expectedSCMC: getGithubMockContextWithPR},
-	}
+		{
+			name: "Missing repo",
+			setup: func() {
+				setGithubEnv()
+				os.Setenv(ghRepo, "")
+			},
+			provider:          MockServiceProvider{service: DefaultGithubService{client: MockGithubClient{pullRequest: testPullRequest}}},
+			expectErrContains: "missing",
+			expectedSCMC:      getGithubMockContextNoRepo}}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -124,6 +132,19 @@ func getGithubMockContextWithPR() Context {
 	context.Target = targetBranch
 	context.PRTitle = title
 	context.PRUrl = fmt.Sprintf("%s/%s/pull/%d", server, repo, number)
+	return context
+}
+
+func getGithubMockContextNoRepo() Context {
+	base := getBaseContext()
+	base.Repository = ""
+	context := GithubContext{
+		GithubSCM: de.GithubSCM{
+			SCM: base,
+			GithubData: de.GithubData{
+				RunId:    runId,
+				Workflow: workflow,
+			}}}
 	return context
 }
 
