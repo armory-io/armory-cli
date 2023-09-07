@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-const binaryName = "armory"
+//const binaryName = "armory"
 const version = "integration_test"
 
 var binaryPath string
