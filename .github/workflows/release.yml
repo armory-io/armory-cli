@@ -240,34 +240,24 @@ jobs:
           TOKEN: ${{ steps.get_token.outputs.app_token }}
         run: git config --global url."https://x-access-token:${TOKEN}@github.com".insteadOf "https://github.com"
 
-      - name: Build CLI
-        env:
-          VERSION: ${{ needs.setup.outputs.version }}
-        run: make release
-
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v3
-        with:
-          images: armory/armory-cli
-          tags: |
-            type=semver,pattern={{version}},value=${{ needs.setup.outputs.version }}
-
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASS }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BUILD_PATH=./build/bin/linux_amd64/armory
+      - name: Docker meta
+        id: meta
+        run: |
+          export VERSION=${{ needs.setup.outputs.version }}
+          VERSION=$(cut -c2- <<< VERSION)
+          echo ::set-output name=VERSION::$(echo -e "${VERSION}")
+
+      - name: Build and push CLI
+        env:
+          VERSION: ${{ steps.meta.outputs.VERSION }}
+          IMAGE_TAG: latest
+        run: make release
 
   scan-image:
     name: CVE Image Scan

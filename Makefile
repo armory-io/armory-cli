@@ -1,7 +1,7 @@
 APP_NAME              = armory
 APP_EXT               ?= "${CLI_EXT}"
 VERSION               ?= $(shell ./scripts/version.sh)
-REGISTRY              ?="armory-docker-local.jfrog.io"
+REGISTRY              ?=""
 REGISTRY_ORG          ?="armory"
 GOARCH                ?= $(shell go env GOARCH)
 GOOS                  ?= $(shell go env GOOS)
@@ -45,8 +45,9 @@ integration: build-dirs install-tools
 .PHONY: release
 release: clean build-linux-amd64
 	@echo Release version of armory-cli ${VERSION} created in ${DIST_DIR}/${APP_NAME}${APP_EXT}
-	@echo $(TIMESTAMP) $(IMAGE_TAG)
-	@docker build --tag $(REGISTRY_ORG)/${APP_NAME}-cli:$(IMAGE_TAG) \
+	@docker build \
+	--tag $(REGISTRY)$(REGISTRY_ORG)/$(APP_NAME)-cli:$(IMAGE_TAG) \
+	--tag $(REGISTRY)$(REGISTRY_ORG)/$(APP_NAME)-cli:$(VERSION) \
 	--label "org.opencontainers.image.created=$(TIMESTAMP)" \
 	--label "org.opencontainers.image.description=The CLI for Armory Continuous Deployments-as-a-Service" \
 	--label "org.opencontainers.image.revision=$(GITHUB_SHA)" \

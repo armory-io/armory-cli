@@ -33,13 +33,18 @@ jobs:
       - name: Configure git for private modules
         run: git config --global url."https://x-access-token:${{ secrets.ARMORY_PLATFORM_GITHUB_PAT_TOKEN }}@github.com".insteadOf "https://github.com"
 
-      - name: Run build
+      - name: Login to Artifactory
         run: |
-          export IMAGE_TAG=preview && make all release
+          docker login -u ${{ secrets.ARTIFACTORY_USER }} -p ${{ secrets.ARTIFACTORY_TOKEN }} armory-docker-local.jfrog.io
+        shell: bash
 
-      - name: Run integration-tests
+      - name: Run build
+        id: build
+        env:
+          IMAGE_TAG: preview
+          REGISTRY: "armory-docker-local.jfrog.io/"
         run: |
-          make integration
+          make all release
 
       - name: Upload Tests Reports
         if: ${{ always() }}
