@@ -49,14 +49,14 @@ release: clean build-linux-amd64
 	@docker build \
 	--tag $(REGISTRY)$(REGISTRY_ORG)/$(APP_NAME)-cli:$(IMAGE_TAG) \
 	--tag $(REGISTRY)$(REGISTRY_ORG)/$(APP_NAME)-cli:$(VERSION) \
-	--label "org.opencontainers.image.created=\"$(TIMESTAMP)\"" \
-	--label "org.opencontainers.image.description=\"The CLI for Armory Continuous Deployments-as-a-Service\"" \
-	--label "org.opencontainers.image.revision=\"$(GITHUB_SHA)\"" \
-	--label "org.opencontainers.image.licenses=\"Apache-2.0\"" \
-	--label "org.opencontainers.image.source=\"https://github.com/armory-io/armory-cli\"" \
-	--label "org.opencontainers.image.title=\"armory-cli\"" \
-	--label "org.opencontainers.image.url=\"https://github.com/armory-io/armory-cli\"" \
-	--label "org.opencontainers.image.version=\"$(VERSION)\"" \
+	--label "org.opencontainers.image.created=$(TIMESTAMP)" \
+	--label "org.opencontainers.image.description=The CLI for Armory Continuous Deployments-as-a-Service" \
+	--label "org.opencontainers.image.revision=${GITHUB_SHA:-none}" \
+	--label "org.opencontainers.image.licenses=Apache-2.0" \
+	--label "org.opencontainers.image.source=https://github.com/armory-io/armory-cli" \
+	--label "org.opencontainers.image.title=armory-cli" \
+	--label "org.opencontainers.image.url=https://github.com/armory-io/armory-cli" \
+	--label "org.opencontainers.image.version=$(VERSION)" \
 	-f Dockerfile . \
 	$(PUSH)
 
