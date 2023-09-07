@@ -30,12 +30,12 @@ github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj
 github.com/armon/go-radix v1.0.0 h1:F4z6KzEeeQIMeLFa97iZU6vupzoecKdU5TX24SNppXI=
 github.com/armon/go-radix v1.0.0/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
-github.com/armory-io/deploy-engine v0.137.4 h1:hZgKreLkJYuXbZkKsMWt/SATGHmzgflPaEehgrPg2ug=
-github.com/armory-io/deploy-engine v0.137.4/go.mod h1:bEGuhhEHHic7pJD2u0DVg23P/0TtY+4WT2/IqbJZba4=
+github.com/armory-io/deploy-engine v0.138.0 h1:gJu4HzsxmeRtY8B1gidZWCMHouJiIJPDvn5p0RXq+ak=
+github.com/armory-io/deploy-engine v0.138.0/go.mod h1:bEGuhhEHHic7pJD2u0DVg23P/0TtY+4WT2/IqbJZba4=
 github.com/armory-io/go-commons v1.41.1 h1:8U70BZVB6Mu/l/tIPgZc3CUUBm5TcolarrVhES0UU4I=
 github.com/armory-io/go-commons v1.41.1/go.mod h1:CnF4QzO7i6xD0LR5sbWsDs+aMDfkBn4wp5xTx/tLMLs=
-github.com/armory-io/preview-service v0.8.9 h1:AjGbgMKy03YIeX4FqssJhDOns0qhuTV5n6f0Ch1XvZg=
-github.com/armory-io/preview-service v0.8.9/go.mod h1:na6lvlKoRPdRboTQ+WtEC0XivsuvIwj7HGBAm9At+1I=
+github.com/armory-io/preview-service v0.5.0 h1:clI2Zj2mwlEYglfARe5nIA+XSEsG9n872GhVPpqjzTw=
+github.com/armory-io/preview-service v0.5.0/go.mod h1:asiLe2bmZQnapFF4ljKuPpjpzGbLlLP2PpXgpiKobxk=
 github.com/aws/aws-sdk-go v1.44.124 h1:Xe1WQRUUekZf6ZFm3SD0vplB/AP/hymVqMiRS9LQRIs=
 github.com/aws/aws-sdk-go v1.44.124/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
@@ -180,6 +180,8 @@ github.com/google/go-cmp v0.5.3/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
+github.com/google/go-github v17.0.0+incompatible h1:N0LgJ1j65A7kfXrZnUDaYCs/Sf4rEjNlfyDHW9dolSY=
+github.com/google/go-github v17.0.0+incompatible/go.mod h1:zLgOLi98H3fifZn+44m+umXrS52loVEgC2AApnigrVQ=
 github.com/google/go-github/v48 v48.0.0 h1:9H5fWVXFK6ZsRriyPbjtnFAkJnoj0WKFtTYfpCRrTm8=
 github.com/google/go-github/v48 v48.0.0/go.mod h1:dDlehKBDo850ZPvCTK0sEqTCVWcrGl2LcDiajkYi89Y=
 github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=

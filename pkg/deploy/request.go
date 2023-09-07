@@ -1,14 +1,14 @@
 package deploy
 
 import (
+	scm "github.com/armory/armory-cli/cmd/sourceControl"
+	errorUtils "github.com/armory/armory-cli/pkg/errors"
+	"github.com/mitchellh/mapstructure"
+	"github.com/samber/lo"
 	"io/fs"
 	"net/url"
 	"os"
 	"path/filepath"
-
-	errorUtils "github.com/armory/armory-cli/pkg/errors"
-	"github.com/mitchellh/mapstructure"
-	"github.com/samber/lo"
 )
 
 type (
@@ -17,6 +17,7 @@ type (
 		UnstructuredDeployment  map[string]any
 		ApplicationNameOverride string
 		Context                 map[string]string
+		SCMC                    scm.Context
 		Headers                 map[string]string
 		IsURL                   bool
 	}
@@ -35,10 +36,10 @@ type (
 )
 
 const (
-	applicationKey = "application"
-	filesKey       = "files"
-	contextKey     = "context"
-
+	applicationKey        = "application"
+	filesKey              = "files"
+	contextKey            = "context"
+	scmcKey               = "sourceControl"
 	envVarGithubWorkspace = "GITHUB_WORKSPACE"
 )
 
@@ -74,6 +75,7 @@ func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[strin
 
 	deployment[applicationKey] = application
 	deployment[filesKey] = manifestFiles
+
 	context := map[string]any{}
 	if c, ok := deployment[contextKey].(map[string]any); ok {
 		context = lo.Assign(context, c)
@@ -82,6 +84,9 @@ func convertPipelineOptionsToAPIRequest(options StartPipelineOptions) (map[strin
 		context[key] = value
 	}
 	deployment[contextKey] = context
+
+	deployment[scmcKey] = options.SCMC
+
 	return deployment, nil
 }
 
