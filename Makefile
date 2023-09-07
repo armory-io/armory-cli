@@ -6,7 +6,7 @@ REGISTRY_ORG          ?="armory"
 GOARCH                ?= $(shell go env GOARCH)
 GOOS                  ?= $(shell go env GOOS)
 PWD                   =  $(shell pwd)
-IMAGE_TAG             ?= $(VERSION)
+IMAGE_TAG             ?= "local"
 LOCAL_KUBECTL_CONTEXT ?= "kind-armory-cloud-dev"
 IMAGE                 := $(subst $\",,$(REGISTRY)/$(REGISTRY_ORG)/${APP_NAME}:${VERSION})
 BUILD_DIR             := ${PWD}/build
@@ -14,6 +14,7 @@ DIST_DIR              := ${BUILD_DIR}/dist/$(GOOS)_$(GOARCH)
 GEN_DIR               := ${PWD}/generated
 MAIN_PATH			  := "main.go"
 TIMESTAMP			  := $(shell date -u +"%FT%TZ")
+PUSH				  := $(if $(GITHUB_SHA),"--push", "")
 
 default: all
 
@@ -48,15 +49,15 @@ release: clean build-linux-amd64
 	@docker build \
 	--tag $(REGISTRY)$(REGISTRY_ORG)/$(APP_NAME)-cli:$(IMAGE_TAG) \
 	--tag $(REGISTRY)$(REGISTRY_ORG)/$(APP_NAME)-cli:$(VERSION) \
-	--label "org.opencontainers.image.created=$(TIMESTAMP)" \
-	--label "org.opencontainers.image.description=The CLI for Armory Continuous Deployments-as-a-Service" \
-	--label "org.opencontainers.image.revision=$(GITHUB_SHA)" \
-	--label "org.opencontainers.image.licenses=Apache-2.0" \
-	--label "org.opencontainers.image.source=https://github.com/armory-io/armory-cli" \
-	--label "org.opencontainers.image.title=armory-cli" \
-	--label "org.opencontainers.image.url=https://github.com/armory-io/armory-cli" \
-	--label "org.opencontainers.image.version=$(VERSION)" \
+	--label "org.opencontainers.image.created=\"$(TIMESTAMP)\"" \
+	--label "org.opencontainers.image.description=\"The CLI for Armory Continuous Deployments-as-a-Service\"" \
+	--label "org.opencontainers.image.revision=\"$(GITHUB_SHA)\"" \
+	--label "org.opencontainers.image.licenses=\"Apache-2.0\"" \
+	--label "org.opencontainers.image.source=\"https://github.com/armory-io/armory-cli\"" \
+	--label "org.opencontainers.image.title=\"armory-cli\"" \
+	--label "org.opencontainers.image.url=\"https://github.com/armory-io/armory-cli\"" \
+	--label "org.opencontainers.image.version=\"$(VERSION)\"" \
 	-f Dockerfile . \
-	--push
+	$(PUSH)
 
 
