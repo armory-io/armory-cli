@@ -1,6 +1,6 @@
 APP_NAME              = armory
 APP_EXT               ?= "${CLI_EXT}"
-VERSION               ?= $(shell ./scripts/version.sh)
+VERSION               ?= $(shell ./scripts/version.sh | cut -c -30) #limit the version to 30 characters - 
 REGISTRY              ?=""
 REGISTRY_ORG          ?="armory"
 GOARCH                ?= $(shell go env GOARCH)
@@ -19,6 +19,10 @@ PUSH				  := $(if $(GITHUB_SHA),"--push", "")
 default: all
 
 include ./scripts/common_targets.mk
+
+.PHONY: foo
+foo:
+	@echo $(VERSION)
 
 .PHONY: all
 all: clean build-dirs run-before-tools build check run-after-tools
