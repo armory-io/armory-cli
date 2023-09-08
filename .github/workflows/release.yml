@@ -208,7 +208,7 @@ jobs:
       - compile
     runs-on: ubuntu-latest
     outputs:
-      docker-version: ${{ steps.meta.outputs.version }}
+      docker-version: ${{ steps.meta.outputs.VERSION }}
     steps:
       - name: Get GitHub App Installation Token for Private Go Repos
         id: get_token
