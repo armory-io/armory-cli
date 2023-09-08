@@ -44,7 +44,7 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASS }}
 
-      - name: Run build
+      - name: Run build, generate and push docker image preview
         id: build
         env:
           IMAGE_TAG: preview
