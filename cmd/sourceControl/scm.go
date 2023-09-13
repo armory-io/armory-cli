@@ -28,7 +28,7 @@ func RetrieveContext(out io.Writer, provider ServiceProvider) (Context, error) {
 	scmc, err = GithubContext{service: provider.GetGithubService()}.GetContext()
 
 	if err != nil {
-		msg := color.New(color.FgYellow, color.Bold).Sprint("scm error: ")
+		msg := color.New(color.FgYellow, color.Bold).Sprintln("\nscm warning: ")
 		fmt.Fprintf(out, "%s %s\n\n", msg, err)
 	}
 
