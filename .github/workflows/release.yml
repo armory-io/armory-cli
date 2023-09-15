@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
 
 jobs:
   setup:
@@ -13,7 +14,7 @@ jobs:
       GRGIT_PASS: ${{ secrets.GITHUB_TOKEN }}
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ github.ref_name }}
+      version: v1.16.1-test
       changelog: ${{ steps.changelog.outputs.CHANGELOG }}
     steps:
       - name: Checkout Code
@@ -118,8 +119,8 @@ jobs:
           release_name: ${{ github.event.repository.name }} ${{ needs.setup.outputs.version }}
           body: |
             ${{ needs.setup.outputs.changelog }}
-          draft: false
-          prerelease: false
+          draft: true
+          prerelease: true
 
   compile:
     name: Compile Binaries and Upload to Release
@@ -240,11 +241,12 @@ jobs:
           TOKEN: ${{ steps.get_token.outputs.app_token }}
         run: git config --global url."https://x-access-token:${TOKEN}@github.com".insteadOf "https://github.com"
 
-      - name: Login to DockerHub
+      - name: Login to Artifactory Docker registry
         uses: docker/login-action@v1
         with:
-          username: ${{ secrets.DOCKER_HUB_USER }}
-          password: ${{ secrets.DOCKER_HUB_PASS }}
+          registry: armory-docker-local.jfrog.io
+          username: ${{ secrets.ARTIFACTORY_USER }}
+          password: ${{ secrets.ARTIFACTORY_TOKEN }}
 
       - name: Format version
         id: meta
@@ -255,38 +257,38 @@ jobs:
 
       - name: Build and push Docker image
         env:
-          REGISTRY: docker.io
+          REGISTRY: armory-docker-local.jfrog.io
           VERSION: ${{ steps.meta.outputs.VERSION }}
           IMAGE_TAG: latest
           PUSH: true
         run: make release
 
-  scan-image:
-    name: CVE Image Scan
-    needs:
-      - build-push
-      - setup
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run Security Scan
-        uses: armory-io/aquasec-scan-action@v0.0.8
-        with:
-          url: https://aquasec.armory.io
-          registry: Docker Hub
-          username: ${{ secrets.AQUA_USER }}
-          password: ${{ secrets.AQUA_PASSWORD }}
-          image: armory/armory-cli:${{needs.build-push.outputs.docker-version}}
+#  scan-image:
+#    name: CVE Image Scan
+#    needs:
+#      - build-push
+#      - setup
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Run Security Scan
+#        uses: armory-io/aquasec-scan-action@v0.0.8
+#        with:
+#          url: https://aquasec.armory.io
+#          registry: Docker Hub
+#          username: ${{ secrets.AQUA_USER }}
+#          password: ${{ secrets.AQUA_PASSWORD }}
+#          image: armory/armory-cli:${{needs.build-push.outputs.docker-version}}
 
-  update-brew-tap:
-    name: Update Brew Tap
-    needs:
-      - setup
-      - create-release
-      - compile
-    runs-on: ubuntu-latest
-    steps:
-      - name: Dispatch update event to Brew tap
-        run: |
-          export VERSION=${GITHUB_REF_NAME#v}
-          echo "VERSION=$VERSION"
-          curl -XPOST -u "${{ secrets.USERNAME }}:${{ secrets.TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/armory-io/homebrew-armory/dispatches --data "{\"event_type\": \"UpdateCliFormula\", \"client_payload\": {\"version\": \"${VERSION}\"}}"
+#  update-brew-tap:
+#    name: Update Brew Tap
+#    needs:
+#      - setup
+#      - create-release
+#      - compile
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Dispatch update event to Brew tap
+#        run: |
+#          export VERSION=${GITHUB_REF_NAME#v}
+#          echo "VERSION=$VERSION"
+#          curl -XPOST -u "${{ secrets.USERNAME }}:${{ secrets.TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/armory-io/homebrew-armory/dispatches --data "{\"event_type\": \"UpdateCliFormula\", \"client_payload\": {\"version\": \"${VERSION}\"}}"
