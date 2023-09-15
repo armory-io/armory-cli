@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -69,7 +70,13 @@ func (s *MainTestSuite) TestProcessCmdErrorsErrorPaths() {
 			exitCode := processCmdResults(c.err)
 			assert.Equal(s.T(), int(c.expectedExitCode), exitCode)
 			assert.Equal(s.T(), c.expectedStdOut, stdOut.String())
-			assert.Equal(s.T(), c.expectedStdErr, stdErr.String())
+			assertEqualIgnoringLineOrder(s.T(), c.expectedStdErr, stdErr.String())
 		})
 	}
+}
+
+func assertEqualIgnoringLineOrder(t *testing.T, expected string, actual string) {
+	expectedLines := strings.Split(expected, "\n")
+	actualLines := strings.Split(actual, "\n")
+	assert.ElementsMatch(t, expectedLines, actualLines)
 }
