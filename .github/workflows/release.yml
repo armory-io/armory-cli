@@ -51,9 +51,6 @@ jobs:
     needs:
       - setup
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ github.ref_name }}
-      changelog: ${{ steps.changelog.outputs.CHANGELOG }}
     steps:
       - name: Get GitHub App Installation Token for Private Go Repos
         id: get_token
@@ -209,7 +206,7 @@ jobs:
       - compile
     runs-on: ubuntu-latest
     outputs:
-      docker-version: ${{ steps.meta.outputs.VERSION }}
+      docker-version: ${{ steps.vars.outputs.version }}
     steps:
       - name: Get GitHub App Installation Token for Private Go Repos
         id: get_token
@@ -248,17 +245,16 @@ jobs:
           username: ${{ secrets.ARTIFACTORY_USER }}
           password: ${{ secrets.ARTIFACTORY_TOKEN }}
 
-      - name: Format version
-        id: meta
+      - name: Set variables
+        id: vars
         run: |
-          export VERSION=${{ needs.setup.outputs.version }}
-          VERSION=$(cut -c2- <<< VERSION) 
-          echo ::set-output name=VERSION::$(echo -e "${VERSION}")
+          # Trim 'v' prefix from version
+          echo "version=$(cut -c2- <<< ${{ needs.setup.outputs.version }})" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         env:
           REGISTRY: armory-docker-local.jfrog.io
-          VERSION: ${{ steps.meta.outputs.VERSION }}
+          VERSION: ${{ steps.vars.outputs.version }}
           IMAGE_TAG: latest
           PUSH: true
         run: make release

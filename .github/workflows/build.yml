@@ -22,6 +22,10 @@ jobs:
           token: ${{ secrets.ARMORY_PLATFORM_GITHUB_PAT_TOKEN }}
           submodules: recursive
 
+      - name: Set variables
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Setup Go environment
         uses: actions/setup-go@v3.5.0
         with:
@@ -75,5 +79,6 @@ jobs:
         env:
           REGISTRY: armory-docker-local.jfrog.io
           IMAGE_TAG: dev
+          VERSION: sha-${{ steps.vars.outputs.sha_short }}
           PUSH: true
         run: make release

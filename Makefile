@@ -19,10 +19,6 @@ default: all
 
 include ./scripts/common_targets.mk
 
-.PHONY: foo
-foo:
-	@echo $(VERSION)
-
 .PHONY: all
 all: clean build-dirs run-before-tools build check run-after-tools
 
@@ -62,5 +58,6 @@ endif
 	--label "org.opencontainers.image.title=armory-cli" \
 	--label "org.opencontainers.image.url=https://github.com/armory-io/armory-cli" \
 	--label "org.opencontainers.image.version=$(VERSION)" \
-	-f Dockerfile . \
-	$(if $(PUSH), --push)
+	$(if $(PUSH), --push) \
+	--file Dockerfile \
+	.
