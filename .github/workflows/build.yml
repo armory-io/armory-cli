@@ -75,4 +75,5 @@ jobs:
         env:
           REGISTRY: armory-docker-local.jfrog.io
           IMAGE_TAG: dev
+          PUSH: true
         run: make release
