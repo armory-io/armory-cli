@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build:
@@ -12,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BASE_PROJECT: armory-cli
+      PR_NUMBER: ${{ github.event.number }}
       GOOS: linux
       GOARCH: amd64
     steps:
@@ -68,16 +68,15 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-      - name: Login to Artifactory Docker registry
+      - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
-          registry: armory-docker-local.jfrog.io
-          username: ${{ secrets.ARTIFACTORY_USER }}
-          password: ${{ secrets.ARTIFACTORY_TOKEN }}
+          username: ${{ secrets.DOCKER_HUB_USER }}
+          password: ${{ secrets.DOCKER_HUB_PASS }}
 
       - name: Build and push
         env:
-          REGISTRY: armory-docker-local.jfrog.io
+          REGISTRY: docker.io
           IMAGE_TAG: dev
           VERSION: sha-${{ steps.vars.outputs.sha_short }}
           PUSH: true
