@@ -175,7 +175,7 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           CLI_EXT: ${{ matrix.ext }}
-        run: make release
+        run: make build
 
       - name: Upload Release Asset
         id: upload-release-asset
@@ -246,17 +246,19 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASS }}
 
-      - name: Docker meta
+      - name: Format version
         id: meta
         run: |
           export VERSION=${{ needs.setup.outputs.version }}
-          VERSION=$(cut -c2- <<< VERSION)
+          VERSION=$(cut -c2- <<< VERSION) 
           echo ::set-output name=VERSION::$(echo -e "${VERSION}")
 
-      - name: Build and push CLI
+      - name: Build and push Docker image
         env:
+          REGISTRY: docker.io
           VERSION: ${{ steps.meta.outputs.VERSION }}
           IMAGE_TAG: latest
+          PUSH: true
         run: make release
 
   scan-image:

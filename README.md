@@ -24,7 +24,7 @@ The CLI releases can be found on the [releases page](https://github.com/armory/a
 
 # Release
 
-To make a public release, create a tag and push it to this repository:
+To make a public release, create a semantic version tag and push it to this repository:
 ```shell
 git tag v1.10.0
 git push --tags
@@ -39,7 +39,6 @@ After cloning repository, make sure scripts module is initialized:
 ```shell
  git submodule update --init --recursive
 ```
-##
 
 ## Changing Environments
 
@@ -123,3 +122,9 @@ specificSubdomain.WHATEVER.anythingYouWant {
 While in that directory, execute `caddy run` and it will automatically pick up your configuration, otherwise if you're not in
 the directory use the `--config <locationOfYourConfig>`. You should not see any errors. Make sure your spring potato app
 is running at `localhost:8080`  
+
+## Building Docker images
+You can build a preview Docker image with `make release`. It can be optionally published to our private Artifactory Docker registry:
+```shell
+make PUSH=true release
+```

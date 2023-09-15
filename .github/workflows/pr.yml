@@ -44,11 +44,12 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USER }}
           password: ${{ secrets.DOCKER_HUB_PASS }}
 
-      - name: Run build, generate and push docker image preview
+      - name: Build, test and publish preview Docker image
         id: build
         env:
           IMAGE_TAG: preview
-          REGISTRY: "armory-docker-local.jfrog.io/"
+          REGISTRY: "armory-docker-local.jfrog.io"
+          PUSH: true
         run: |
           make all release
 

@@ -72,5 +72,6 @@ jobs:
 
       - name: Build and push
         env:
+          REGISTRY: docker.io
           IMAGE_TAG: dev
         run: make release

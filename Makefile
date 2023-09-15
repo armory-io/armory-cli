@@ -1,20 +1,19 @@
 APP_NAME              = armory
 APP_EXT               ?= "${CLI_EXT}"
 VERSION               ?= $(shell ./scripts/version.sh | cut -c -30) #limit the version to 30 characters - 
-REGISTRY              ?=""
-REGISTRY_ORG          ?="armory"
+REGISTRY              ?= armory-docker-local.jfrog.io
+REGISTRY_ORG          ?= armory
 GOARCH                ?= $(shell go env GOARCH)
 GOOS                  ?= $(shell go env GOOS)
 PWD                   =  $(shell pwd)
-IMAGE_TAG             ?= "local"
-LOCAL_KUBECTL_CONTEXT ?= "kind-armory-cloud-dev"
-IMAGE                 := $(subst $\",,$(REGISTRY)/$(REGISTRY_ORG)/${APP_NAME}:${VERSION})
+IMAGE_TAG             ?= local
+LOCAL_KUBECTL_CONTEXT ?= kind-armory-cloud-dev
+IMAGE                 := ${REGISTRY}/${REGISTRY_ORG}/${APP_NAME}-cli
 BUILD_DIR             := ${PWD}/build
-DIST_DIR              := ${BUILD_DIR}/dist/$(GOOS)_$(GOARCH)
+DIST_DIR              := ${BUILD_DIR}/dist/${GOOS}_${GOARCH}
 GEN_DIR               := ${PWD}/generated
-MAIN_PATH			  := "main.go"
+MAIN_PATH			  := main.go
 TIMESTAMP			  := $(shell date -u +"%FT%TZ")
-PUSH				  := $(if $(GITHUB_SHA),"--push", "")
 
 default: all
 
@@ -49,10 +48,12 @@ integration: build-dirs install-tools
 
 .PHONY: release
 release: clean build-linux-amd64
-	@echo Release version of armory-cli ${VERSION} created in ${DIST_DIR}/${APP_NAME}${APP_EXT}
+ifdef PUSH
+	$(info PUSH flag set, will publish the image after build)
+endif
 	@docker build \
-	--tag $(REGISTRY)$(REGISTRY_ORG)/$(APP_NAME)-cli:$(IMAGE_TAG) \
-	--tag $(REGISTRY)$(REGISTRY_ORG)/$(APP_NAME)-cli:$(VERSION) \
+	--tag $(IMAGE):$(IMAGE_TAG) \
+	--tag $(IMAGE):$(VERSION) \
 	--label "org.opencontainers.image.created=$(TIMESTAMP)" \
 	--label "org.opencontainers.image.description=The CLI for Armory Continuous Deployments-as-a-Service" \
 	--label "org.opencontainers.image.revision=$(GITHUB_SHA)" \
@@ -62,6 +63,4 @@ release: clean build-linux-amd64
 	--label "org.opencontainers.image.url=https://github.com/armory-io/armory-cli" \
 	--label "org.opencontainers.image.version=$(VERSION)" \
 	-f Dockerfile . \
-	$(PUSH)
-
-
+	$(if $(PUSH), --push)
