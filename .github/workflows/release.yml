@@ -248,7 +248,8 @@ jobs:
       - name: Build and push Docker image
         env:
           REGISTRY: docker.io
-          VERSION: ${{ steps.vars.outputs.version }}
+          VERSION: ${{ needs.setup.outputs.version }}
+          IMAGE_TAG_VERSION: ${{ steps.vars.outputs.version }}
           IMAGE_TAG: latest
           PUSH: true
         run: make release

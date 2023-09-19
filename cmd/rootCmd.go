@@ -27,7 +27,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -180,7 +179,7 @@ func CheckForUpdate(cli *config.Configuration) {
 	if err != nil {
 		return
 	}
-	if ((!strings.HasSuffix(*currentRelease.TagName, currentVersion)) || (currentVersion == "development")) && cli.GetOutputType() == output.Text {
+	if ((*currentRelease.TagName != currentVersion) || (currentVersion == "development")) && cli.GetOutputType() == output.Text {
 		color.Set(color.FgGreen)
 		console.Stderrf("\nNOTICE: A new version of the Armory CLI is available. Please upgrade to %s by running `brew upgrade armory-cli` if installed with Homebrew or by running `avm install` if installed with AVM.\n\n", *currentRelease.TagName)
 		color.Unset()
