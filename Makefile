@@ -1,7 +1,7 @@
 APP_NAME              = armory
 APP_EXT               ?= "${CLI_EXT}"
-VERSION               ?= $(shell ./scripts/version.sh | cut -c -30) #limit the version to 30 characters -
-IMAGE_TAG_VERSION	  ?= "${VERSION}"
+VERSION               ?= $(shell ./scripts/version.sh | cut -c -30)#limit the version to 30 characters -
+IMAGE_TAG_VERSION	  ?= "$(VERSION)"
 REGISTRY              ?= armory-docker-local.jfrog.io
 REGISTRY_ORG          ?= armory
 GOARCH                ?= $(shell go env GOARCH)
