@@ -1,6 +1,7 @@
 APP_NAME              = armory
 APP_EXT               ?= "${CLI_EXT}"
-VERSION               ?= $(shell ./scripts/version.sh | cut -c -30) #limit the version to 30 characters - 
+VERSION               ?= $(shell ./scripts/version.sh | cut -c -30)#limit the version to 30 characters -
+IMAGE_TAG_VERSION	  ?= "$(VERSION)"
 REGISTRY              ?= armory-docker-local.jfrog.io
 REGISTRY_ORG          ?= armory
 GOARCH                ?= $(shell go env GOARCH)
@@ -49,7 +50,7 @@ ifdef PUSH
 endif
 	@docker build \
 	--tag $(IMAGE):$(IMAGE_TAG) \
-	--tag $(IMAGE):$(VERSION) \
+	--tag $(IMAGE):$(IMAGE_TAG_VERSION) \
 	--label "org.opencontainers.image.created=$(TIMESTAMP)" \
 	--label "org.opencontainers.image.description=The CLI for Armory Continuous Deployments-as-a-Service" \
 	--label "org.opencontainers.image.revision=$(GITHUB_SHA)" \
