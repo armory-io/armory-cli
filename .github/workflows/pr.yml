@@ -15,11 +15,13 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+          token: ${{ secrets.ARMORY_PLATFORM_GITHUB_PAT_TOKEN }}
+          submodules: recursive
+
       - name: Setup Go environment
-        uses: actions/setup-go@v2.1.4
+        uses: actions/setup-go@v3.5.0
         with:
-          go-version: '1.19.7'
-          stable: false
+          go-version-file: 'go.mod'
 
       - name: Cache Dependencies
         uses: actions/cache@v2
@@ -31,13 +33,25 @@ jobs:
       - name: Configure git for private modules
         run: git config --global url."https://x-access-token:${{ secrets.ARMORY_PLATFORM_GITHUB_PAT_TOKEN }}@github.com".insteadOf "https://github.com"
 
-      - name: Run build
+      - name: Login to Artifactory
         run: |
-          make all
+          docker login -u ${{ secrets.ARTIFACTORY_USER }} -p ${{ secrets.ARTIFACTORY_TOKEN }} armory-docker-local.jfrog.io
+        shell: bash
 
-      - name: Run integration-tests
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USER }}
+          password: ${{ secrets.DOCKER_HUB_PASS }}
+
+      - name: Build, test and publish preview Docker image
+        id: build
+        env:
+          IMAGE_TAG: preview
+          REGISTRY: "armory-docker-local.jfrog.io"
+          PUSH: true
         run: |
-          make integration
+          make all release
 
       - name: Upload Tests Reports
         if: ${{ always() }}
