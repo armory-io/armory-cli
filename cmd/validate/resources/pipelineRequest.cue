@@ -161,7 +161,7 @@ import "struct"
     isRemoteNetworkAgent: networkMode == "remoteNetworkAgent"
   }
   if isRemoteNetworkAgent == true {
-    agentIdentifier: string
+    agentIdentifier?: string
   }
   headers?: [... #Header]
   bodyTemplate?: #Body

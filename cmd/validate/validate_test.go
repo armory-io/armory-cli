@@ -67,6 +67,11 @@ func TestDeployValidate(t *testing.T) {
 			deployYaml: invalidLambdaDeployYamlStr,
 			output:     "YAML is valid.\n",
 		},
+		{
+			testName:   "RNA webhook without explicit agentIdentifier should pass",
+			deployYaml: rnaWebhookWithImplicitAgent,
+			output:     "YAML is valid.\n",
+		},
 	}
 
 	for _, c := range cases {
@@ -162,4 +167,33 @@ providerOptions:
       runAsIamRole: "<some-lambda-role-arn>"
       handler: index.handler
       runtime: nodejs18.x
+`
+
+const rnaWebhookWithImplicitAgent = `
+version: apps/v1
+kind: kubernetes
+application: deployment-test
+targets:
+  dev_1:
+    account: dev
+    namespace: dev-1
+    strategy: strategy1
+    constraints:
+      afterDeployment:
+        - runWebhook:
+            name: Sample webhook
+manifests:
+  - path: deployment.yaml
+strategies:
+  strategy1:
+    canary:
+      steps:
+        - setWeight:
+            weight: 100
+webhooks:
+    - name: Sample webhook
+      method: GET
+      uriTemplate: https://webhook.site
+      networkMode: remoteNetworkAgent
+      disableCallback: true
 `
