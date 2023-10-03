@@ -114,6 +114,20 @@ application: lambda-application
 				"Content-Type": "application/json",
 			},
 		},
+		{
+			name: "k8s with enqueueOne strategy",
+			yaml: `
+kind: kubernetes
+application: classic-k8s-app
+deploymentConfig:
+  ifDeploymentInProgress:
+    strategy: enqueueOne
+`,
+			expectedPath: "/pipelines",
+			expectedHeaders: map[string]string{
+				"Content-Type": "application/json",
+			},
+		},
 	}
 
 	for _, c := range cases {
