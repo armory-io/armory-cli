@@ -35,6 +35,11 @@ import "struct"
 #DeploymentConfig: {
   timeout?: #Timeout
   keepDeploymentObject?: bool
+  ifDeploymentInProgress?: #IfDeploymentInProgress
+}
+
+#IfDeploymentInProgress: {
+	strategy: "reject" | "enqueueOne"
 }
 
 #Timeout: {
