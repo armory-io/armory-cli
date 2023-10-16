@@ -24,6 +24,7 @@ type (
 
 const (
 	mediaTypeKubernetesPipelineV2 = "application/vnd.start.kubernetes.pipeline.v2+json"
+	kubernetesKind                = "kubernetes"
 )
 
 func NewClient(configuration *config.Configuration) *Client {
@@ -173,7 +174,13 @@ func getPipelinePathAndHeaders(options StartPipelineOptions) (string, map[string
 	if err != nil {
 		return "", nil, err
 	}
-	if structured.Kind == "kubernetes" || structured.Kind == "" {
+	if structured.Kind == kubernetesKind &&
+	  structured.DeploymentConfig != nil &&
+	  structured.DeploymentConfig.IfDeploymentInProgress != nil &&
+	  structured.DeploymentConfig.IfDeploymentInProgress.Strategy == enqueueOne {
+		return "/pipelines", nil, nil
+	}
+	if structured.Kind == kubernetesKind || structured.Kind == "" {
 		return "/pipelines/kubernetes", map[string]string{
 			"Content-Type": mediaTypeKubernetesPipelineV2,
 			"Accept":       mediaTypeKubernetesPipelineV2,

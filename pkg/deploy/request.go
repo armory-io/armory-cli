@@ -23,9 +23,10 @@ type (
 	}
 
 	structuredConfig struct {
-		Kind        string     `yaml:"kind"`
-		Application string     `yaml:"application"`
-		Manifests   []manifest `yaml:"manifests"`
+		Kind             string            `yaml:"kind"`
+		Application      string            `yaml:"application"`
+		Manifests        []manifest        `yaml:"manifests"`
+		DeploymentConfig *deploymentConfig `yaml:"deploymentConfig"`
 	}
 
 	manifest struct {
@@ -33,6 +34,16 @@ type (
 		Targets []string `yaml:"targets"`
 		Inline  string   `yaml:"inline"`
 	}
+
+	deploymentConfig struct {
+		IfDeploymentInProgress *ifDeploymentInProgress `yaml:"ifDeploymentInProgress"`
+	}
+
+	ifDeploymentInProgress struct {
+		Strategy strategy `yaml:"strategy"`
+	}
+
+	strategy string
 )
 
 const (
@@ -41,6 +52,9 @@ const (
 	contextKey            = "context"
 	scmcKey               = "sourceControl"
 	envVarGithubWorkspace = "GITHUB_WORKSPACE"
+
+	enqueueOne strategy = "enqueueOne"
+	reject     strategy = "reject"
 )
 
 func (s *StartPipelineOptions) structuredConfig() (*structuredConfig, error) {
