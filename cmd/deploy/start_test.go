@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	scm "github.com/armory/armory-cli/cmd/sourceControl"
 	"github.com/armory/armory-cli/internal/clierr"
 	"github.com/armory/armory-cli/internal/clierr/exitcodes"
 	"gopkg.in/yaml.v3"
@@ -171,7 +170,7 @@ func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
 		deploymentFile:    "http://mytesturl.com/deploy.yml",
 		waitForCompletion: false,
 	},
-		scm.GetEmptyMockSCMC(),
+		de.SCM{},
 		deployClient,
 	)
 
@@ -188,7 +187,7 @@ func (suite *DeployStartTestSuite) TestDeployWithURLUsesExpectedOptions() {
 		deploymentFile:    "http://mytesturl.com/deploy.yml",
 		waitForCompletion: false,
 	},
-		scm.GetEmptyMockSCMC(),
+		de.SCM{},
 		deployClient,
 	)
 
@@ -219,7 +218,7 @@ func (suite *DeployStartTestSuite) TestDeployWithFileUsesExpectedOptions() {
 		deploymentFile:    tempFile.Name(),
 		waitForCompletion: false,
 	},
-		scm.GetEmptyMockSCMC(),
+		de.SCM{},
 		deployClient,
 	)
 	dr := deployClient.RecordedStartPipelineOptions.UnstructuredDeployment
@@ -259,7 +258,7 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineValidation() {
 
 	for _, c := range cases {
 		suite.T().Run(c.name, func(t *testing.T) {
-			_, _, err := WithURL(cmd, c.options, scm.GetEmptyMockSCMC(), deployClient)
+			_, _, err := WithURL(cmd, c.options, de.SCM{}, deployClient)
 			assert.ErrorIs(t, err, c.expectedErr)
 		})
 	}
@@ -286,7 +285,7 @@ func (suite *DeployStartTestSuite) TestDeployWithPipelineIdUsesExpectedOptions()
 		deploymentFile:    "armory::http://localhost:9099/pipelines/012345/config",
 		waitForCompletion: false,
 	},
-		scm.GetEmptyMockSCMC(),
+		de.SCM{},
 		deployClient,
 	)
 	suite.NoError(err)

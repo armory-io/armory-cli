@@ -19,18 +19,6 @@ type (
 	}
 )
 
-func (mock MockSmc) GetContext() (Context, error) {
-	scmc := MockSmc{
-		SCM: de.SCM{
-			Type: "mock"}}
-	return scmc, nil
-}
-
-func GetEmptyMockSCMC() Context {
-	scmc, _ := MockSmc{}.GetContext()
-	return scmc
-}
-
 func (m MockServiceProvider) GetGithubService() GithubService {
 	return m.service
 }

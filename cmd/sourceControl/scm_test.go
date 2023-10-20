@@ -6,6 +6,7 @@ import (
 	de "github.com/armory-io/deploy-engine/pkg/api"
 	gh "github.com/google/go-github/github"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"os"
 	"testing"
 )
@@ -40,7 +41,7 @@ func TestScm(t *testing.T) {
 		setup             func()
 		provider          ServiceProvider
 		expectErrContains string
-		expectedSCMC      func() Context
+		expectedSCMC      func() de.SCM
 	}{{
 		name: "Missing GH_TOKEN",
 		setup: func() {
@@ -81,6 +82,49 @@ func TestScm(t *testing.T) {
 	}
 
 }
+
+func TestFileScm(t *testing.T) {
+	cases := []struct {
+		name              string
+		setup             func(file string) string
+		test              func(writer io.Writer) (de.GenericSCM, error)
+		expectErrContains string
+		expectedSCMC      de.SCM
+	}{
+		{
+			name:              "Invalid path",
+			expectErrContains: "no such file",
+			test: func(writer io.Writer) (de.GenericSCM, error) {
+				return GetContextFromFile(writer, "./fakePath.yaml")
+			},
+			expectedSCMC: de.SCM{},
+		},
+		{
+			name: "SCM file only",
+			test: func(writer io.Writer) (de.GenericSCM, error) {
+				return Unmarshall([]byte(testGenericSCMfile))
+			},
+			expectedSCMC: getFileMockContext(),
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			writer := bytes.NewBufferString("")
+			scmc := de.SCM{}
+			var actualError error
+			scmc.GenericSCM, actualError = c.test(writer)
+			if c.expectErrContains != "" {
+				assert.ErrorContains(t, actualError, c.expectErrContains)
+			} else {
+				assert.NoError(t, actualError)
+			}
+
+			assert.Equal(t, c.expectedSCMC, scmc)
+		})
+	}
+}
+
 func setGithubEnv() {
 	token = setOrRetrieveEnv(de.GithubToken, token)
 	repo = setOrRetrieveEnv(de.GithubRepo, repo)
@@ -98,54 +142,69 @@ func setGithubEnv() {
 
 func getBaseContext() de.SCM {
 	return de.SCM{
-		Type:                de.Github,
-		Event:               de.Event(event),
-		Reference:           de.Reference(refType),
-		ReferenceName:       refName,
-		Principal:           actor,
-		TriggeringPrincipal: triggeringActor,
-		SHA:                 sha,
-		Repository:          repo,
-		Server:              server,
+		GithubSCM: de.GithubSCM{
+			Type:                de.Github,
+			Event:               de.Event(event),
+			Reference:           de.Reference(refType),
+			ReferenceName:       refName,
+			Principal:           actor,
+			TriggeringPrincipal: triggeringActor,
+			SHA:                 sha,
+			Repository:          repo,
+			Server:              server,
+		},
 	}
 }
 
-func getGithubMockContext() Context {
-	return GithubContext{
-		GithubSCM: de.GithubSCM{
-			SCM: getBaseContext(),
-			GithubData: de.GithubData{
-				RunId:    runId,
-				Workflow: workflow,
-			}}}
+func getGithubMockContext() de.SCM {
+
+	scmc := getBaseContext()
+	scmc.GithubData = de.GithubData{
+		RunId:    runId,
+		Workflow: workflow,
+	}
+	return scmc
 }
 
-func getGithubMockContextWithPR() Context {
-	context := GithubContext{
-		GithubSCM: de.GithubSCM{
-			SCM: getBaseContext(),
-			GithubData: de.GithubData{
-				RunId:    runId,
-				Workflow: workflow,
-			}}}
-	context.Source = sourceBranch
-	context.Target = targetBranch
-	context.PRTitle = title
-	context.PRUrl = fmt.Sprintf("%s/%s/pull/%d", server, repo, number)
-	return context
+func getGithubMockContextWithPR() de.SCM {
+	scmc := getGithubMockContext()
+	scmc.GithubSCM.Source = sourceBranch
+	scmc.GithubSCM.Target = targetBranch
+	scmc.GithubSCM.PRTitle = title
+	scmc.GithubSCM.PRUrl = fmt.Sprintf("%s/%s/pull/%d", server, repo, number)
+	return scmc
 }
 
-func getGithubMockContextNoRepo() Context {
-	base := getBaseContext()
-	base.Repository = ""
-	context := GithubContext{
-		GithubSCM: de.GithubSCM{
-			SCM: base,
-			GithubData: de.GithubData{
-				RunId:    runId,
-				Workflow: workflow,
-			}}}
-	return context
+func getGithubMockContextNoRepo() de.SCM {
+	scmc := getGithubMockContext()
+	scmc.GithubSCM.Repository = ""
+	return scmc
+}
+
+func getFileMockContext() de.SCM {
+	scmc := de.SCM{
+		GenericSCM: de.GenericSCM{
+			Type:          "jenkins",
+			Event:         "push",
+			Reference:     "refs/heads/main",
+			ReferenceName: "5/merge",
+			Source:        "feat/something-cool",
+			SourceUrl:     "http://urlto/feat/something-cool",
+			Target:        "main",
+			TargetUrl:     "http://urlto/main",
+			Principal:     "donquixote",
+			PrincipalUrl:  "donquixote",
+			PrTitle:       "feat: modified configuration - use / as ui root",
+			PrUrl:         "https://urlto/pr/8",
+			Sha:           "fe3540e4de2ac32312d86dd1b7a8e0d10d7b810b",
+			ShaUrl:        "https://urlto/fe3540e4de2ac32312d86dd1b7a8e0d10d7b810b",
+			Workflow:      "Workflow Run",
+			WorkflowUrl:   "http://urlto/someworkflow",
+			Tag:           "sometag",
+			TagUrl:        "http://urlto/sometag",
+		},
+	}
+	return scmc
 }
 
 func setOrRetrieveEnv(key string, value string) string {
@@ -156,3 +215,23 @@ func setOrRetrieveEnv(key string, value string) string {
 	os.Setenv(key, value)
 	return value
 }
+
+const testGenericSCMfile = `
+genericType:          "jenkins"
+genericEvent:         "push"
+genericReference:     "refs/heads/main"
+genericReferenceName: "5/merge"
+genericSource:        "feat/something-cool"
+genericSourceUrl:     "http://urlto/feat/something-cool"
+genericTarget:        "main"
+genericTargetUrl:     "http://urlto/main"
+genericPrincipal:     "donquixote"
+genericPrincipalUrl:  "donquixote"
+genericPrTitle:       "feat: modified configuration - use / as ui root"
+genericPrUrl:         "https://urlto/pr/8"
+genericSha:           "fe3540e4de2ac32312d86dd1b7a8e0d10d7b810b"
+genericShaUrl:        "https://urlto/fe3540e4de2ac32312d86dd1b7a8e0d10d7b810b"
+genericWorkflow:      "Workflow Run"
+genericWorkflowUrl:   "http://urlto/someworkflow"
+genericTag:           "sometag"
+genericTagUrl:        "http://urlto/sometag"`
