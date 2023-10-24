@@ -43,10 +43,11 @@ type deployStartOptions struct {
 	targetFilters     []string
 	context           map[string]string
 	withSCM           bool
+	withSCMFile       string
 	waitForCompletion bool
 }
 
-type WithDeployConfiguration func(cmd *cobra.Command, options *deployStartOptions, scmc scm.Context, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error)
+type WithDeployConfiguration func(cmd *cobra.Command, options *deployStartOptions, scmc de.SCM, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error)
 
 type FormattableDeployStartResponse struct {
 	// The deployment's ID.
@@ -127,7 +128,8 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 	cmd.Flags().StringVarP(&options.application, "application", "n", "", "application name for deployment")
 	cmd.Flags().StringArrayVarP(&options.targetFilters, "targetFilters", "t", []string{}, "targets specified in the config file to include. Those not specified will be skipped. All specified in the config will be overridden")
 	cmd.Flags().StringToStringVar(&options.context, "add-context", map[string]string{}, "add context values to be used in strategy steps")
-	cmd.Flags().BoolVarP(&options.withSCM, "with-scm", "", false, "add source control context to be shown in ui")
+	cmd.Flags().BoolVar(&options.withSCM, "with-scm", false, "add source control context to be shown in ui")
+	cmd.Flags().StringVar(&options.withSCMFile, "with-scm-file", "", "add source control through a file path")
 	cmd.Flags().BoolVarP(&options.waitForCompletion, "watch", "w", false, "wait for deployment to complete")
 
 	return cmd
@@ -161,9 +163,13 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	} else {
 		withConfiguration = WithLocalFile
 	}
-	var scmc scm.Context
+	var scmc de.SCM
 	if options.withSCM {
 		scmc, _ = scm.RetrieveContext(cmd.OutOrStdout(), scm.DefaultServiceProvider{Ctx: context.Background()})
+	}
+
+	if options.withSCMFile != "" {
+		scmc.GenericSCM, _ = scm.GetContextFromFile(cmd.OutOrStdout(), options.withSCMFile)
 	}
 
 	startResp, rawResp, err = withConfiguration(cmd, options, scmc, deployClient)
@@ -182,7 +188,7 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	return outputCommandResult(deploy, configuration)
 }
 
-func WithURL(cmd *cobra.Command, options *deployStartOptions, scmc scm.Context, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
+func WithURL(cmd *cobra.Command, options *deployStartOptions, scmc de.SCM, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
 	if options.application != "" {
 		return nil, nil, ErrApplicationNameOverrideNotSupported
 	}
@@ -216,7 +222,7 @@ func prepareTargetFilters(options *deployStartOptions) []map[string]any {
 	return targetFilters
 }
 
-func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, scmc scm.Context, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
+func WithLocalFile(cmd *cobra.Command, options *deployStartOptions, scmc de.SCM, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error) {
 	//in case this is running on a github instance
 	gitWorkspace, present := os.LookupEnv("GITHUB_WORKSPACE")
 	_, isATest := os.LookupEnv("ARMORY_CLI_TEST")

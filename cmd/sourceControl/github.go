@@ -13,11 +13,6 @@ import (
 )
 
 type (
-	GithubContext struct {
-		de.GithubSCM
-		service GithubService
-	}
-
 	GithubService interface {
 		GetPR() (gh.PullRequest, error)
 	}
@@ -36,36 +31,36 @@ type (
 	}
 )
 
-func (gc GithubContext) GetContext() (Context, error) {
-	githubContext := GithubContext{
-		GithubSCM: de.GithubSCM{
-			SCM: de.SCM{
-				Type:                de.Github,
-				Event:               de.Event(os.Getenv(de.GithubEvent)),
-				Reference:           de.Reference(os.Getenv(de.GithubRefType)),
-				ReferenceName:       os.Getenv(de.GithubRefName),
-				Principal:           os.Getenv(de.GithubActor),
-				TriggeringPrincipal: os.Getenv(de.GithubTriggeringActor),
-				SHA:                 os.Getenv(de.GithubSHA),
-				Repository:          os.Getenv(de.GithubRepo),
-				Server:              os.Getenv(de.GithubServer)},
-			GithubData: de.GithubData{
-				RunId:    os.Getenv(de.GithubRunID),
-				Workflow: os.Getenv(de.GithubWorkflow),
-			}}}
+func GetGithubContext(service GithubService) (de.GithubSCM, de.GithubData, error) {
 
-	pr, err := gc.service.GetPR()
-
-	if err != nil {
-		return githubContext, err
+	githubSCM := de.GithubSCM{
+		Type:                de.Github,
+		Event:               de.Event(os.Getenv(de.GithubEvent)),
+		Reference:           de.Reference(os.Getenv(de.GithubRefType)),
+		ReferenceName:       os.Getenv(de.GithubRefName),
+		Principal:           os.Getenv(de.GithubActor),
+		TriggeringPrincipal: os.Getenv(de.GithubTriggeringActor),
+		SHA:                 os.Getenv(de.GithubSHA),
+		Repository:          os.Getenv(de.GithubRepo),
+		Server:              os.Getenv(de.GithubServer),
+	}
+	githubData := de.GithubData{
+		RunId:    os.Getenv(de.GithubRunID),
+		Workflow: os.Getenv(de.GithubWorkflow),
 	}
 
-	githubContext.Source = pr.GetHead().GetRef()
-	githubContext.Target = pr.GetBase().GetRef()
-	githubContext.PRTitle = pr.GetTitle()
-	githubContext.PRUrl = getURL(pr.GetNumber())
+	pr, err := service.GetPR()
 
-	return githubContext, err
+	if err != nil {
+		return githubSCM, githubData, err
+	}
+
+	githubSCM.Source = pr.GetHead().GetRef()
+	githubSCM.Target = pr.GetBase().GetRef()
+	githubSCM.PRTitle = pr.GetTitle()
+	githubSCM.PRUrl = getURL(pr.GetNumber())
+
+	return githubSCM, githubData, nil
 }
 
 func getURL(number int) string {

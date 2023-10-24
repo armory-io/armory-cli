@@ -1,7 +1,7 @@
 package deploy
 
 import (
-	scm "github.com/armory/armory-cli/cmd/sourceControl"
+	de "github.com/armory-io/deploy-engine/pkg/api"
 	errorUtils "github.com/armory/armory-cli/pkg/errors"
 	"github.com/mitchellh/mapstructure"
 	"github.com/samber/lo"
@@ -17,7 +17,7 @@ type (
 		UnstructuredDeployment  map[string]any
 		ApplicationNameOverride string
 		Context                 map[string]string
-		SCMC                    scm.Context
+		SCMC                    de.SCM
 		Headers                 map[string]string
 		IsURL                   bool
 	}
