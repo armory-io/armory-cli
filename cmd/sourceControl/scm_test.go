@@ -102,7 +102,7 @@ func TestFileScm(t *testing.T) {
 		{
 			name: "SCM file only",
 			test: func(writer io.Writer) (de.GenericSCM, error) {
-				return Unmarshall([]byte(testGenericSCMfile))
+				return Unmarshall([]byte(testGenericSCMFile))
 			},
 			expectedSCMC: getFileMockContext(),
 		},
@@ -216,7 +216,7 @@ func setOrRetrieveEnv(key string, value string) string {
 	return value
 }
 
-const testGenericSCMfile = `
+const testGenericSCMFile = `
 genericType:          "jenkins"
 genericEvent:         "push"
 genericReference:     "refs/heads/main"
