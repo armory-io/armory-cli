@@ -102,7 +102,7 @@ func (suite *ConfigurationTestSuite) TestParse() {
 
 	for _, c := range cases {
 		conf := New(&Input{ApiAddr: &c.in})
-		parsedUrl, err := conf.getArmoryCloudAdder()
+		parsedUrl, err := conf.getArmoryCloudAddr()
 
 		if c.err != "" {
 			suite.EqualErrorf(err, c.err, "Error messages do not match. Want: '%s', got: '%s'", c.err, err)

@@ -45,6 +45,12 @@ func processCmdResults(err error) int {
 		return apiError.ExitCode()
 	}
 
+	var cliError *clierr.Error
+	if errors.As(err, &cliError) {
+		console.Stderrln(cliError.DetailedError())
+		return cliError.ExitCode()
+	}
+
 	// else assume it's a plain error
 	console.Stderrln(color.New(color.FgRed, color.Bold).Sprintf(err.Error()))
 	return int(exitcodes.Error)

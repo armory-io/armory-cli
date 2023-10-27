@@ -112,11 +112,24 @@ func (c *Configuration) GetCustomerOrganizationId() string {
 }
 
 func (c *Configuration) GetArmoryCloudAddr() *url.URL {
-	parsedAddr, err := c.getArmoryCloudAdder()
+	parsedAddr, err := c.getArmoryCloudAddr()
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
 	return parsedAddr
+}
+
+func (c *Configuration) GetArmoryCloudGraphQLAddr() *url.URL {
+	addr, err := c.getArmoryCloudAddr()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if strings.HasPrefix(addr.Host, "localhost:") {
+		addr.Scheme = "http"
+		addr.Host = "localhost:8081"
+	}
+	addr.Path = "/v1/graphql"
+	return addr
 }
 
 func (c *Configuration) Now() time.Time {
@@ -126,7 +139,7 @@ func (c *Configuration) Now() time.Time {
 	return c.clock()
 }
 
-func (c *Configuration) getArmoryCloudAdder() (*url.URL, error) {
+func (c *Configuration) getArmoryCloudAddr() (*url.URL, error) {
 	armoryCloudAddr := *c.input.ApiAddr
 	parsedUrl, err := url.Parse(armoryCloudAddr)
 	if err != nil {

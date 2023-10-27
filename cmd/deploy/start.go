@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	scm "github.com/armory/armory-cli/cmd/sourceControl"
+	"github.com/armory/armory-cli/internal/graphql"
 	"gopkg.in/yaml.v3"
 	"io"
 	nethttp "net/http"
@@ -32,7 +33,8 @@ const (
 	armoryConfigLocationHeader = "X-Armory-Config-Location"
 	mediaTypePipelineV2        = "application/vnd.start.kubernetes.pipeline.v2+json"
 	mediaTypePipelineV2Link    = "application/vnd.start.kubernetes.pipeline.v2.link+json"
-	mediaTypePipelineRedeploy  = "application/vnd.armory.pipeline-redeploy+json"
+
+	defaultWaiterTimeout = time.Minute
 )
 
 type deployStartOptions struct {
@@ -45,6 +47,13 @@ type deployStartOptions struct {
 	withSCM           bool
 	withSCMFile       string
 	waitForCompletion bool
+
+	waiter        waiter
+	waiterTimeout time.Duration
+}
+
+type waiter interface {
+	WaitForPipelineToBeProcessed(ctx context.Context, pipelineID string) error
 }
 
 type WithDeployConfiguration func(cmd *cobra.Command, options *deployStartOptions, scmc de.SCM, deployClient ArmoryDeployClient) (*de.StartPipelineResponse, *nethttp.Response, error)
@@ -108,7 +117,10 @@ func (u FormattableDeployStartResponse) String() string {
 }
 
 func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
-	options := &deployStartOptions{}
+	options := &deployStartOptions{
+		waiterTimeout: defaultWaiterTimeout,
+	}
+
 	cmd := &cobra.Command{
 		Use:     "start --file [<path to file>]",
 		Aliases: []string{"start"},
@@ -119,6 +131,13 @@ func NewDeployStartCmd(configuration *config.Configuration) *cobra.Command {
 			cmdUtils.ExecuteParentHooks(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if !*configuration.GetIsTest() {
+				options.waiter = NewWaiter(
+					graphql.NewClient(configuration),
+					configuration.GetArmoryCloudEnvironmentConfiguration().CloudConsoleBaseUrl,
+				)
+			}
+
 			return start(cmd, configuration, options)
 		},
 	}
@@ -180,6 +199,15 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	// create response object
 	deploy := newDeployStartResponse(startResp, rawResp, err)
 	storeCommandResult(cmd, DeployResultDeploymentID, deploy.DeploymentId)
+
+	if options.waiter != nil {
+		ctx, cancel := context.WithTimeout(cmd.Context(), options.waiterTimeout)
+		defer cancel()
+
+		if err := options.waiter.WaitForPipelineToBeProcessed(ctx, deploy.DeploymentId); err != nil {
+			return err
+		}
+	}
 
 	if options.waitForCompletion && err == nil {
 		beginTrackingDeployment(cmd, configuration, &deploy, deployClient)
