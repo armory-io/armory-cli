@@ -71,7 +71,7 @@ func createRole(cmd *cobra.Command, cli *cliconfig.Configuration, reader io.Read
 	}
 
 	externalID := fmt.Sprintf("%s:%s", orgID, envID)
-	roleName := fmt.Sprintf("ArmoryRole")
+	roleName := "ArmoryRole"
 	epochTs := fmt.Sprintf("%d", time.Now().Unix())
 	templatePrefix := ""
 
