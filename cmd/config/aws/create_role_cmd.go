@@ -24,6 +24,7 @@ const (
 	configCreateRoleExample = "armory config aws create-role"
 	templateUrl             = "https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateURL=https://s3.us-west-2.amazonaws.com/static.cloud.armory.io/templates/aws/cloudformation/%siam-role-cfn.template&stackName=Armory-CDAAS-Role-Stack-%s&param_AccountId=%s&param_ExternalId=%s&param_ArmoryRoleName=%s"
 	devTemplatePrefix       = "dev-"
+	armoryRoleName          = "ArmoryRole"
 
 	installPromptIntro  = "In order to deploy AWS resources, we need to create a Trust Relationship in your AWS account by adding a role that Armory can assume to execute deployments on your behalf."
 	installPromptPrereq = "Prerequisite: Log in to the AWS Management Console you want to connect to in your default browser. The logged in user requires access to configure IAM roles."
@@ -71,7 +72,6 @@ func createRole(cmd *cobra.Command, cli *cliconfig.Configuration, reader io.Read
 	}
 
 	externalID := fmt.Sprintf("%s:%s", orgID, envID)
-	roleName := "ArmoryRole"
 	epochTs := fmt.Sprintf("%d", time.Now().Unix())
 	templatePrefix := ""
 
@@ -104,7 +104,7 @@ func createRole(cmd *cobra.Command, cli *cliconfig.Configuration, reader io.Read
 		}
 		return err
 	}
-	url := fmt.Sprintf(templateUrl, templatePrefix, epochTs, cli.GetArmoryCloudEnvironmentConfiguration().AWSAccountID, externalID, roleName)
+	url := fmt.Sprintf(templateUrl, templatePrefix, epochTs, cli.GetArmoryCloudEnvironmentConfiguration().AWSAccountID, externalID, armoryRoleName)
 	err = browser.OpenURL(url)
 	if err != nil {
 		log.S().Info(installPromptErr)
