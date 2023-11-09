@@ -188,7 +188,7 @@ jobs:
         with:
           vault_addr: '${{ secrets.VAULT_ADDR }}'
           vault_token: '${{ secrets.VAULT_TOKEN }}'
-          aws_account: hosted-services
+          vault_aws_secret_backend: hosted-services
           role: armory-cli-publisher
 
       - name: Upload release to S3
