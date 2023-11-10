@@ -194,7 +194,7 @@ jobs:
       - name: Upload release to S3
         env:
           AWS_REGION: "us-west-2"
-        run: aws s3 cp "$ASSET_NAME" "s3://armory-cli-releases/cli/${{ needs.setup.outputs.version }}/" --no-progress
+        run: aws s3 cp ./build/dist/${{ matrix.os }}_${{ matrix.arch }}/armory${{ matrix.ext }} "s3://armory-cli-releases/cli/${{ needs.setup.outputs.version }}/" --no-progress
 
 
 #  update-aurora-plugin:
