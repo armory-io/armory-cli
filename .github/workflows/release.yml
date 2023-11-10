@@ -131,6 +131,8 @@ jobs:
         exclude:
           - os: windows
             arch: arm64
+    env:
+      ASSET_NAME: armory-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
     steps:
       - name: Get GitHub App Installation Token for Private Go Repos
         id: get_token
@@ -178,8 +180,20 @@ jobs:
         with:
           upload_url: ${{ needs.create-release.outputs.release-url }} # This pulls from the CREATE RELEASE step above, referencing its ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
           asset_path: ./build/dist/${{ matrix.os }}_${{ matrix.arch }}/armory${{ matrix.ext }}
-          asset_name: armory-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+          asset_name: ${{ env.ASSET_NAME }}
           asset_content_type: binary/octet-stream
+
+      - name: Fetch AWS Credentials
+        uses: armory-io/infra-github-actions/fetch-aws-credentials@master
+        with:
+          vault_addr: '${{ secrets.VAULT_ADDR }}'
+          vault_token: '${{ secrets.VAULT_TOKEN }}'
+          vault_aws_secret_backend: hosted-services
+          role: armory-cli-publisher
+
+      - name: Upload release to S3
+        run: aws s3 cp "$ASSET_NAME" "s3://armory-cli-releases/cli/${{ needs.setup.outputs.version }}/" --no-progress
+
 
 #  update-aurora-plugin:
 #    name: Trigger Aurora Build
