@@ -20,19 +20,19 @@ var (
 
 const (
 	configCreateRoleShort   = "AWS Create Role via CloudFormation Stack"
-	configCreateRoleLong    = "Use AWS CloudFormation quick create to run a template that allows Armory to assume a role to manage deployments\n"
+	configCreateRoleLong    = "Use Armory's AWS CloudFormation template to create a Stack with an IAM role. This IAM Role allows Armory to manage your Lambda deployments.\n"
 	configCreateRoleExample = "armory config aws create-role"
 	templateUrl             = "https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateURL=https://s3.us-west-2.amazonaws.com/static.cloud.armory.io/templates/aws/cloudformation/%siam-role-cfn.template&stackName=Armory-CDAAS-Role-Stack-%s&param_AccountId=%s&param_ExternalId=%s&param_ArmoryRoleName=%s"
 	devTemplatePrefix       = "dev-"
 	armoryRoleName          = "ArmoryRole"
 
-	installPromptIntro  = "In order to deploy AWS resources, we need to create a Trust Relationship in your AWS account by adding a role that Armory can assume to execute deployments on your behalf."
-	installPromptPrereq = "Prerequisite: Log in to the AWS Management Console you want to connect to in your default browser. The logged in user requires access to configure IAM roles."
-	installPromptStep1  = "1. Type \"Y\" to begin the installation of resources. This will open your browser window with your AWS Console. You will complete the rest of this process in your browser."
+	installPromptIntro  = "In order to deploy AWS resources, Armory needs to create a Trust Relationship in your AWS account by adding an IAM role that Armory can assume to execute deployments on your behalf."
+	installPromptPrereq = "Prerequisite: In your default browser, log in to the AWS Account you want to connect to Armory CD-as-a-Service. You must have permission to configure IAM roles."
+	installPromptStep1  = "1. Type \"Y\" to begin Stack creation. This opens your browser to the CloudFormation page of your AWS Console. You complete the rest of this process in your browser."
 	installPromptStep2  = "2. Review the resources to be created in your AWS account. Customize the name of the role that Armory will use to deploy."
-	installPromptStep3  = "3. Click \"Create\" in the AWS CloudFormation screen and wait for the stack creation to complete."
+	installPromptStep3  = "3. Click \"Create\" on the AWS CloudFormation page and wait for Stack creation to complete."
 	installPromptStep4  = "4. Once the CloudFormation stack creation is finished, locate the created role arn in the `Outputs` section. You will find it under the key `RoleArnOutput`. Use the `arn` value as the `account` in your CD-as-a-Service deployment targets."
-	installPromptErr    = "Unable to open browser. Please copy and paste the following URL into your browser."
+	installPromptErr    = "Unable to open browser. Copy and paste the following URL into your browser:"
 )
 
 func NewCreateRoleCmd(configuration *cliconfig.Configuration, reader io.ReadCloser) *cobra.Command {
