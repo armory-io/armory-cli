@@ -29,9 +29,9 @@ const (
 	installPromptIntro  = "In order to deploy AWS resources, Armory needs to create a Trust Relationship in your AWS account by adding an IAM role that Armory can assume to execute deployments on your behalf."
 	installPromptPrereq = "Prerequisite: In your default browser, log in to the AWS Account you want to connect to Armory CD-as-a-Service. You must have permission to configure IAM roles."
 	installPromptStep1  = "1. Type \"Y\" to begin Stack creation. This opens your browser to the CloudFormation page of your AWS Console. You complete the rest of this process in your browser."
-	installPromptStep2  = "2. Review the resources to be created in your AWS account. Customize the name of the role that Armory will use to deploy."
+	installPromptStep2  = "2. Review the resources that Armory is creating in your AWS account. The default IAM Role name is \"ArmoryRole\" but you can customize the name of that role if you wish."
 	installPromptStep3  = "3. Click \"Create\" on the AWS CloudFormation page and wait for Stack creation to complete."
-	installPromptStep4  = "4. Once the CloudFormation stack creation is finished, locate the created role arn in the `Outputs` section. You will find it under the key `RoleArnOutput`. Use the `arn` value as the `account` in your CD-as-a-Service deployment targets."
+	installPromptStep4  = "4. After the CloudFormation Stack creation finishes, locate the created role ARN in the \"Outputs\" section. You can find it under the key \"RoleArnOutput\". You use the ARN to populate the \"account\" field in your CD-as-a-Service Lambda deployment target."
 	installPromptErr    = "Unable to open browser. Copy and paste the following URL into your browser:"
 )
 
