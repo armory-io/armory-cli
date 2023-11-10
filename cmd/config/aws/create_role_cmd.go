@@ -31,7 +31,7 @@ const (
 	installPromptStep1  = "1. Type \"Y\" to begin Stack creation. This opens your browser to the CloudFormation page of your AWS Console. You complete the rest of this process in your browser."
 	installPromptStep2  = "2. Review the resources that Armory is creating in your AWS account. The default IAM Role name is \"ArmoryRole\" but you can customize the name of that role if you wish."
 	installPromptStep3  = "3. Click \"Create\" on the AWS CloudFormation page and wait for Stack creation to complete."
-	installPromptStep4  = "4. After the CloudFormation Stack creation finishes, locate the created role ARN in the \"Outputs\" section. You can find it under the key \"RoleArnOutput\". You use the ARN to populate the \"account\" field in your CD-as-a-Service Lambda deployment target."
+	installPromptStep4  = "4. After the CloudFormation Stack creation finishes, locate the created role ARN in the \"Outputs\" section. You can find it under the key \"RoleArnOutput\". You use the ARN to populate the \"deployAsRoleArn\" field in your CD-as-a-Service Lambda deployment target."
 	installPromptErr    = "Unable to open browser. Copy and paste the following URL into your browser:"
 )
 
