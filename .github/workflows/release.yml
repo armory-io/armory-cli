@@ -183,32 +183,6 @@ jobs:
           asset_name: ${{ env.ASSET_NAME }}
           asset_content_type: binary/octet-stream
 
-      - name: Fetch AWS Credentials
-        uses: armory-io/infra-github-actions/fetch-aws-credentials@master
-        with:
-          vault_addr: '${{ secrets.VAULT_ADDR }}'
-          vault_token: '${{ secrets.VAULT_TOKEN }}'
-          vault_aws_secret_backend: hosted-services
-          role: armory-cli-publisher
-
-      - name: Upload release to S3
-        env:
-          AWS_REGION: "us-west-2"
-        run: aws s3 cp ./build/dist/${{ matrix.os }}_${{ matrix.arch }}/armory${{ matrix.ext }} "s3://armory-cli-releases/cli/${{ needs.setup.outputs.version }}/" --no-progress
-
-
-#  update-aurora-plugin:
-#    name: Trigger Aurora Build
-#    needs:
-#      - setup
-#      - create-release
-#      - compile
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: trigger a new aurora plugin build
-#        run: |
-#          curl -v -XPOST -u "${{ secrets.USERNAME }}:${{ secrets.TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/armory-io/spinnaker-deployments-plugin/dispatches --data "{\"event_type\": \"onCliRelease\", \"client_payload\": {\"org\": \"armory-io\", \"repo\": \"spinnaker-deployments-plugin\", \"releaseOrg\": \"armory-io\", \"releaseRepo\": \"spinnaker-deployments-plugin\", \"cli-release-version\": \"${{ needs.setup.outputs.version }}\"}}"
-
   build-push:
     name: Build and Push Docker Image
     needs:
@@ -294,16 +268,14 @@ jobs:
           password: ${{ secrets.AQUA_PASSWORD }}
           image: armory/armory-cli:${{needs.build-push.outputs.docker-version}}
 
-  update-brew-tap:
-    name: Update Brew Tap
+  run-s3-releaser:
+    name: Update Releaser Repository
     needs:
       - setup
       - create-release
       - compile
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch update event to Brew tap
+      - name: Dispatch update event to releaser repository
         run: |
-          export VERSION=${GITHUB_REF_NAME#v}
-          echo "VERSION=$VERSION"
-          curl -XPOST -u "${{ secrets.USERNAME }}:${{ secrets.TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/armory-io/homebrew-armory/dispatches --data "{\"event_type\": \"UpdateCliFormula\", \"client_payload\": {\"version\": \"${VERSION}\"}}"
+          curl -X POST -H "Authorization: token ${{ secrets.ARMORY_PLATFORM_GITHUB_PAT_TOKEN }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/armory-io/armory-cli-releaser/dispatches --data "{\"event_type\": \"ReleaseCli\", \"client_payload\": {\"release_tag\": \"${{ github.ref_name }}\"}}"
