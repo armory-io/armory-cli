@@ -74,6 +74,8 @@ func login(cmd *cobra.Command, cli *config.Configuration, envName string) error 
 	// Don't pollute our beautiful terminal with garbage
 	browser.Stderr = io.Discard
 	browser.Stdout = io.Discard
+	log.S().Infof("Your browser should automatically oped to verify the code above. In the event it does not you can "+
+		"navigate to %s", deviceTokenResponse.VerificationUriComplete)
 	err = browser.OpenURL(deviceTokenResponse.VerificationUriComplete)
 	if err != nil {
 		log.S().Info("You are about to be prompted to verify the following code in your default browser.")
