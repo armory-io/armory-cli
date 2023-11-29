@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"os"
 	"sort"
@@ -479,8 +480,8 @@ func (o *AgentOptions) apply(namespace, resourceFile string) error {
 		OpenAPISchema:     openAPISchema,
 		ToPrinter:         noopPrinter,
 		IOStreams:         genericclioptions.NewTestIOStreamsDiscard(),
-		VisitedUids:       sets.NewString(),
-		VisitedNamespaces: sets.NewString(),
+		VisitedUids:       sets.New[types.UID](),
+		VisitedNamespaces: sets.New[string](),
 	}
 	return applyOptions.Run()
 }
