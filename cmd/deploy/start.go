@@ -5,6 +5,7 @@ import (
 	"fmt"
 	scm "github.com/armory/armory-cli/cmd/sourceControl"
 	"github.com/armory/armory-cli/internal/graphql"
+	"github.com/armory/armory-cli/pkg/console"
 	"gopkg.in/yaml.v3"
 	"io"
 	nethttp "net/http"
@@ -199,6 +200,10 @@ func start(cmd *cobra.Command, configuration *config.Configuration, options *dep
 	// create response object
 	deploy := newDeployStartResponse(startResp, rawResp, err)
 	storeCommandResult(cmd, DeployResultDeploymentID, deploy.DeploymentId)
+
+	for _, warning := range startResp.Warnings {
+		console.Stderrf("Warning: %s\n", warning)
+	}
 
 	if options.waiter != nil {
 		ctx, cancel := context.WithTimeout(cmd.Context(), options.waiterTimeout)
